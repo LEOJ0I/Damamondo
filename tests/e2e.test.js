@@ -304,7 +304,9 @@ test('partita completa sul telefono', async (t) => {
     await page.uncheck('#oU');
     await tapCm(B[0], B[1]);
     assert.match(await info(), /Truppe nascoste/);
-    await page.check('#oU'); await page.check('#oB'); await page.uncheck('#oS');
+    assert.equal(await page.isChecked('#oS'), false, 'i fogli sono nascosti di partenza');
+    await page.check('#oS'); await page.uncheck('#oS');
+    await page.check('#oU'); await page.check('#oB');
     await page.check('#oG');
     assert.equal(await page.isChecked('#oD'), true, 'i dettagli sono attivi di partenza');
     await page.uncheck('#oD'); await page.check('#oD');
