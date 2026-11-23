@@ -45,6 +45,8 @@
     return cache;
   }
 
+  DM.mapImage = map => baseImages(map).bio;   // per lo sfondo del menu
+
   function territoryImage(G) {
     const w = W * TR, h = H * TR, c = document.createElement('canvas');
     c.width = w; c.height = h;

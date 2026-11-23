@@ -22,7 +22,10 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/save.js` | salvare e riprendere la partita |
 | `js/render.js` | disegno della mappa |
 | `js/decor.js` | dettagli quando si ingrandisce (opzione): alberi, montagne, onde, minerali, case, disegni delle truppe |
-| `js/ui.js`, `js/main.js` | tocchi, pannelli, pulsanti, avvio |
+| `js/ui.js` | schermata di gioco: tocchi, pannelli, pulsanti |
+| `js/menu.js` | menu iniziale (Gioca → Locale / Multiplayer, Regole) e le 3 partite salvate |
+| `js/rules.js` | il regolamento completo, con le tabelle prese dai dati del gioco |
+| `js/main.js` | avvio |
 
 Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e riusare per un'app.
 
@@ -30,7 +33,7 @@ Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e 
 
 ```
 npm test               # 51 prove delle regole (serve Node 18+)
-npm run test:browser   # 31 passi giocati in un browser che finge un iPhone (serve Playwright)
+npm run test:browser   # 33 passi giocati in un browser che finge un iPhone (serve Playwright)
 ```
 
 ## Decisioni prese (da confermare)
@@ -54,10 +57,12 @@ Le correzioni del documento di passaggio hanno la precedenza sul PDF. Dove il re
 - **Veicolo distrutto**: scendono quelli a bordo e l'autista (un Soldato) nel punto più vicino dove possono stare; se sono in mare aperto, si perdono.
 - **Aereo Carro**: parte e atterra solo nei propri Aeroporti (al massimo 12 cm a turno), e solo lì carica e scarica.
 
-## Salvataggi
+## Menu e salvataggi
 
-La partita si salva da sola nel telefono a ogni mossa: riaprendo la pagina c'è "Riprendi la partita". Dal pannello "Salvataggi" si salvano copie e si scarica un file (da tenere al sicuro o da aprire su un altro telefono).
+All'apertura c'è il menu: **Gioca** (Locale o Multiplayer, che per ora dice "Coming soon") e **Regole** (tutto il regolamento con le correzioni).
+In Locale si tengono fino a 3 partite nel telefono: ognuna si salva da sola a ogni mossa e si riprende con "Continua". Dal pannello "Salvataggi" della partita si scarica un file, che si può riaprire da "Apri da file".
 
 ## Ancora da fare
 
-1. Pubblicare fuori da Claude (per esempio GitHub Pages) e, più avanti, farne un'app.
+1. Multiplayer.
+2. Pubblicare fuori da Claude (per esempio GitHub Pages) e, più avanti, farne un'app.

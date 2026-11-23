@@ -34,6 +34,17 @@ async function selectAt(x, y, re) {
   for (let i = 0; i < 5; i++) { await tapCm(x, y); if (re.test(await info())) return; }
   throw new Error('non riesco a selezionare ' + re + ': ' + await info());
 }
+// Dal menu: Gioca → Locale → Nuova partita (fa posto se ci sono già 3 partite)
+async function newFromMenu(np, seed) {
+  if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
+  await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  while ((await page.locator('[data-m=elimina]').count()) >= 3) await page.locator('[data-m=elimina]').last().click();
+  await page.click('[data-m=nuova]');
+  await page.click(`[data-m=np][data-arg="${np}"]`);
+  if (seed) await page.fill('#seed', String(seed));
+  await page.click('[data-m=inizia]');
+  await page.waitForSelector('[data-act=kit]');
+}
 const act = async (text) => { await page.locator('#info button', { hasText: text }).first().click(); };
 
 // Punto di Pianura con tanta Pianura intorno, lontano da "lontano"
@@ -58,14 +69,35 @@ test.before(async () => {
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('dialog', d => d.accept());
   await page.goto(URL);
-  await page.waitForSelector('[data-act=players]');
+  await page.waitForSelector('[data-m=gioca]');
 });
 test.after(async () => { await browser.close(); });
 
 test('partita completa sul telefono', async (t) => {
   let A, B;
+  await t.test('menu: titolo, Gioca, Multiplayer "coming soon", Regole', async () => {
+    assert.match(await page.locator('#menu').innerText(), /DAMAMONDO/);
+    await page.click('[data-m=gioca]');
+    await page.click('[data-m=multi]');
+    assert.match(await page.locator('#menu').innerText(), /Coming soon/i);
+    await page.click('[data-m=gioca]');
+    await page.click('[data-m=home]');
+    await page.click('[data-m=regole]');
+    const r = await page.locator('.rules').innerText();
+    assert.match(r, /1\. Introduzione/); assert.match(r, /Scelte del prototipo/);
+    assert.match(r, /Carrarmato\s+2\s+1500/);
+    assert.doesNotMatch(r, /undefined|NaN/);
+    assert.equal(await page.locator('.rules section').count(), 17);
+    await page.locator('[data-m=home]').first().click();
+    await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+    assert.match(await page.locator('#menu').innerText(), /Nessuna partita salvata/);
+  });
+
   await t.test('preparazione: giocatori, kit, Capitali (anche nei punti vietati)', async () => {
-    await act('2');
+    await page.click('[data-m=nuova]');
+    await page.fill('#seed', '7');
+    await page.click('[data-m=inizia]');
+    await page.waitForSelector('[data-act=kit]');
     assert.match(await info(), /Giocatore 1.*scegli il kit/s);
     await act('Tribù');
     await tapCm(.1, .1);
@@ -279,11 +311,13 @@ test('partita completa sul telefono', async (t) => {
     await shot('06-vista');
   });
 
-  await t.test('nuova partita (con conferma)', async () => {
-    await page.click('text=Nuova partita');
-    await page.click('#map');
-    await page.waitForSelector('[data-act=players]');
-    assert.match(await hud(), /Preparazione/);
+  await t.test('Menu e ritorno: la partita resta in Locale e si continua', async () => {
+    const round = await ev(() => DM.game.round);
+    await page.click('#toMenu');
+    await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+    assert.match(await page.locator('#menu').innerText(), new RegExp('Partita 1[\\s\\S]*2 giocatori · giro ' + round));
+    await page.click('[data-m=continua]');
+    assert.match(await hud(), new RegExp('Giro ' + round));
   });
 
   await t.test('nessun errore JavaScript nella pagina', () => { assert.deepEqual(errors, []); });
@@ -291,11 +325,9 @@ test('partita completa sul telefono', async (t) => {
 
 test('pulsanti dei pannelli: pozioni, bacche, Superbomba, dado dei Maghi, edifici, cessioni, nuova Capitale', async (t) => {
   // partita nuova sulla mappa numero 7: Maghi contro Tribù
-  await page.fill('#seed', '7');
-  await page.click('#map');
-  await page.waitForSelector('[data-act=players]');
-  assert.match(await page.locator('#seedInfo').innerText(), /numero 7/);
-  await act('2'); await act('Maghi');
+  await newFromMenu(2, 7);
+  assert.match(await page.locator('#seedInfo').textContent(), /numero 7/);
+  await act('Maghi');
   const A = await findSpot(); await tapCm(A[0], A[1]);
   await act('Tribù');
   const B = await findSpot(A, 16); await tapCm(B[0], B[1]);
@@ -412,10 +444,8 @@ test('pulsanti dei pannelli: pozioni, bacche, Superbomba, dado dei Maghi, edific
 
 test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => {
   // partita sulla mappa 7, una mossa, poi ricarico la pagina
-  await page.fill('#seed', '7');
-  await page.click('#map');
-  await page.waitForSelector('[data-act=players]');
-  await act('2'); await act('Tribù');
+  await newFromMenu(2, 7);
+  await act('Tribù');
   const A = await findSpot(); await tapCm(A[0], A[1]);
   await act('Tribù');
   const B = await findSpot(A, 16); await tapCm(B[0], B[1]);
@@ -425,28 +455,35 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
   await page.click('#end');
   const before = await ev(() => DM.serialize(DM.game));
 
-  await t.test('la pagina si ricarica: "Riprendi la partita" la riporta com’era', async () => {
+  await t.test('la pagina si ricarica: da Gioca → Locale la partita è com’era', async () => {
     await page.reload();
-    await page.waitForSelector('[data-act=resume]');
-    assert.match(await info(), /Partita salvata.*giro 1, 2 giocatori, tocca a Giocatore 2/s);
-    await act('Riprendi la partita');
+    await page.waitForSelector('[data-m=gioca]');
+    await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+    const first = page.locator('.card.slot').first();
+    assert.match(await first.innerText(), /2 giocatori · giro 1 · tocca a Giocatore 2/);
+    await first.locator('[data-m=continua]').click();
     assert.match(await hud(), /Giocatore 2.*Giro 1/s);
     const after = await ev(() => DM.serialize(DM.game));
     assert.equal(JSON.stringify({ ...JSON.parse(after), saved: 0 }), JSON.stringify({ ...JSON.parse(before), saved: 0 }));
   });
 
-  await t.test('copia salvata, nuova mossa, ricarico la copia', async () => {
-    await page.click('#saveP summary');
-    await page.click('#saveT [data-act=saveslot]');
-    assert.match(await info(), /Copia salvata/);
-    assert.match(await page.locator('#saveT').innerText(), /giro 1 · tocca a Giocatore 2/);
-    await page.click('#end');
-    assert.match(await hud(), /Giro 2/);
-    await page.click('#saveT [data-act=loadslot]');
-    assert.match(await info(), /Copia caricata/);
+  await t.test('al massimo 3 partite; Elimina fa posto', async () => {
+    await page.click('#toMenu'); await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+    while ((await page.locator('.card.slot').count()) < 3) {
+      await page.click('[data-m=nuova]'); await page.click('[data-m=inizia]'); await page.waitForSelector('[data-act=kit]');
+      await page.click('#toMenu'); await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+    }
+    assert.equal(await page.locator('[data-m=nuova]').count(), 0);
+    assert.match(await page.locator('#menu').innerText(), /Hai già 3 partite/);
+    await page.locator('[data-m=elimina]').last().click();
+    assert.match(await page.locator('#menu').innerText(), /Partita eliminata/);
+    assert.equal(await page.locator('.card.slot').count(), 2);
+    assert.equal(await page.locator('[data-m=nuova]').count(), 1);
+    // torno alla partita della prova (la più recente con il giro 1 e tocca a Giocatore 2)
+    const card = page.locator('.card.slot', { hasText: 'tocca a Giocatore 2' }).first();
+    await card.locator('[data-m=continua]').click();
     assert.match(await hud(), /Giocatore 2.*Giro 1/s);
-    await page.click('#saveT [data-act=delslot]');
-    assert.doesNotMatch(await page.locator('#saveT').innerText(), /tocca a/);
+    await page.click('#saveP summary');
   });
 
   await t.test('scarica il file e riaprilo', async () => {
@@ -460,6 +497,17 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
     assert.match(await hud(), /Giocatore 2.*Giro 1/s);
     assert.equal(await ev(() => DM.capitalOf(DM.game, 0).inv.mat.ferro), 4321);
     await shot('09-salvataggi');
+  });
+
+  await t.test('Apri da file dal menu: diventa una partita nuova', async () => {
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#saveT [data-act=download]')]);
+    const file = await dl.path();
+    await page.click('#toMenu'); await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+    const n = await page.locator('.card.slot').count();
+    if (n >= 3) await page.locator('[data-m=elimina]').last().click();
+    await page.setInputFiles('#menufile', file);
+    await page.waitForFunction(() => /Partita aperta dal file/.test(document.getElementById('info').innerText));
+    assert.equal(await ev(() => DM.capitalOf(DM.game, 0).inv.mat.ferro), 4321);
   });
 
   await t.test('un file sbagliato dà un messaggio, non rompe la partita', async () => {

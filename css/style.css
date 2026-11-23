@@ -52,3 +52,48 @@ details > summary { min-height: 44px; display: flex; align-items: center; cursor
 .help { margin: 0; }
 label.file { display: inline-flex; align-items: center; min-height: 44px; padding: 9px 12px; border: 1px solid var(--bd); border-radius: 8px; background: var(--pn); cursor: pointer; }
 label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+/* ---- Menu ---- */
+.menu { position: relative; min-height: 100vh; min-height: 100dvh; width: 100%; display: flex; justify-content: center; align-items: center; padding: 24px 16px; overflow: hidden; }
+.menu.long { align-items: flex-start; }
+.menu[hidden], .game[hidden] { display: none; }
+.game { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+#menuBg { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .35; filter: blur(2px) saturate(1.1); z-index: 0; pointer-events: none; }
+.menu-body { position: relative; z-index: 1; width: 100%; max-width: 520px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.menu.long .menu-body { max-width: 760px; }
+.title { margin: 0 0 18px; text-align: center; font-size: clamp(34px, 12vw, 104px); line-height: 1; font-weight: 900; letter-spacing: .02em; max-width: 100%;
+  color: var(--fg); text-shadow: 0 3px 0 var(--ac), 0 6px 18px rgba(0, 0, 0, .25); }
+.title small { display: block; font-size: .26em; letter-spacing: .5em; font-weight: 700; margin-top: 10px; opacity: .8; text-shadow: none; }
+.menu h2 { margin: 0; font-size: 26px; text-align: center; }
+.stack { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: min(100%, 300px); }
+button.big, label.big { font-size: 21px; font-weight: 700; padding: 14px 20px; min-height: 58px; border-radius: 14px; justify-content: center; text-align: center; }
+button.big.back { font-size: 17px; min-height: 48px; font-weight: 600; background: transparent; }
+button.big.small { font-size: 15px; min-height: 44px; padding: 8px 14px; font-weight: 600; }
+.card { width: 100%; background: var(--pn); border: 1px solid var(--bd); border-radius: 14px; padding: 12px 14px; }
+.card.slot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.card.slot .r { margin: 0; }
+.card.slot button.big.go { font-size: 17px; min-height: 48px; padding: 10px 16px; }
+.soon { text-align: center; }
+.soon b { font-size: 34px; letter-spacing: .06em; }
+.np { min-width: 52px; font-size: 20px; font-weight: 700; }
+.np.on { background: var(--ac); border-color: var(--ac); color: #111; }
+.opts { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 8px; }
+.opts label { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.opts select, .opts input { width: 55%; }
+.note, .msg.center { text-align: center; }
+.menu .msg { font-weight: 600; margin: 0; }
+
+/* ---- Regolamento ---- */
+.rules { width: 100%; background: var(--pn); border: 1px solid var(--bd); border-radius: 14px; padding: 6px 16px 16px; }
+.rules h3 { margin: 22px 0 8px; font-size: 20px; border-bottom: 2px solid var(--ac); padding-bottom: 4px; }
+.rules h4 { margin: 14px 0 6px; }
+.rules ul { padding-left: 20px; }
+.rules li { margin: 4px 0; }
+.toc ol { columns: 2; column-gap: 20px; padding-left: 22px; margin: 6px 0 0; }
+.toc a { color: inherit; }
+.tw { overflow-x: auto; margin: 8px 0; }
+.rules table { border-collapse: collapse; font-size: 14px; min-width: 100%; }
+.rules th, .rules td { border: 1px solid var(--bd); padding: 5px 7px; text-align: left; vertical-align: top; }
+.rules th { background: color-mix(in srgb, var(--ac) 18%, var(--pn)); }
+@media (max-width: 420px) { .toc ol { columns: 1; } }
+@media (max-width: 380px) { .rules table { font-size: 12.5px; } .rules th, .rules td { padding: 4px 5px; } }
