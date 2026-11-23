@@ -11,7 +11,7 @@
     sel: null, selB: null, mode: '', pick: [], spawn: '', msg: '', cede: null, keep: false,
     bombKind: '', berryKind: '', pz: null, bridgeLv: 1, cargoQty: 0, cedeBTo: false, mineAt: null, rolling: false, Z: 10
   };
-  const view = () => ({ sheets: $('oS').checked, biomes: $('oB').checked, terr: $('oR').checked, units: $('oU').checked, grid: $('oG').checked });
+  const view = () => ({ sheets: $('oS').checked, biomes: $('oB').checked, terr: $('oR').checked, units: $('oU').checked, grid: $('oG').checked, detail: $('oD').checked });
   const tapR = () => Math.max(.5, Math.min(1.5, 16 / ui.Z));   // circa 16 pixel, tra 0,5 e 1,5 cm
   const pcol = o => DM.PLAYER_COLORS[o];
   const btn = (act, label, arg, cls) => `<button type="button" data-act="${act}"${arg !== undefined ? ` data-arg="${arg}"` : ''}${cls ? ` class="${cls}"` : ''}>${label}</button>`;
@@ -493,7 +493,7 @@
       r.readAsText(e.target.files[0]);
     });
     $('r5').onclick = () => { if (G.phase === 'play') { G.round += 5; ui.msg = 'Giro ' + G.round + ': limiti aggiornati (solo per prova, senza produzione).'; draw(); } };
-    ['oS', 'oG', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
+    ['oS', 'oG', 'oD', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
     DM.MATERIALS.forEach(m => $('bm').add(new Option(m + ' · ' + DM.fmtN(DM.BANK[m][0]) + ' ' + DM.unitOf(m) + ' = ' + DM.fmtN(DM.BANK[m][1]) + ' soldi', m)));
     DM.BUYABLE.forEach(k => $('by').add(new Option(DM.nameOf(k), k)));
     $('by').onchange = () => eco();

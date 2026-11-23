@@ -273,6 +273,8 @@ test('partita completa sul telefono', async (t) => {
     assert.match(await info(), /Truppe nascoste/);
     await page.check('#oU'); await page.check('#oB'); await page.uncheck('#oS');
     await page.check('#oG');
+    assert.equal(await page.isChecked('#oD'), true, 'i dettagli sono attivi di partenza');
+    await page.uncheck('#oD'); await page.check('#oD');
     assert.match(await page.locator('#leg').innerText(), /✈\s*Aeroporto/);
     await shot('06-vista');
   });

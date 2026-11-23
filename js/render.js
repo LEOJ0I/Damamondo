@@ -86,7 +86,8 @@
     cx.imageSmoothingEnabled = true;
     cx.drawImage(view.biomes ? imgs.bio : imgs.plain, 0, 0, W, H);
     // dettagli del terreno quando si ingrandisce (compaiono piano piano da 10 a 18 pixel per cm)
-    if (view.biomes && Z >= 10) {
+    const detail = view.detail !== false;   // opzione "Dettagli quando ingrandisci"
+    if (detail && view.biomes && Z >= 10) {
       cx.globalAlpha = Math.min(1, (Z - 10) / 8);
       cx.drawImage(DM.detailLayer(G.map), 0, 0, W, H);
       cx.globalAlpha = 1;
@@ -178,20 +179,21 @@
       if (s.par) {
         // edificio dentro una città: sulla mappa si vede solo la città; il pannello dice cosa c'è dentro
       } else if (s.k === 'cap') {
+        if (detail && Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
         star(cx, s.x, s.y, .75 * sz); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke();
       } else if (s.k === 'min') {
         cx.beginPath();
         for (let i = 0; i < 6; i++) cx.lineTo(s.x + Math.cos(i * 1.047) * .4 * sz, s.y + Math.sin(i * 1.047) * .4 * sz);
         cx.closePath(); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.lineWidth = .08; cx.stroke();
         cx.fillStyle = '#fff'; cx.font = 'bold ' + (.3 * sz) + 'px sans-serif'; cx.fillText(DM.SYMBOL[s.mt], s.x, s.y + .02);
-        if (Z >= 12) DM.drawOre(cx, s, sz);
+        if (detail && Z >= 12) DM.drawOre(cx, s, sz);
       } else if (ICON[s.k]) {
         badge(s.k, s.x, s.y, .38 * sz, col);
       } else {
         const z = (s.k === 'citta' ? .55 : .35) * sz;
         cx.fillStyle = col; cx.strokeStyle = '#fff';
         cx.fillRect(s.x - z, s.y - z, 2 * z, 2 * z); cx.strokeRect(s.x - z, s.y - z, 2 * z, 2 * z);
-        if (Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
+        if (detail && Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
       }
       if (ui.selB === s) {
         cx.strokeStyle = '#ffd54a'; cx.lineWidth = Math.max(.12, 3 * px); cx.beginPath(); cx.arc(s.x, s.y, .9 * sz, 0, 7); cx.stroke();
@@ -222,7 +224,16 @@
         cx.lineWidth = picked ? ur * .4 : u.g ? ur * .35 : ur * .22;
         cx.beginPath(); cx.arc(u.x, u.y, u.g ? ur * 1.3 : ur, 0, 7); cx.fill(); cx.stroke();
         cx.fillStyle = '#fff'; cx.font = 'bold ' + ur + 'px sans-serif';
-        cx.fillText(u.g ? String(u.an) : DM.TROOPS[u.t].label, u.x, u.y + .02);
+        // ingrandendo, al posto della lettera c'è il disegno della truppa (l'esercito tiene il numero)
+        if (detail && Z >= 14 && !u.g) DM.drawTroopIcon(cx, u.t, u.x, u.y, ur * .9);
+        else cx.fillText(u.g ? String(u.an) : DM.TROOPS[u.t].label, u.x, u.y + .02);
+        if (detail && Z >= 14 && u.g) {   // nell'esercito: piccolo disegno della truppa più forte
+          const best = DM.armyOf(G, u).sort((a, b) => DM.TROOPS[b.t].hp - DM.TROOPS[a.t].hp)[0];
+          const bx = u.x - ur * 1.05, by = u.y + ur * 1.05;
+          cx.fillStyle = pc[u.o]; cx.strokeStyle = '#111'; cx.lineWidth = ur * .12;
+          cx.beginPath(); cx.arc(bx, by, ur * .55, 0, 7); cx.fill(); cx.stroke();
+          DM.drawTroopIcon(cx, best.t, bx, by, ur * .45);
+        }
         const on = G.units.filter(v => v.carried && DM.armyOf(G, u).some(w => w.id === v.carried)).length;
         if (on) {   // quante truppe a bordo
           const bx = u.x + ur * .95, by = u.y - ur * .95;

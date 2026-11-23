@@ -124,11 +124,58 @@
       c.fillStyle = '#f4efe6'; c.fillRect(x - w, y - w * .4, 2 * w, w * 1.2);
       c.fillStyle = '#3b2a24'; c.beginPath(); c.moveTo(x - w * 1.2, y - w * .4); c.lineTo(x, y - w * 1.3); c.lineTo(x + w * 1.2, y - w * .4); c.closePath(); c.fill();
     };
-    if (s.k === 'citta') { house(s.x - .2 * z, s.y + .1 * z, .12 * z); house(s.x + .2 * z, s.y + .12 * z, .12 * z); house(s.x, s.y - .18 * z, .14 * z); }
+    if (s.k === 'cap') {   // la Capitale: case attorno alla stella (la stella si disegna sopra)
+      [[-.78, .42], [.78, .42], [-.72, -.5], [.72, -.5], [-.3, .85], [.3, .85]].forEach(([dx, dy], i) => house(s.x + dx * z, s.y + dy * z, (.16 + (i % 2) * .03) * z));
+    } else if (s.k === 'citta') { house(s.x - .2 * z, s.y + .1 * z, .12 * z); house(s.x + .2 * z, s.y + .12 * z, .12 * z); house(s.x, s.y - .18 * z, .14 * z); }
     else if (s.k === 'acc') {
       c.fillStyle = '#e8d9b5'; c.strokeStyle = '#6b5333'; c.lineWidth = .02 * z;
       c.beginPath(); c.moveTo(s.x - .25 * z, s.y + .2 * z); c.lineTo(s.x, s.y - .22 * z); c.lineTo(s.x + .25 * z, s.y + .2 * z); c.closePath(); c.fill(); c.stroke();
       c.strokeStyle = col; c.beginPath(); c.moveTo(s.x, s.y + .2 * z); c.lineTo(s.x, s.y - .05 * z); c.stroke();
     }
+  };
+
+  // ---- disegni delle truppe, dentro il pallino (r = raggio del pallino, in cm) ----
+  DM.drawTroopIcon = function (c, t, x, y, r) {
+    c.save(); c.translate(x, y); c.scale(r, r);
+    c.fillStyle = c.strokeStyle = '#fff'; c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = .1;
+    const P = pts => { c.beginPath(); pts.forEach(([px, py], i) => i ? c.lineTo(px, py) : c.moveTo(px, py)); c.closePath(); c.fill(); };
+    switch (t) {
+      case 'S':   // soldato con elmetto e fucile
+        c.beginPath(); c.arc(0, -.38, .16, 0, 7); c.fill();
+        c.beginPath(); c.arc(0, -.44, .22, Math.PI, 0); c.fill();
+        P([[-.22, -.18], [.22, -.18], [.18, .3], [-.18, .3]]);
+        c.beginPath(); c.moveTo(-.1, .3); c.lineTo(-.14, .62); c.moveTo(.1, .3); c.lineTo(.14, .62); c.stroke();
+        c.beginPath(); c.moveTo(.3, -.5); c.lineTo(.3, .25); c.stroke();
+        break;
+      case 'N':   // nave da guerra
+        P([[-.65, .05], [.65, .05], [.45, .38], [-.45, .38]]);
+        c.fillRect(-.25, -.2, .4, .25); c.fillRect(-.05, -.45, .08, .25);
+        c.beginPath(); c.moveTo(.15, -.08); c.lineTo(.5, -.2); c.stroke();
+        break;
+      case 'E':   // elicottero
+        c.beginPath(); c.ellipse(-.1, .05, .3, .2, 0, 0, 7); c.fill();
+        c.beginPath(); c.moveTo(.15, 0); c.lineTo(.62, -.05); c.stroke();
+        c.beginPath(); c.moveTo(-.7, -.32); c.lineTo(.5, -.32); c.moveTo(-.1, -.32); c.lineTo(-.1, -.15); c.stroke();
+        c.beginPath(); c.moveTo(-.35, .38); c.lineTo(.15, .38); c.stroke();
+        break;
+      case 'T':   // carrarmato
+        c.beginPath(); c.roundRect ? c.roundRect(-.6, .08, 1.2, .32, .16) : c.rect(-.6, .08, 1.2, .32); c.fill();
+        P([[-.42, .08], [.4, .08], [.3, -.15], [-.3, -.15]]);
+        c.beginPath(); c.arc(-.05, -.2, .16, Math.PI, 0); c.fill();
+        c.beginPath(); c.moveTo(.08, -.25); c.lineTo(.65, -.35); c.stroke();
+        break;
+      case 'C':   // carro con le ruote
+        c.fillRect(-.55, -.3, 1.1, .45);
+        c.beginPath(); c.arc(-.3, .3, .15, 0, 7); c.arc(.3, .3, .15, 0, 7); c.fill();
+        break;
+      case 'X':   // nave carro con le casse
+        P([[-.7, .1], [.7, .1], [.5, .4], [-.5, .4]]);
+        c.fillRect(-.45, -.18, .25, .25); c.fillRect(-.15, -.18, .25, .25); c.fillRect(.15, -.38, .25, .45);
+        break;
+      case 'A':   // aereo carro
+        P([[0, -.7], [.1, -.25], [.7, .05], [.7, .18], [.1, .05], [.08, .45], [.3, .6], [.3, .68], [0, .6], [-.3, .68], [-.3, .6], [-.08, .45], [-.1, .05], [-.7, .18], [-.7, .05], [-.1, -.25]]);
+        break;
+    }
+    c.restore();
   };
 })(globalThis.DM = globalThis.DM || {});
