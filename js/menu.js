@@ -32,7 +32,7 @@
   const when = t => new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const b = (m, label, cls, arg) => `<button type="button" class="big${cls ? ' ' + cls : ''}" data-m="${m}"${arg !== undefined ? ` data-arg="${arg}"` : ''}>${label}</button>`;
   const title = '<h1 class="title">DAMAMONDO<small>Classico</small></h1>';
-  let msg = '', np = 2;
+  let msg = '', np = 2, asking = null;   // asking: partita di cui si chiede conferma per eliminarla
 
   const SCREENS = {
     home: () => title + '<div class="stack">' + b('gioca', 'Gioca', 'go') + b('regole', 'Regole') + '</div>',
@@ -43,8 +43,10 @@
       const cards = l.map((s, i) => {
         const a = DM.saveSummary(s.text) || {};
         const state = a.phase === 'play' ? `giro ${a.round} · tocca a ${a.turn}` : 'in preparazione';
-        return `<div class="card slot"><div><b>Partita ${i + 1}</b><br><small>${a.np} giocatori · ${state}<br>salvata ${when(s.when)}</small></div>` +
-          `<div class="r">${b('continua', 'Continua', 'go', s.id)}${b('elimina', 'Elimina', 'small', s.id)}</div></div>`;
+        const info = `<div><b>Partita ${i + 1}</b><br><small>${a.np} giocatori · ${state}<br>salvata ${when(s.when)}</small></div>`;
+        if (asking === s.id) return `<div class="card slot ask">${info}<p class="warn">Eliminare questa partita? Non si può tornare indietro.</p>` +
+          `<div class="r">${b('eliminaSi', 'Sì, elimina', 'small danger', s.id)}${b('eliminaNo', 'No', 'small')}</div></div>`;
+        return `<div class="card slot">${info}<div class="r">${b('continua', 'Continua', 'go', s.id)}${b('elimina', 'Elimina', 'small', s.id)}</div></div>`;
       }).join('');
       return '<h2>Partite in questo telefono</h2>' + (msg ? `<p class="msg">${msg}</p>` : '') +
         (cards || '<p>Nessuna partita salvata.</p>') +
@@ -68,6 +70,7 @@
   let cur = 'home';
   DM.showMenu = function (screen) {
     cur = screen || 'home';
+    if (cur !== 'locale') asking = null;
     $('game').hidden = true; $('menu').hidden = false;
     $('menu').className = 'menu' + (cur === 'regole' ? ' long' : '');
     $('menuBody').innerHTML = SCREENS[cur]();
@@ -99,10 +102,14 @@
       const s = DM.Slots.list().find(z => z.id === id);
       try { DM.playGame(DM.deserialize(s.text), id); } catch (e) { msg = 'Questa partita non si apre: ' + e.message; DM.showMenu('locale'); }
     },
-    elimina: id => {
-      const i = DM.Slots.list().findIndex(z => z.id === id);
-      if (!confirm('Eliminare la Partita ' + (i + 1) + '? Non si può tornare indietro.')) return;
-      DM.Slots.remove(id); msg = 'Partita eliminata.'; DM.showMenu('locale');
+    // niente finestrine del browser (dentro alcune pagine sono bloccate): si chiede conferma nella pagina
+    elimina: id => { asking = id; DM.showMenu('locale'); },
+    eliminaNo: () => { asking = null; DM.showMenu('locale'); },
+    eliminaSi: id => {
+      asking = null;
+      DM.Slots.remove(id);
+      msg = DM.Slots.list().some(z => z.id === id) ? 'Non riesco a eliminarla: il telefono non lascia salvare qui.' : 'Partita eliminata.';
+      DM.showMenu('locale');
     }
   };
 

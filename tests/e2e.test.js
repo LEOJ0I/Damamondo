@@ -38,7 +38,7 @@ async function selectAt(x, y, re) {
 async function newFromMenu(np, seed) {
   if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
   await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
-  while ((await page.locator('[data-m=elimina]').count()) >= 3) await page.locator('[data-m=elimina]').last().click();
+  while ((await page.locator('[data-m=elimina]').count()) >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
   await page.click('[data-m=nuova]');
   await page.click(`[data-m=np][data-arg="${np}"]`);
   if (seed) await page.fill('#seed', String(seed));
@@ -67,7 +67,8 @@ test.before(async () => {
   page = await ctx.newPage();
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-  page.on('dialog', d => d.accept());
+  // come dentro claude.ai: le finestrine del browser vengono rifiutate, e il gioco non deve usarle
+  page.on('dialog', d => { errors.push('finestrina del browser: ' + d.message()); d.dismiss(); });
   await page.goto(URL);
   await page.waitForSelector('[data-m=gioca]');
 });
@@ -476,6 +477,11 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
     assert.equal(await page.locator('[data-m=nuova]').count(), 0);
     assert.match(await page.locator('#menu').innerText(), /Hai già 3 partite/);
     await page.locator('[data-m=elimina]').last().click();
+    assert.match(await page.locator('#menu').innerText(), /Eliminare questa partita\?/);
+    await page.click('[data-m=eliminaNo]');
+    assert.equal(await page.locator('.card.slot').count(), 3, 'con No non si elimina');
+    await page.locator('[data-m=elimina]').last().click();
+    await page.click('[data-m=eliminaSi]');
     assert.match(await page.locator('#menu').innerText(), /Partita eliminata/);
     assert.equal(await page.locator('.card.slot').count(), 2);
     assert.equal(await page.locator('[data-m=nuova]').count(), 1);
@@ -493,6 +499,8 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
     await page.click('#end'); await page.click('#end');
     assert.match(await hud(), /Giro 2/);
     await page.setInputFiles('#openfile', file);
+    await page.waitForSelector('[data-act=fileyes]');
+    await act('Sì, apri il file');
     await page.waitForFunction(() => /Partita aperta dal file/.test(document.getElementById('info').innerText));
     assert.match(await hud(), /Giocatore 2.*Giro 1/s);
     assert.equal(await ev(() => DM.capitalOf(DM.game, 0).inv.mat.ferro), 4321);
@@ -504,7 +512,7 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
     const file = await dl.path();
     await page.click('#toMenu'); await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
     const n = await page.locator('.card.slot').count();
-    if (n >= 3) await page.locator('[data-m=elimina]').last().click();
+    if (n >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
     await page.setInputFiles('#menufile', file);
     await page.waitForFunction(() => /Partita aperta dal file/.test(document.getElementById('info').innerText));
     assert.equal(await ev(() => DM.capitalOf(DM.game, 0).inv.mat.ferro), 4321);
@@ -512,6 +520,8 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
 
   await t.test('un file sbagliato dà un messaggio, non rompe la partita', async () => {
     await page.setInputFiles('#openfile', { name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('{"a":1}') });
+    await page.waitForSelector('[data-act=fileyes]');
+    await act('Sì, apri il file');
     await page.waitForFunction(() => /Non riesco a caricare/.test(document.getElementById('info').innerText));
     assert.match(await hud(), /Giro 1/);
   });

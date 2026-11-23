@@ -66,6 +66,10 @@
       return;
     }
     let s = '';
+    if (ui.pendingFile) {
+      f.innerHTML = '<p class="msg">Aprire il file al posto di questa partita? Questa viene sostituita (scaricala prima se vuoi tenerla).</p>' + row(btn('fileyes', 'Sì, apri il file', '', 'go') + btn('fileno', 'No'));
+      return;
+    }
     if (ui.mode === 'cedeto') s = cedeUI();
     else if (ui.mineAt) s = '<b>Miniera</b>: scegli il risultato del dado (kit Maghi, ancora ' + DM.cur(G).dice + ')' + row([1, 2, 3, 4, 5, 6].map(d => btn('minedie', DICE[d - 1] + ' ' + d, d)).join('') + btn('minedie', 'Tira il dado', 0) + btn('cancel', 'Annulla'));
     else if (ui.sel) s = unitInfo(ui.sel);
@@ -334,6 +338,8 @@
       ui.msg = 'File della partita scaricato.';
     },
     deselect: () => { ui.sel = null; ui.msg = ''; },
+    fileyes: () => { const t = ui.pendingFile; ui.pendingFile = null; loadText(t, 'Partita aperta dal file.'); return true; },
+    fileno: () => { ui.pendingFile = null; ui.msg = 'File non aperto.'; },
     opensite: id => { ui.selB = DM.siteById(G, id); ui.sel = null; ui.msg = ''; ui.cedeBTo = false; },
     board: a => { const [v, u] = a.split(':'); ui.msg = DM.board(G, DM.unitById(G, v), DM.unitById(G, u)); },
     unboard: a => { const [v, u] = a.split(':'); ui.msg = DM.unboard(G, DM.unitById(G, v), DM.unitById(G, u)); },
@@ -459,9 +465,9 @@
     $('toMenu').onclick = () => { DM.leaveGame(); DM.showMenu('home'); };
     document.addEventListener('change', e => {
       if (e.target.id !== 'openfile' || !e.target.files[0]) return;
-      if (!G || !confirm('Aprire questo file al posto della partita in corso? Quella in corso viene sostituita (scaricala prima se vuoi tenerla).')) { e.target.value = ''; return; }
+      if (!G) return;
       const r = new FileReader();
-      r.onload = () => loadText(String(r.result), 'Partita aperta dal file.');
+      r.onload = () => { ui.pendingFile = String(r.result); e.target.value = ''; draw(); };
       r.readAsText(e.target.files[0]);
     });
     $('r5').onclick = () => { if (G.phase === 'play') { G.round += 5; ui.msg = 'Giro ' + G.round + ': limiti aggiornati (solo per prova, senza produzione).'; draw(); } };
