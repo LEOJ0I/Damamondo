@@ -163,6 +163,28 @@ test('partita completa sul telefono', async (t) => {
     await page.click('#ecoP summary');
   });
 
+  await t.test('Aeroporto dentro la Capitale: si vede e si apre', async () => {
+    await selectAt(A[0], A[1], /^Capitale/m);
+    assert.match(await info(), /Dentro:\s*✈ Aeroporto/);
+    await act('✈ Aeroporto');
+    assert.match(await info(), /^Aeroporto \(dentro una città\)/m);
+    await act('Torna a Capitale');
+    assert.match(await info(), /^Capitale/m);
+    await shot('02b-aeroporto');
+  });
+
+  await t.test('trasporto: un Soldato sale sul Carro e scende', async () => {
+    const ids = await ev(([x, y]) => { const G = DM.game, c = G.units.find(u => u.t === 'C' && u.o === 0), s = G.units.find(u => u.t === 'S' && u.o === 0 && Math.hypot(u.x - c.x, u.y - c.y) <= 1); return [c.id, s.id]; }, A);
+    await ev(id => { DM.ui.sel = DM.unitById(DM.game, id); DM.ui.selB = null; DM.redraw(); }, ids[0]);
+    assert.match(await info(), /A bordo: nessuno \(0\/4 punti truppa\)/);
+    await act('Fai salire Soldato');
+    assert.match(await info(), /Soldato è salito su Carro \(1\/4 punti\)/);
+    assert.match(await info(), /A bordo: 1× Soldato/);
+    await act('Fai scendere Soldato');
+    assert.match(await info(), /Soldato è sceso da Carro/);
+    await act('Deseleziona');
+  });
+
   await t.test('Bomba dalla Capitale su una truppa nemica, con il cerchio di portata', async () => {
     await ev(([x, y]) => { const G = DM.game; DM.capitalOf(G, 0).inv.mat.bomba = 1; DM.addUnit(G, 'T', 1, x, y); }, [A[0] - 3, A[1]]);
     await selectAt(A[0], A[1], /^Capitale/m);
@@ -250,6 +272,8 @@ test('partita completa sul telefono', async (t) => {
     await tapCm(B[0], B[1]);
     assert.match(await info(), /Truppe nascoste/);
     await page.check('#oU'); await page.check('#oB'); await page.uncheck('#oS');
+    await page.check('#oG');
+    assert.match(await page.locator('#leg').innerText(), /✈\s*Aeroporto/);
     await shot('06-vista');
   });
 

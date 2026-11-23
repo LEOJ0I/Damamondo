@@ -32,6 +32,8 @@
     const d = T[u.t], b = DM.bAt(G, x, y);
     let v = DM.baseSpeed(G, u.t, x, y);
     if (v <= 0) return 0;
+    // 8.1: per navigare in mare aperto serve un Porto
+    if (d.kind === 'sea' && b === 'S' && !DM.hasPort(G, u.o)) return 0;
     if (road && (u.t === 'S' || u.t === 'T')) v *= 2;
     if (u.vp === G.round && u.o === G.p) {
       // Pozione Velocità: +1 cm, oppure x2 se il bioma ha un malus (calcolato dopo il malus)
@@ -126,17 +128,29 @@
   DM.moveUnit = function (G, u, tx, ty) {
     if (u.o !== G.p) return 'Non è una tua truppa.';
     if (u.m) return 'Questa truppa ha già mosso in questo turno.';
+    if (u.carried) return 'È a bordo di un veicolo: prima falla scendere.';
     if (G.moved >= DM.moveLimit(G.round)) return 'Limite di movimento raggiunto: puoi muovere al massimo ' + DM.moveLimit(G.round) + ' truppe o eserciti.';
     const A = DM.armyOf(G, u);
     const [mx, my] = centroid(A);
     const own = s => s.o === G.p;
-    const target = DM.siteNear(G, tx, ty, own)[0];
+    let target = DM.siteNear(G, tx, ty, own)[0];
+    // 4.3: l'Aereo Carro parte e atterra solo negli Aeroporti
+    const plane = A.some(v => v.t === 'A');
+    if (plane) {
+      if (!G.sites.some(s => own(s) && s.k === 'aer' && Math.hypot(s.x - mx, s.y - my) <= .3)) return 'L’Aereo Carro parte solo da un tuo Aeroporto.';
+      target = DM.siteNear(G, tx, ty, s => own(s) && s.k === 'aer')[0];
+      if (!target) return 'L’Aereo Carro atterra solo in un tuo Aeroporto: tocca l’Aeroporto di arrivo.';
+    }
     let plan = null;
     if (target) G.sites.filter(s => own(s) && Math.hypot(s.x - mx, s.y - my) <= .3)
       .forEach(s => { if (!plan) plan = DM.planRoad(G, A, s, target); });
     if (!plan) plan = DM.planStraight(G, A, target ? target.x : tx, target ? target.y : ty);
     const { dx, dy } = plan;
-    if (Math.hypot(dx, dy) < .05) return 'Non puoi muoverti verso quel punto.';
+    if (plane && Math.hypot(mx + dx - target.x, my + dy - target.y) > .05) return 'Aeroporto troppo lontano per un turno (' + DM.TROOPS.A.air + ' cm).';
+    if (Math.hypot(dx, dy) < .05) {
+      if (A.some(v => T[v.t].kind === 'sea') && !DM.hasPort(G, G.p) && DM.bAt(G, tx, ty) === 'S') return 'Per navigare in mare aperto ti serve almeno un Porto.';
+      return 'Non puoi muoverti verso quel punto.';
+    }
     if (A.some(v => T[v.t].kind === 'air' && 'ZI'.includes(DM.bAt(G, v.x + dx, v.y + dy) || ' '))) return 'Le truppe aeree non possono atterrare su Lavico o Banchisa.';
     // punti del percorso per prendere le terre di nessuno lungo la strada
     const pts = plan.path ? plan.path.map(s => [s.x - mx, s.y - my]) : [[dx, dy]];
@@ -151,6 +165,7 @@
       v.x += dx; v.y += dy; v.m = true;
     });
     G.moved++;
+    DM.syncCarried(G);
     return plan.path ? 'Viaggio sulla strada completato (' + (plan.path.length - 1) + ' tratti).' : plan.left > .01 ? 'Mossa completata.' : 'Mossa completata: velocità esaurita.';
   };
 
@@ -160,6 +175,7 @@
     if (A.some(v => v.s)) return 'Ha già sparato dopo la mossa: non si può annullare.';
     A.forEach(v => { v.x = v.px; v.y = v.py; v.m = false; (v.cl || []).forEach(i => { G.terr[i] = -1; }); v.cl = []; });
     G.moved--;
+    DM.syncCarried(G);
     return 'Mossa annullata, anche i territori presi con quella mossa.';
   };
 
@@ -175,6 +191,7 @@
     if (!u || u.o !== G.p) return 'Tocca una tua truppa.';
     if (u.g) return 'Questa truppa è già in un esercito: scioglilo prima.';
     if (u.m) return 'Questa truppa ha già mosso.';
+    if (u.carried) return 'È a bordo di un veicolo.';
     if (pick.includes(u)) return 'Già scelta.';
     if (pick.length && Math.hypot(u.x - pick[0].x, u.y - pick[0].y) > 1) return 'Troppo lontana: serve entro 1 cm dalla prima.';
     if (pick.some(q => !DM.compatible(u.t, q.t))) return T[u.t].name + ' non può stare con queste truppe.';
@@ -190,6 +207,7 @@
     while (used.includes(n)) n++;
     const px = pos.x, py = pos.y;
     pick.forEach(u => { u.g = g; u.an = n; u.x = u.px = px; u.y = u.py = py; });
+    DM.syncCarried(G);
     return { msg: 'Esercito ' + n + ' formato (' + pick.length + ' truppe).', g };
   };
   DM.leaveArmy = function (G, u) {
@@ -200,7 +218,7 @@
     const rest = G.units.filter(v => v.g === g);
     if (rest.length < 2) { rest.forEach(v => { v.g = 0; v.an = 0; }); return 'Esercito ' + an + ' sciolto.'; }
     const spot = [0, 1, 2, 3, 4, 5, 6, 7].map(i => [u.x + Math.cos(i * .785) * .8, u.y + Math.sin(i * .785) * .8]).find(q => DM.canStand(G, u.t, q[0], q[1]));
-    if (spot) { u.x = u.px = spot[0]; u.y = u.py = spot[1]; }
+    if (spot) { u.x = u.px = spot[0]; u.y = u.py = spot[1]; DM.syncCarried(G); }
     return T[u.t].name + ' ha lasciato l’esercito ' + an + '.';
   };
   DM.composition = us => {
@@ -214,11 +232,13 @@
     const q = DM.cur(G);
     if (!(q.res[t] > 0)) return 'Non hai ' + T[t].name + ' in riserva.';
     const kinds = T[t].kind === 'sea' ? ['porto'] : t === 'A' ? ['aer'] : t === 'E' ? ['cap', 'citta', 'acc', 'aer'] : ['cap', 'citta', 'acc'];
-    const inside = kinds.includes('porto') || kinds.includes('aer') && t === 'A';
-    const s = G.sites.filter(z => z.o === G.p && kinds.includes(z.k) && Math.hypot(z.x - x, z.y - y) <= (inside ? G.tapR : 2))
+    const inside = T[t].kind === 'sea' || t === 'A';
+    let s = G.sites.filter(z => z.o === G.p && kinds.includes(z.k) && Math.hypot(z.x - x, z.y - y) <= (inside ? G.tapR : 2))
       .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
-    if (!s) return T[t].kind === 'sea' ? 'Le navi nascono dentro un tuo Porto: tocca il Porto.' : t === 'A' ? 'L’Aereo Carro nasce dentro un tuo Aeroporto: tocca l’Aeroporto.' : 'Troppo lontano da Capitale, Città o Accampamenti (massimo 2 cm).';
-    if (inside) { x = s.x; y = s.y; }
+    // 8.1: sui fiumi il Porto non serve se c'è una tua Città entro 1 cm
+    const river = !s && T[t].kind === 'sea' && DM.bAt(G, x, y) === 'F' && G.sites.some(z => z.o === G.p && (z.k === 'cap' || z.k === 'citta') && Math.hypot(z.x - x, z.y - y) <= 1);
+    if (!s && !river) return T[t].kind === 'sea' ? 'Le navi nascono dentro un tuo Porto (sui fiumi basta una tua Città entro 1 cm).' : t === 'A' ? 'L’Aereo Carro nasce dentro un tuo Aeroporto: tocca l’Aeroporto.' : 'Troppo lontano da Capitale, Città o Accampamenti (massimo 2 cm).';
+    if (s && inside) { x = s.x; y = s.y; }
     if (!DM.canStand(G, t, x, y)) return 'Terreno non valido per ' + T[t].name + '.';
     if (T[t].kind === 'air' && 'ZI'.includes(DM.bAt(G, x, y))) return 'Le truppe aeree non possono atterrare su Lavico o Banchisa.';
     DM.addUnit(G, t, G.p, x, y);

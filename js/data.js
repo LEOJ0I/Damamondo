@@ -61,6 +61,8 @@
   DM.LAND_PTS = { S: 1, E: 15, T: 20, C: 10, A: 60 };
   DM.ARMY_MAX = 100;
   DM.CARGO_CAP = { C: 20, X: 50, A: 100 };  // 6.1 punti cose
+  DM.TROOP_CAP = { N: 200, E: 4, T: 3, C: 4, X: 500, A: 500 };   // 6.1 punti truppa trasportabili
+  DM.TROOP_VALUE = { S: 1, N: 1000, E: 15, T: 20, C: 10 };        // 6.2 (Nave Carro e Aereo Carro non si trasportano)
 
   // ---- Limiti per giro (3) – se un numero è in due intervalli vince il precedente ----
   DM.moveLimit = r => r <= 4 ? 1 : r <= 10 ? 2 : r <= 15 ? 3 : r <= 20 ? 5 : 8;

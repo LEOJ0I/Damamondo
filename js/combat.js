@@ -33,6 +33,7 @@
     if (!u || u.o !== G.p) return 'Seleziona prima una tua truppa o un tuo esercito.';
     if (G.shots >= DM.shotLimit(G.round)) return 'Limite di spari raggiunto per questo giro (' + DM.shotLimit(G.round) + ').';
     const A = DM.armyOf(G, u);
+    if (u.carried) return 'Le truppe a bordo non possono sparare.';
     if (A.some(v => v.s)) return 'Ha già sparato in questo turno.';
     if (!A.some(v => T[v.t].dmg > 0)) return 'Nessuna truppa qui può sparare (il Carro non ha attacco).';
     return '';
@@ -75,8 +76,7 @@
     G.shots++;
     return able.length + (able.length > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni a ' + (z.br ? 'un ponte' : DM.nameOf(z.s.k)) + '.' + hitStructure(G, z, dmg, false);
   };
-  // Il trasporto non c'è ancora: nessun autista da lasciare. Funzione pronta per il punto 2 dei "Da fare".
-  DM.vehicleNote = () => '';
+  DM.vehicleNote = dead => dead.note || '';
 
   // ---- Bombe e Superbombe ----
   DM.bombError = function (G, site, k) {
@@ -105,7 +105,7 @@
     G.shots += B.shots;
     let us, zs;
     if (sb) {
-      us = G.units.filter(v => Math.hypot(v.x - tx, v.y - ty) <= B.radius);
+      us = G.units.filter(v => !v.carried && Math.hypot(v.x - tx, v.y - ty) <= B.radius);
       zs = structuresNear(G, tx, ty, B.radius + 1e-9, () => true);
     } else {
       us = u ? DM.armyOf(G, u) : [];   // danno ad area: tutto l'esercito

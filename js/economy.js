@@ -56,8 +56,9 @@
       DM.claim(G, G.p, site.x, site.y);
       let extra = '';
       if (k === 'X' || k === 'A') {   // in regalo un Carro
-        if (DM.canStand(G, 'C', site.x, site.y)) { DM.addUnit(G, 'C', G.p, site.x, site.y); extra = ' In regalo un Carro.'; }
-        else { q.res.C = (q.res.C || 0) + 1; extra = ' Il Carro in regalo è nella riserva.'; }
+        const v = G.units[G.units.length - 1];
+        DM.addUnit(G, 'C', G.p, site.x, site.y).carried = v.id;   // parte già a bordo
+        extra = ' In regalo un Carro, già a bordo.';
       }
       return DM.nameOf(k) + ' creato in ' + DM.nameOf(site.k) + '.' + extra;
     }

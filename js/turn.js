@@ -39,12 +39,12 @@
     G.berried = false; G.moved = 0; G.shots = 0;
     G.units.forEach(u => { u.m = false; u.s = false; });
     // Bruciature del Lavico (3 turni, non si sommano) per le truppe del giocatore di turno
-    G.units.filter(u => u.o === G.p).forEach(u => {
+    G.units.filter(u => u.o === G.p && !u.carried).forEach(u => {
       if (DM.bAt(G, u.x, u.y) === 'Z' && DM.TROOPS[u.t].kind !== 'air') u.bn = 3;
       if (u.bn > 0) { u.hp -= DM.BURN[u.t] || 0; u.bn--; }
     });
     const burnt = DM.cleanupDead(G);
-    if (burnt.length) msg += ' ' + burnt.length + ' truppe bruciate nel Lavico.';
+    if (burnt.length) msg += ' ' + burnt.length + ' truppe bruciate nel Lavico.' + DM.vehicleNote(burnt);
     const q = DM.cur(G);
     if (q.noCap) { DM.takeMoney(G, G.p, 10000); msg += ' Senza Capitale: −10.000 soldi.'; }
     return 'Turno di ' + G.names[G.p] + '.' + msg;

@@ -50,10 +50,11 @@
   DM.conquestTick = function (G) {
     let msg = '';
     G.units.forEach(u => {
+      if (u.carried) return;
       const c = DM.terrAt(G, u.x, u.y);
       if (c >= 0 && c !== u.o) {
         u.oc = (u.oc || 0) + 1;
-        if (u.oc >= 3 && !G.units.some(v => v.o !== u.o && Math.hypot(v.x - u.x, v.y - u.y) <= 2)) msg += DM.conquer(G, u);
+        if (u.oc >= 3 && !G.units.some(v => v.o !== u.o && !v.carried && Math.hypot(v.x - u.x, v.y - u.y) <= 2)) msg += DM.conquer(G, u);
       } else u.oc = 0;
     });
     return msg;

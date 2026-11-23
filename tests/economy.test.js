@@ -30,14 +30,14 @@ test('acquisti: truppe nell’edificio giusto, Nave Carro regala un Carro, bombe
   assert.match(DM.buy(G, cap, 'bomba'), /Bomba creata/);
   assert.equal(cap.inv.mat.bomba, 1);
   assert.match(DM.buy(G, cap, 'poz_stipendio'), /creata/);
-  // porto in mare: Nave Carro con Carro in regalo nella riserva (il Carro non sta in mare)
+  // porto in mare: Nave Carro con il Carro in regalo già a bordo
   DM.addUnit(G, 'S', 0, 3, 20); DM.claim(G, 0, 3, 20);
   DM.buildSite(G, 'porto', 1.7, 20);
   const port = G.sites.at(-1);
   port.inv.mon = 1e6; port.inv.mat.titanio = 1000;
-  const c0 = G.players[0].res.C;
-  assert.match(DM.buy(G, port, 'X'), /Carro in regalo è nella riserva/);
-  assert.equal(G.players[0].res.C, c0 + 1);
+  assert.match(DM.buy(G, port, 'X'), /In regalo un Carro, già a bordo/);
+  const nc = G.units.find(u => u.t === 'X'), gift = G.units.find(u => u.carried === nc.id);
+  assert.equal(gift.t, 'C');
   // Aereo Carro nella Capitale (c'è l'Aeroporto gratis): Carro in regalo sul posto
   const aer = G.sites.find(s => s.k === 'aer' && s.o === 0);
   aer.inv.mon = 1e6; aer.inv.mat.titanio = 2500;

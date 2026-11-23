@@ -34,15 +34,23 @@
   DM.unitById = (G, id) => G.units.find(u => u.id == id);
   DM.armyOf = (G, u) => u.g ? G.units.filter(v => v.g === u.g) : [u];
   // Truppa più vicina al punto, entro il raggio di tocco
-  DM.unitNear = (G, x, y, filter) => G.units.filter(u => Math.hypot(u.x - x, u.y - y) < G.tapR && (!filter || filter(u)))
+  // le truppe a bordo di un veicolo non si toccano: sono dentro il veicolo
+  DM.unitNear = (G, x, y, filter) => G.units.filter(u => !u.carried && Math.hypot(u.x - x, u.y - y) < G.tapR && (!filter || filter(u)))
     .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
-  DM.troopNear = (G, o, x, y, r) => G.units.some(u => u.o === o && Math.hypot(u.x - x, u.y - y) <= (r || 2));
+  DM.troopNear = (G, o, x, y, r) => G.units.some(u => u.o === o && !u.carried && Math.hypot(u.x - x, u.y - y) <= (r || 2));
 
   // Toglie le truppe morte e scioglie gli eserciti rimasti con meno di 2 truppe.
+  // Un veicolo distrutto lascia a terra chi portava e l'autista (6.4): dead.note lo racconta.
   DM.cleanupDead = function (G) {
-    const dead = G.units.filter(u => u.hp <= 0);
+    const dead = [], notes = [];
+    for (let guard = 0; guard < 20; guard++) {
+      const now = G.units.filter(u => u.hp <= 0);
+      if (!now.length) break;
+      G.units = G.units.filter(u => u.hp > 0);
+      now.forEach(u => { dead.push(u); if (DM.releaseOnDeath) notes.push(DM.releaseOnDeath(G, u)); });
+    }
+    dead.note = notes.join('');
     if (!dead.length) return dead;
-    G.units = G.units.filter(u => u.hp > 0);
     new Set(dead.map(u => u.g).filter(Boolean)).forEach(g => {
       const r = G.units.filter(u => u.g === g);
       if (r.length < 2) r.forEach(u => { u.g = 0; u.an = 0; });

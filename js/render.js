@@ -75,6 +75,23 @@
       cx.fillStyle = 'rgba(255,255,255,.9)'; cx.font = 'bold .9px sans-serif'; cx.textAlign = 'left'; cx.textBaseline = 'top';
       [[0, 0], [W / 2, 0], [0, H / 2], [W / 2, H / 2]].forEach((q, i) => cx.fillText('Foglio ' + (i + 1), q[0] + .4, q[1] + .4));
     }
+    if (view.grid) {
+      // quadretti da 1 cm, più marcati ogni 5 cm, con i numeri ai bordi
+      for (let i = 1; i < Math.max(W, H); i++) {
+        const strong = i % 5 === 0;
+        cx.strokeStyle = strong ? 'rgba(0,0,0,.45)' : 'rgba(0,0,0,.2)';
+        cx.lineWidth = (strong ? 1.5 : 1) * px;
+        cx.beginPath();
+        if (i < W) { cx.moveTo(i, 0); cx.lineTo(i, H); }
+        if (i < H) { cx.moveTo(0, i); cx.lineTo(W, i); }
+        cx.stroke();
+      }
+      cx.fillStyle = 'rgba(0,0,0,.7)'; cx.font = 'bold ' + Math.max(.35, 10 * px) + 'px sans-serif';
+      cx.textAlign = 'center'; cx.textBaseline = 'top';
+      for (let i = 5; i < W; i += 5) cx.fillText(String(i), i, .1);
+      cx.textAlign = 'left'; cx.textBaseline = 'middle';
+      for (let i = 5; i < H; i += 5) cx.fillText(String(i), .1, i);
+    }
     cx.textAlign = 'center'; cx.textBaseline = 'middle';
 
     // aree radioattive
@@ -98,26 +115,59 @@
       cx.beginPath(); cx.moveTo(r.x1, r.y1); cx.lineTo(r.x2, r.y2); cx.stroke();
       cx.strokeStyle = pc[r.o]; cx.lineWidth = .1; cx.stroke();
     });
-    // edifici
+    // edifici (prima quelli normali, poi quelli dentro le città, sopra)
     const sz = Math.max(1, 6 * px);   // non scendere sotto qualche pixel
-    G.sites.forEach(s => {
+    const ICON = { porto: 1, aer: 1, col: 1 }, FILL = { porto: '#1e6fd9', aer: '#ffffff', col: '#6ab04c' }, INK = { porto: '#fff', aer: '#111', col: '#fff' };
+    // simboli disegnati a mano (i caratteri ✈ ⚓ non ci sono su tutti i telefoni)
+    const glyph = (k, x, y, z) => {
+      cx.save(); cx.translate(x, y); cx.scale(z, z);
+      cx.fillStyle = cx.strokeStyle = INK[k]; cx.lineWidth = .16; cx.lineCap = 'round';
+      cx.beginPath();
+      if (k === 'aer') {   // aereo visto dall'alto
+        cx.moveTo(0, -.8); cx.lineTo(.12, -.3); cx.lineTo(.8, .05); cx.lineTo(.8, .2); cx.lineTo(.12, .05); cx.lineTo(.1, .5);
+        cx.lineTo(.35, .7); cx.lineTo(.35, .8); cx.lineTo(0, .7); cx.lineTo(-.35, .8); cx.lineTo(-.35, .7); cx.lineTo(-.1, .5);
+        cx.lineTo(-.12, .05); cx.lineTo(-.8, .2); cx.lineTo(-.8, .05); cx.lineTo(-.12, -.3); cx.closePath(); cx.fill();
+      } else if (k === 'porto') {   // ancora
+        cx.arc(0, -.55, .18, 0, 7); cx.moveTo(0, -.37); cx.lineTo(0, .65); cx.moveTo(-.35, -.15); cx.lineTo(.35, -.15);
+        cx.moveTo(-.6, .2); cx.quadraticCurveTo(-.5, .7, 0, .65); cx.quadraticCurveTo(.5, .7, .6, .2); cx.stroke();
+      } else {   // fiore
+        for (let i = 0; i < 5; i++) { cx.moveTo(0, 0); cx.arc(Math.cos(i * 1.257) * .4, Math.sin(i * 1.257) * .4, .25, 0, 7); }
+        cx.fill();
+      }
+      cx.restore();
+    };
+    const badge = (k, x, y, z, col) => {
+      cx.fillStyle = FILL[k]; cx.strokeStyle = col; cx.lineWidth = Math.max(.08, 2 * px);
+      cx.fillRect(x - z, y - z, 2 * z, 2 * z); cx.strokeRect(x - z, y - z, 2 * z, 2 * z);
+      glyph(k, x, y, z * .8);
+    };
+    // posizione del distintivo di un edificio interno: in alto a destra (Aeroporto) o a sinistra (Porto)
+    const innerPos = s => { const p = DM.siteById(G, s.par) || s; return [p.x + (s.k === 'aer' ? 1 : -1) * .8 * sz, p.y - .8 * sz]; };
+    G.sites.filter(s => !s.par).concat(G.sites.filter(s => s.par)).forEach(s => {
       const col = pc[s.o];
       cx.lineWidth = .12;
-      if (s.k === 'cap') {
+      if (s.par) {
+        // edificio dentro una città: distintivo in basso a destra (Aeroporto) o a sinistra (Porto)
+        const [bx, by] = innerPos(s);
+        badge(s.k, bx, by, Math.max(.3, 9 * px), col);
+      } else if (s.k === 'cap') {
         star(cx, s.x, s.y, .75 * sz); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke();
       } else if (s.k === 'min') {
         cx.beginPath();
         for (let i = 0; i < 6; i++) cx.lineTo(s.x + Math.cos(i * 1.047) * .4 * sz, s.y + Math.sin(i * 1.047) * .4 * sz);
         cx.closePath(); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.lineWidth = .08; cx.stroke();
         cx.fillStyle = '#fff'; cx.font = 'bold ' + (.3 * sz) + 'px sans-serif'; cx.fillText(DM.SYMBOL[s.mt], s.x, s.y + .02);
+      } else if (ICON[s.k]) {
+        badge(s.k, s.x, s.y, .38 * sz, col);
       } else {
-        const F = { porto: '#1e6fd9', aer: '#ffffff', col: '#6ab04c' };
-        const inner = !!s.par, z = (s.k === 'citta' ? .55 : inner ? .22 : .35) * sz;
-        const x = inner ? s.x + (s.k === 'aer' ? .5 : -.5) * sz : s.x, y = inner ? s.y + .5 * sz : s.y;
-        cx.fillStyle = F[s.k] || col; cx.strokeStyle = F[s.k] ? col : '#fff';
-        cx.fillRect(x - z, y - z, 2 * z, 2 * z); cx.strokeRect(x - z, y - z, 2 * z, 2 * z);
+        const z = (s.k === 'citta' ? .55 : .35) * sz;
+        cx.fillStyle = col; cx.strokeStyle = '#fff';
+        cx.fillRect(s.x - z, s.y - z, 2 * z, 2 * z); cx.strokeRect(s.x - z, s.y - z, 2 * z, 2 * z);
       }
-      if (ui.selB === s) { cx.strokeStyle = '#ffd54a'; cx.lineWidth = Math.max(.12, 3 * px); cx.beginPath(); cx.arc(s.x, s.y, .9 * sz, 0, 7); cx.stroke(); }
+      if (ui.selB === s) {
+        const [x, y] = s.par ? innerPos(s) : [s.x, s.y];
+        cx.strokeStyle = '#ffd54a'; cx.lineWidth = Math.max(.12, 3 * px); cx.beginPath(); cx.arc(x, y, (s.par ? .5 : .9) * sz, 0, 7); cx.stroke();
+      }
     });
     // raggio del selezionato (movimento o gittata)
     const sel = ui.sel;
@@ -135,6 +185,7 @@
       const ur = Math.max(.42, 7 * px);
       const drawn = new Set();
       G.units.forEach(u => {
+        if (u.carried) return;   // a bordo: non si vede, conta il numero sul veicolo
         if (u.g) { if (drawn.has(u.g)) return; drawn.add(u.g); }
         const moved = u.o === G.p && u.m, picked = (sel && (u === sel || (sel.g && u.g === sel.g))) || ui.pick.includes(u);
         cx.globalAlpha = moved ? .55 : 1;
@@ -144,6 +195,12 @@
         cx.beginPath(); cx.arc(u.x, u.y, u.g ? ur * 1.3 : ur, 0, 7); cx.fill(); cx.stroke();
         cx.fillStyle = '#fff'; cx.font = 'bold ' + ur + 'px sans-serif';
         cx.fillText(u.g ? String(u.an) : DM.TROOPS[u.t].label, u.x, u.y + .02);
+        const on = G.units.filter(v => v.carried && DM.armyOf(G, u).some(w => w.id === v.carried)).length;
+        if (on) {   // quante truppe a bordo
+          const bx = u.x + ur * .95, by = u.y - ur * .95;
+          cx.fillStyle = '#111'; cx.beginPath(); cx.arc(bx, by, ur * .55, 0, 7); cx.fill();
+          cx.fillStyle = '#fff'; cx.font = 'bold ' + (ur * .7) + 'px sans-serif'; cx.fillText(String(on), bx, by + .01);
+        }
         cx.globalAlpha = 1;
       });
     }

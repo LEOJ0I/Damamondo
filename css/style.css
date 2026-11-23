@@ -47,5 +47,6 @@ details > summary { min-height: 44px; display: flex; align-items: center; cursor
 #opt input { width: 20px; height: 20px; }
 #leg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 6px; }
 #leg span { display: flex; align-items: center; gap: 8px; }
+#leg i.sym { border: 0; text-align: center; font-style: normal; line-height: 20px; }
 #leg i { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(0, 0, 0, .3); flex: none; }
 .help { margin: 0; }

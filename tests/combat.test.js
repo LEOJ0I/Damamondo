@@ -186,6 +186,8 @@ test('Superbomba: 5 spari, tutto entro 0,5 cm, area radioattiva 3 giri anche sul
   G.shots = 0;
   assert.match(DM.launchBomb(G, cap, 'superbomba', 15, 41), /Area radioattiva/);
   const ship = DM.addUnit(G, 'N', 0, 15, 41);
+  assert.equal(DM.speedAt(G, ship, 15, 41), 0, 'senza Porto niente mare aperto');
+  DM.addSite(G, 0, 'porto', 1, 20);
   assert.equal(DM.speedAt(G, ship, 15, 41), 1.5);
   G.round += 3;
   G.rad = G.rad.filter(z => z.until > G.round);

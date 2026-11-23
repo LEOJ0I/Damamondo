@@ -17,6 +17,7 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/combat.js` | spari, Bombe, Superbombe, bacche, pozioni |
 | `js/economy.js` | soldi e materiali, Banco, acquisti, carichi, miniere, rendite |
 | `js/buildings.js` | costruzione di edifici, Porti, Aeroporti, strade, ponti |
+| `js/transport.js` | truppe a bordo dei veicoli, autista, Porti |
 | `js/turn.js` | fine turno, giri, eruzioni, Lavico |
 | `js/render.js` | disegno della mappa |
 | `js/ui.js`, `js/main.js` | tocchi, pannelli, pulsanti, avvio |
@@ -26,8 +27,8 @@ Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e 
 ## Prove
 
 ```
-npm test               # 42 prove delle regole (serve Node 18+)
-npm run test:browser   # 23 passi giocati in un browser che finge un iPhone (serve Playwright)
+npm test               # 48 prove delle regole (serve Node 18+)
+npm run test:browser   # 25 passi giocati in un browser che finge un iPhone (serve Playwright)
 ```
 
 ## Decisioni prese (da confermare)
@@ -46,8 +47,12 @@ Le correzioni del documento di passaggio hanno la precedenza sul PDF. Dove il re
 - **Aereo Carro**: carica e scarica solo in un Aeroporto.
 - **Edificio distrutto**: muoiono le truppe del proprietario che ci sono dentro, non quelle nemiche vicine.
 
+- **Porto e mare aperto**: una Nave (o Nave Carro) va in mare aperto solo se il suo giocatore ha almeno un Porto. Sui fiumi si può mettere in acqua una Nave senza Porto, se c'è una propria Città entro 1 cm.
+- **Trasporto**: si sale e si scende entro 1 cm dal veicolo; chi è a bordo non muove, non spara e non può essere colpito. Scendendo dalla nave si va sulla terra più vicina entro 1 cm. Il Carro regalato con Nave Carro e Aereo Carro parte a bordo.
+- **Veicolo distrutto**: scendono quelli a bordo e l'autista (un Soldato) nel punto più vicino dove possono stare; se sono in mare aperto, si perdono.
+- **Aereo Carro**: parte e atterra solo nei propri Aeroporti (al massimo 12 cm a turno), e solo lì carica e scarica.
+
 ## Ancora da fare
 
-1. Porto obbligatorio per navigare in mare aperto.
-2. Trasporto di truppe sui veicoli e Soldato "autista" lasciato dai veicoli distrutti.
-3. Pubblicare fuori da Claude (per esempio GitHub Pages) e, più avanti, farne un'app.
+1. Salvare la partita (ora ricaricando la pagina si perde).
+2. Pubblicare fuori da Claude (per esempio GitHub Pages) e, più avanti, farne un'app.

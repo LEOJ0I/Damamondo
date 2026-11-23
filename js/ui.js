@@ -11,7 +11,7 @@
     sel: null, selB: null, mode: '', pick: [], spawn: '', msg: '', cede: null, keep: false,
     bombKind: '', berryKind: '', pz: null, bridgeLv: 1, cargoQty: 0, cedeBTo: false, mineAt: null, rolling: false, Z: 10
   };
-  const view = () => ({ sheets: $('oS').checked, biomes: $('oB').checked, terr: $('oR').checked, units: $('oU').checked });
+  const view = () => ({ sheets: $('oS').checked, biomes: $('oB').checked, terr: $('oR').checked, units: $('oU').checked, grid: $('oG').checked });
   const tapR = () => Math.max(.5, Math.min(1.5, 16 / ui.Z));   // circa 16 pixel, tra 0,5 e 1,5 cm
   const pcol = o => DM.PLAYER_COLORS[o];
   const btn = (act, label, arg, cls) => `<button type="button" data-act="${act}"${arg !== undefined ? ` data-arg="${arg}"` : ''}${cls ? ` class="${cls}"` : ''}>${label}</button>`;
@@ -89,9 +89,21 @@
       (u.bn > 0 ? ' · brucia ancora ' + u.bn + ' turni' : '') + (u.oc ? ' · in territorio nemico da ' + u.oc + ' giri' : '');
     if (u.cg) s += '<br>Carico: ' + DM.fmtInv(u.cg) + ` (${DM.cargoPts(u.cg).toFixed(1)}/${DM.CARGO_CAP[u.t]} punti)`;
     if (u.o === G.p && u.g && !ui.mode) s += '<div class="r"><small>Fai uscire una truppa:</small>' + A.map(v => btn('leave', T[v.t].name + ' ' + v.hp, v.id)).join('') + '</div>';
+    if (u.o === G.p && !u.g) s += transportUI(u);
     if (u.o !== G.p) s += '<br><small>Truppa avversaria.</small>';
     else if (u === ui.sel && !ui.mode) s += row(btn('deselect', 'Deseleziona'));
     return s;
+  }
+
+  // Trasporto: chi è a bordo (fai scendere) e chi può salire (entro 1 cm)
+  function transportUI(v) {
+    if (!DM.TROOP_CAP[v.t]) return '';
+    const on = DM.aboard(G, v);
+    const can = G.units.filter(u => u !== v && !DM.boardError(G, v, u));
+    let h = `<br>A bordo: ${on.length ? DM.composition(on) : 'nessuno'} (${DM.aboardPts(G, v)}/${DM.TROOP_CAP[v.t]} punti truppa)`;
+    h += row(on.map(u => btn('unboard', 'Fai scendere ' + T[u.t].name, v.id + ':' + u.id)).join(''));
+    h += row(can.map(u => btn('board', 'Fai salire ' + T[u.t].name + (u.cg || DM.aboard(G, u).length ? ' (carico)' : ''), v.id + ':' + u.id)).join(''));
+    return h;
   }
 
   function siteInfo(s) {
@@ -100,6 +112,9 @@
     let h = `<b style="color:${pcol(s.o)}">${DM.nameOf(s.k)}${s.par ? ' (dentro una città)' : ''}</b> · vita ${s.hp}/${DM.maxHp(s)}` +
       (s.k === 'min' ? ' · ' + s.mt : '') + (s.ign ? ' · ignifuga' : '') + (s.up ? ' · migliorata' : '') +
       `<br>Contiene: ${DM.fmtInv(I)}` + (inside.length ? '<br>Truppe dentro: ' + DM.composition(inside) : '');
+    const inner = G.sites.filter(z => z.par === s.id);
+    if (inner.length) h += row('<span>Dentro:</span>' + inner.map(z => btn('opensite', (z.k === 'aer' ? '✈ ' : '⚓ ') + DM.nameOf(z.k), z.id)).join(''));
+    if (s.par && DM.siteById(G, s.par)) h += row(btn('opensite', '← Torna a ' + DM.nameOf(DM.siteById(G, s.par).k), s.par));
     if (s.k === 'citta' && I.mon < DM.CITY_MIN_MONEY) h += '<br><small>Con meno di 5.000 soldi dentro conta come Accampamento (niente rendita).</small>';
     if (s.k === 'col') { const k = DM.BERRY_OF_BIOME[DM.bAt(G, s.x, s.y)]; h += '<br><small>Bacche ' + k + ': prossima al giro ' + (G.round + 5 - ((G.round - s.r0) % 5 + 5) % 5) + '.</small>'; }
     if (!mine) return h + '<br><small>Edificio di ' + G.names[s.o] + '.</small>';
@@ -167,7 +182,9 @@
     const v = view();
     const it = v.biomes ? Object.keys(DM.BIOME_NAME).map(k => [DM.BIOME_COLOR[k], DM.BIOME_NAME[k]]) : [['#d9d2b0', 'Terra'], ['#4a86c5', 'Mare'], ['#7ad0e8', 'Fiume/lago'], ['#b9e3ee', 'Banchisa']];
     const pl = v.terr ? G.names.map((n, i) => [pcol(i), 'Territorio ' + n]) : [];
-    $('leg').innerHTML = it.concat(pl).map(a => `<span><i style="background:${a[0]}"></i>${a[1]}</span>`).join('');
+    const sym = [['★', 'Capitale'], ['■', 'Città (grande) / Accampamento'], ['✈', 'Aeroporto'], ['⚓', 'Porto'], ['❀', 'Coltivazione'], ['⬢', 'Miniera'], ['●', 'Truppa (lettera) / esercito (numero)']];
+    $('leg').innerHTML = it.concat(pl).map(a => `<span><i style="background:${a[0]}"></i>${a[1]}</span>`).join('') +
+      sym.map(a => `<span><i class="sym">${a[0]}</i>${a[1]}</span>`).join('');
   }
 
   // ---------- Tocchi sulla mappa ----------
@@ -305,6 +322,9 @@
     minedie: d => { const [x, y] = ui.mineAt; mine(x, y, +d || undefined); return true; },
     cancel: () => { resetModes(); ui.msg = ''; },
     deselect: () => { ui.sel = null; ui.msg = ''; },
+    opensite: id => { ui.selB = DM.siteById(G, id); ui.sel = null; ui.msg = ''; ui.cedeBTo = false; },
+    board: a => { const [v, u] = a.split(':'); ui.msg = DM.board(G, DM.unitById(G, v), DM.unitById(G, u)); },
+    unboard: a => { const [v, u] = a.split(':'); ui.msg = DM.unboard(G, DM.unitById(G, v), DM.unitById(G, u)); },
     done: () => { resetModes(); ui.msg = ''; }
   };
 
@@ -406,7 +426,7 @@
     $('zi').onclick = () => zoom(1.25); $('zo').onclick = () => zoom(.8);
     $('map').onclick = () => newGame(true);
     $('r5').onclick = () => { if (G.phase === 'play') { G.round += 5; ui.msg = 'Giro ' + G.round + ': limiti aggiornati (solo per prova, senza produzione).'; draw(); } };
-    ['oS', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
+    ['oS', 'oG', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
     DM.MATERIALS.forEach(m => $('bm').add(new Option(m + ' · ' + DM.fmtN(DM.BANK[m][0]) + ' ' + DM.unitOf(m) + ' = ' + DM.fmtN(DM.BANK[m][1]) + ' soldi', m)));
     DM.BUYABLE.forEach(k => $('by').add(new Option(DM.nameOf(k), k)));
     $('by').onchange = () => eco();
