@@ -1,0 +1,51 @@
+/* Damamondo – stile. Pensato prima per il telefono. */
+:root {
+  --bg: #e9eef2; --fg: #14202b; --pn: #fff; --bd: #b7c3cd; --ac: #b8862b; --warn: #b42318;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #10171e; --fg: #e4eaef; --pn: #1a242d; --bd: #33424e; --ac: #e0b04f; --warn: #ff8a7a; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #10171e; --fg: #e4eaef; --pn: #1a242d; --bd: #33424e; --ac: #e0b04f; --warn: #ff8a7a; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, sans-serif;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.w { width: 100%; max-width: 760px; }
+.panel { background: var(--pn); border: 1px solid var(--bd); border-radius: 8px; padding: 8px 10px; }
+
+#hud { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; position: sticky; top: 0; z-index: 2; }
+#hud b { font-size: 17px; }
+.warn { color: var(--warn); font-weight: 600; }
+
+#vp { max-height: 62vh; overflow: auto; border: 1px solid var(--bd); border-radius: 6px; -webkit-overflow-scrolling: touch; }
+canvas { display: block; touch-action: manipulation; background: #4a86c5; }
+
+#info { min-height: 4.2em; overflow-wrap: anywhere; }
+#info .msg { margin: 0 0 6px; font-weight: 600; }
+.dice { font-size: 42px; vertical-align: middle; }
+.cargo { border-top: 1px dashed var(--bd); margin-top: 6px; padding-top: 6px; }
+
+.r { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; align-items: center; }
+button, select, input[type=number] {
+  font: inherit; color: var(--fg); background: var(--pn); border: 1px solid var(--bd); border-radius: 8px;
+  padding: 9px 12px; min-height: 44px;
+}
+input[type=number] { width: 110px; padding: 9px; }
+button.go { background: var(--ac); color: #111; border-color: var(--ac); font-weight: 600; }
+button:disabled { opacity: .45; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
+select { max-width: 100%; }
+small { opacity: .8; }
+
+details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+#opt label { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-right: 10px; }
+#opt input { width: 20px; height: 20px; }
+#leg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; margin-top: 6px; }
+#leg span { display: flex; align-items: center; gap: 8px; }
+#leg i { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(0, 0, 0, .3); flex: none; }
+.help { margin: 0; }
