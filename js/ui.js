@@ -470,7 +470,6 @@
       r.onload = () => { ui.pendingFile = String(r.result); e.target.value = ''; draw(); };
       r.readAsText(e.target.files[0]);
     });
-    $('r5').onclick = () => { if (G.phase === 'play') { G.round += 5; ui.msg = 'Giro ' + G.round + ': limiti aggiornati (solo per prova, senza produzione).'; draw(); } };
     ['oS', 'oG', 'oD', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
     DM.MATERIALS.forEach(m => $('bm').add(new Option(m + ' · ' + DM.fmtN(DM.BANK[m][0]) + ' ' + DM.unitOf(m) + ' = ' + DM.fmtN(DM.BANK[m][1]) + ' soldi', m)));
     DM.BUYABLE.forEach(k => $('by').add(new Option(DM.nameOf(k), k)));
