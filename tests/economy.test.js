@@ -21,7 +21,7 @@ test('acquisti: truppe nell’edificio giusto, Nave Carro regala un Carro, bombe
   cap.inv.mat = { rame: 10, piombo: 30, titanio: 5000, uranio: 100, oro: 100, petrolio: 10000, ferro: 10000, argento: 2000, platino: 1000 };
   assert.match(DM.buy(G, cap, 'S'), /Soldato creato/);
   assert.equal(cap.inv.mon, 245000);
-  assert.match(DM.buy(G, cap, 'N'), /Qui non si può creare Nave/);
+  assert.match(DM.buy(G, cap, 'N'), /nascono nei Porti/);
   assert.match(DM.buy(G, cap, 'acc'), /riserva/);
   assert.equal(G.players[0].res.acc, 6);
   cap.inv.mon = 150000;

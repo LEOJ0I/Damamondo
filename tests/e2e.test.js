@@ -407,3 +407,64 @@ test('pulsanti dei pannelli: pozioni, bacche, Superbomba, dado dei Maghi, edific
 
   await t.test('nessun errore JavaScript nella pagina', () => { assert.deepEqual(errors, []); });
 });
+
+test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => {
+  // partita sulla mappa 7, una mossa, poi ricarico la pagina
+  await page.fill('#seed', '7');
+  await page.click('#map');
+  await page.waitForSelector('[data-act=players]');
+  await act('2'); await act('Tribù');
+  const A = await findSpot(); await tapCm(A[0], A[1]);
+  await act('Tribù');
+  const B = await findSpot(A, 16); await tapCm(B[0], B[1]);
+  const S1 = await freeSpot(A, 1.2, 1.9, true);
+  await page.selectOption('#sp', 'S'); await tapCm(S1[0], S1[1]);
+  await ev(() => { DM.capitalOf(DM.game, 0).inv.mat.ferro = 4321; });
+  await page.click('#end');
+  const before = await ev(() => DM.serialize(DM.game));
+
+  await t.test('la pagina si ricarica: "Riprendi la partita" la riporta com’era', async () => {
+    await page.reload();
+    await page.waitForSelector('[data-act=resume]');
+    assert.match(await info(), /Partita salvata.*giro 1, 2 giocatori, tocca a Giocatore 2/s);
+    await act('Riprendi la partita');
+    assert.match(await hud(), /Giocatore 2.*Giro 1/s);
+    const after = await ev(() => DM.serialize(DM.game));
+    assert.equal(JSON.stringify({ ...JSON.parse(after), saved: 0 }), JSON.stringify({ ...JSON.parse(before), saved: 0 }));
+  });
+
+  await t.test('copia salvata, nuova mossa, ricarico la copia', async () => {
+    await page.click('#saveP summary');
+    await page.click('#saveT [data-act=saveslot]');
+    assert.match(await info(), /Copia salvata/);
+    assert.match(await page.locator('#saveT').innerText(), /giro 1 · tocca a Giocatore 2/);
+    await page.click('#end');
+    assert.match(await hud(), /Giro 2/);
+    await page.click('#saveT [data-act=loadslot]');
+    assert.match(await info(), /Copia caricata/);
+    assert.match(await hud(), /Giocatore 2.*Giro 1/s);
+    await page.click('#saveT [data-act=delslot]');
+    assert.doesNotMatch(await page.locator('#saveT').innerText(), /tocca a/);
+  });
+
+  await t.test('scarica il file e riaprilo', async () => {
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#saveT [data-act=download]')]);
+    assert.match(dl.suggestedFilename(), /^damamondo-giro1-.*\.json$/);
+    const file = await dl.path();
+    await page.click('#end'); await page.click('#end');
+    assert.match(await hud(), /Giro 2/);
+    await page.setInputFiles('#openfile', file);
+    await page.waitForFunction(() => /Partita aperta dal file/.test(document.getElementById('info').innerText));
+    assert.match(await hud(), /Giocatore 2.*Giro 1/s);
+    assert.equal(await ev(() => DM.capitalOf(DM.game, 0).inv.mat.ferro), 4321);
+    await shot('09-salvataggi');
+  });
+
+  await t.test('un file sbagliato dà un messaggio, non rompe la partita', async () => {
+    await page.setInputFiles('#openfile', { name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('{"a":1}') });
+    await page.waitForFunction(() => /Non riesco a caricare/.test(document.getElementById('info').innerText));
+    assert.match(await hud(), /Giro 1/);
+  });
+
+  await t.test('nessun errore JavaScript nella pagina', () => { assert.deepEqual(errors, []); });
+});

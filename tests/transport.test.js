@@ -33,18 +33,22 @@ test('salire e scendere: capacità in punti truppa, entro 1 cm, non da un eserci
   assert.equal(DM.aboardPts(G, c), 3);
 });
 
-test('dalla nave si scende sulla terra più vicina entro 1 cm, non in mezzo al mare', () => {
+test('dalla nave si scende solo dentro un proprio Porto, e dal Porto si cammina a terra lungo il molo', () => {
   const G = testGame();
-  DM.addSite(G, 0, 'porto', 1.5, 20);
-  const n = DM.addUnit(G, 'N', 0, 1.6, 20), s = DM.addUnit(G, 'S', 0, 2.3, 20);
+  const port = DM.addSite(G, 0, 'porto', 1.3, 20);   // terra da x = 2: molo di 0,7 cm
+  const n = DM.addUnit(G, 'N', 0, 1.3, 22.5), s = DM.addUnit(G, 'S', 0, 2.3, 22.5);
   assert.match(DM.board(G, n, s), /salito/);
+  assert.match(DM.unboard(G, n, s), /solo dentro un tuo Porto/);
+  DM.moveUnit(G, n, 1.3, 20);
+  assert.ok(Math.hypot(n.x - port.x, n.y - port.y) < .05, 'la nave è nel Porto');
   assert.match(DM.unboard(G, n, s), /sceso/);
-  assert.ok(s.x >= 2 && Math.hypot(s.x - n.x, s.y - n.y) <= 1.001, 'a terra vicino: ' + s.x);
-  DM.board(G, n, s);
-  n.x = 1; n.y = 10;   // lontano dalla costa? x=1 → terra a x=2 entro 1 cm
-  DM.syncCarried(G);
-  n.x = .5; n.y = .5; DM.syncCarried(G);
-  assert.match(DM.unboard(G, n, s), /non può scendere/);
+  assert.deepEqual([s.x, s.y], [port.x, port.y], 'dentro il Porto');
+  G.moved = 0;
+  assert.match(DM.moveUnit(G, s, 4, 20), /Mossa completata/);
+  assert.ok(s.x > 2.2, 'il soldato è uscito dal Porto sulla terra: ' + s.x);
+  // fuori dal molo il soldato non sta sull'acqua
+  assert.equal(DM.canStand(G, 'S', 1.3, 22, 0), false);
+  assert.equal(DM.canStand(G, 'S', 1.3, 20, 1), false, 'il Porto di un altro non vale');
 });
 
 test('veicolo distrutto: scende chi era a bordo e in più l’autista; in mare si perdono', () => {
@@ -58,15 +62,13 @@ test('veicolo distrutto: scende chi era a bordo e in più l’autista; in mare s
   const mine = G.units.filter(u => u.o === 1 && u.t === 'S');
   assert.equal(mine.length, 2);
   assert.ok(mine.every(u => !u.carried));
-  // in mare
-  DM.addSite(G, 1, 'porto', 1, 30);
-  const n = DM.addUnit(G, 'N', 1, 1, 30), t = DM.addUnit(G, 'T', 1, 1, 30.1);
-  t.x = 1; G.p = 1; t.carried = n.id; G.p = 0;
-  n.x = .5; n.y = 30; DM.syncCarried(G);
+  // in mare aperto, lontano dai Porti
+  const n = DM.addUnit(G, 'N', 1, .5, 10), t = DM.addUnit(G, 'T', 1, .5, 10);
+  t.carried = n.id;
   n.hp = 1;
   G.round = 21; G.shots = 0;
-  const sh2 = DM.addUnit(G, 'T', 0, 2.2, 30);
-  assert.match(DM.shoot(G, sh2, .5, 30), /Nave distrutto: l’autista finisce in acqua, 1 truppe a bordo perse/);
+  const sh2 = DM.addUnit(G, 'T', 0, 2.2, 10);
+  assert.match(DM.shoot(G, sh2, .5, 10), /Nave distrutto: l’autista finisce in acqua, 1 truppe a bordo perse/);
   assert.ok(!G.units.includes(t));
 });
 
@@ -82,22 +84,27 @@ test('Nave Carro comprata: il Carro in regalo parte a bordo con il carico, e sce
   const x = G.units.find(u => u.t === 'X'), c = DM.aboard(G, x)[0];
   assert.equal(c.t, 'C');
   assert.match(DM.unboard(G, x, c), /sceso/);
-  assert.ok(DM.canStand(G, 'C', c.x, c.y));
+  assert.deepEqual([c.x, c.y], [port.x, port.y], 'il Carro scende nel Porto');
+  assert.ok(DM.canStand(G, 'C', c.x, c.y, 0));
   assert.ok(cap);
 });
 
-test('Porto necessario per il mare aperto; sui fiumi basta una Città entro 1 cm', () => {
+test('le Navi partono da un Porto, oppure dal fiume entro 1 cm da una propria Città', () => {
   const G = testGame();
-  G.players[0].res.N = 2;
-  // fiume a x 29,5–30,5: città a 1 cm → la nave si mette in acqua senza Porto
+  G.players[0].res.N = 3;
+  assert.match(DM.deploy(G, 'N', 1, 20), /nascono dentro un tuo Porto/);
   DM.addSite(G, 0, 'citta', 28.8, 15);
   assert.match(DM.deploy(G, 'N', 29.7, 15), /Nave schierato/);
-  assert.match(DM.deploy(G, 'N', 30, 22), /Porto/);
-  const n = G.units.at(-1);
-  assert.equal(DM.speedAt(G, n, 30, 14), 4, 'sul fiume va');
+  assert.match(DM.deploy(G, 'N', 30, 22), /Porto/, 'fiume senza città vicina');
+  const city = DM.siteNear(G, 28.8, 15)[0];
+  city.inv.mon = 1e5; city.inv.mat = { petrolio: 500, rame: 3, piombo: 2 };
+  assert.match(DM.buy(G, city, 'N'), /Nave creato/);
+  assert.equal(DM.bAt(G, G.units.at(-1).x, G.units.at(-1).y), 'F');
+  const cap = DM.capitalOf(G, 0);
+  cap.inv.mat = { petrolio: 500, rame: 3, piombo: 2 };
+  assert.match(DM.buy(G, cap, 'N'), /nascono nei Porti/);
+  // una volta partita, la nave naviga anche in mare aperto
   const sea = DM.addUnit(G, 'N', 0, 1, 20);
-  assert.match(DM.moveUnit(G, sea, 1, 22), /serve almeno un Porto/);
-  DM.addSite(G, 0, 'porto', 1, 30);
   assert.match(DM.moveUnit(G, sea, 1, 22), /Mossa completata/);
 });
 

@@ -30,6 +30,7 @@
     if (ui.selB && !G.sites.includes(ui.selB)) ui.selB = null;
     DM.draw($('c'), G, ui, view(), ui.Z);
     hud(); info(); eco(); reserveMenu(); legend(); buttons();
+    autosave(); savesPanel();
   }
   DM.redraw = draw;
 
@@ -53,7 +54,12 @@
   function info() {
     const f = $('info');
     if (ui.rolling) return;
-    if (G.phase === 'num') { f.innerHTML = '<b>Quanti giocatori?</b>' + row([2, 3, 4, 5, 6].map(n => btn('players', n, n)).join('')); return; }
+    if (G.phase === 'num') {
+      const a = DM.saveSummary(store.get(AUTO) || '');
+      f.innerHTML = (a && a.phase === 'play' ? `<b>Partita salvata</b>: giro ${a.round}, ${a.np} giocatori, tocca a ${a.turn} (${when(a.when)}).` + row(btn('resume', 'Riprendi la partita', '', 'go')) : '') +
+        (ui.msg ? `<p class="msg">${ui.msg}</p>` : '') + '<b>Nuova partita: quanti giocatori?</b>' + row([2, 3, 4, 5, 6].map(n => btn('players', n, n)).join(''));
+      return;
+    }
     if (G.phase === 'kit') {
       f.innerHTML = `<b style="color:${pcol(G.p)}">${G.names[G.p]}</b>: scegli il kit` +
         row(DM.KITS.map((k, i) => btn('kit', k.name, i)).join('')) + `<small>${kitHelp()}</small>`;
@@ -321,6 +327,25 @@
     cedecancel: () => { resetModes(); ui.msg = 'Cessione annullata.'; },
     minedie: d => { const [x, y] = ui.mineAt; mine(x, y, +d || undefined); return true; },
     cancel: () => { resetModes(); ui.msg = ''; },
+    resume: () => { loadText(store.get(AUTO), 'Partita ripresa.'); return true; },
+    saveslot: () => {
+      const list = slots();
+      list.unshift({ when: Date.now(), text: DM.serialize(G) });
+      ui.msg = store.set(SLOTS, JSON.stringify(list.slice(0, 10))) ? 'Copia salvata in questo telefono.' : 'Non riesco a salvare qui: usa "Scarica file".';
+    },
+    loadslot: i => {
+      if (G.phase === 'play' && !confirm('Caricare questa copia? La partita in corso resta solo nelle copie salvate.')) return true;
+      loadText(slots()[+i].text, 'Copia caricata.'); return true;
+    },
+    delslot: i => { const list = slots(); list.splice(+i, 1); store.set(SLOTS, JSON.stringify(list)); ui.msg = 'Copia eliminata.'; },
+    download: () => {
+      const a = document.createElement('a'), d = new Date();
+      a.href = URL.createObjectURL(new Blob([DM.serialize(G)], { type: 'application/json' }));
+      a.download = 'damamondo-giro' + G.round + '-' + d.toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      ui.msg = 'File della partita scaricato.';
+    },
     deselect: () => { ui.sel = null; ui.msg = ''; },
     opensite: id => { ui.selB = DM.siteById(G, id); ui.sel = null; ui.msg = ''; ui.cedeBTo = false; },
     board: a => { const [v, u] = a.split(':'); ui.msg = DM.board(G, DM.unitById(G, v), DM.unitById(G, u)); },
@@ -392,8 +417,40 @@
     v.scrollLeft = c.x * ui.Z - v.clientWidth / 2; v.scrollTop = c.y * ui.Z - v.clientHeight / 2;
   }
 
+  // ---------- Salvataggi (nel telefono e su file) ----------
+  const AUTO = 'damamondo-auto', SLOTS = 'damamondo-copie';
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  };
+  const slots = () => { try { return JSON.parse(store.get(SLOTS) || '[]'); } catch (e) { return []; } };
+  const when = t => t ? new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  let lastAuto = '';
+  function autosave() {
+    if (G.phase !== 'play' || G.map.custom) return;
+    const text = DM.serialize(G);
+    if (text.length === lastAuto.length && text === lastAuto) return;
+    lastAuto = text;
+    ui.autoOk = store.set(AUTO, text);
+  }
+  function savesPanel() {
+    const list = slots(), play = G.phase === 'play';
+    $('saveT').innerHTML = (play ? (ui.autoOk !== false ? '<small>La partita si salva da sola in questo telefono a ogni mossa.</small>' : '<small class="warn">Qui il salvataggio automatico non funziona: usa "Scarica file".</small>') : '<small>Inizia o riprendi una partita.</small>') +
+      row((play ? btn('saveslot', 'Salva una copia') + btn('download', 'Scarica file') : '') + '<label class="file">Apri file<input type="file" id="openfile" accept=".json,application/json"></label>') +
+      list.map((s, i) => { const a = DM.saveSummary(s.text) || {}; return row(`<span>${when(s.when)} · giro ${a.round} · tocca a ${a.turn}</span>` + btn('loadslot', 'Carica', i) + btn('delslot', 'Elimina', i)); }).join('');
+  }
+  function loadText(text, msg) {
+    try {
+      G = DM.game = DM.deserialize(text);
+      Object.assign(ui, { sel: null, selB: null, msg });
+      resetModes();
+      lastAuto = '';
+      draw(); focus();
+    } catch (e) { ui.msg = 'Non riesco a caricare: ' + e.message; draw(); }
+  }
+
   function newGame(ask) {
-    if (ask && G && G.phase === 'play' && !confirm('Iniziare una nuova partita? Quella in corso si perde.')) return;
+    if (ask && G && G.phase === 'play' && !confirm('Iniziare una nuova partita? Quella in corso resta in "Riprendi la partita" finché la nuova non comincia; per tenerla, salvane una copia.')) return;
     const opts = { isl: +$('isl').value, hum: +$('hum').value, temp: +$('tmp').value, comp: +$('cmp').value };
     $('info').innerHTML = 'Creo la mappa…';
     setTimeout(() => {
@@ -425,6 +482,13 @@
     $('end').onclick = endTurn; $('undo').onclick = undo; $('army').onclick = army; $('shoot').onclick = shoot; $('ced').onclick = cede;
     $('zi').onclick = () => zoom(1.25); $('zo').onclick = () => zoom(.8);
     $('map').onclick = () => newGame(true);
+    document.addEventListener('change', e => {
+      if (e.target.id !== 'openfile' || !e.target.files[0]) return;
+      if (G.phase === 'play' && !confirm('Aprire questo file? La partita in corso resta solo nelle copie salvate.')) { e.target.value = ''; return; }
+      const r = new FileReader();
+      r.onload = () => loadText(String(r.result), 'Partita aperta dal file.');
+      r.readAsText(e.target.files[0]);
+    });
     $('r5').onclick = () => { if (G.phase === 'play') { G.round += 5; ui.msg = 'Giro ' + G.round + ': limiti aggiornati (solo per prova, senza produzione).'; draw(); } };
     ['oS', 'oG', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
     DM.MATERIALS.forEach(m => $('bm').add(new Option(m + ' · ' + DM.fmtN(DM.BANK[m][0]) + ' ' + DM.unitOf(m) + ' = ' + DM.fmtN(DM.BANK[m][1]) + ' soldi', m)));

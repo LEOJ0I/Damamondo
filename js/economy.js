@@ -46,18 +46,23 @@
   DM.buy = function (G, site, k) {
     const q = DM.cur(G);
     if (!site || site.o !== G.p) return 'Seleziona prima l’edificio in cui compri (servono i soldi e i materiali lì).';
-    if (T[k] && !DM.SPAWNS[site.k].includes(k)) return 'Qui non si può creare ' + DM.nameOf(k) + '.';
-    if (T[k] && !DM.canStand(G, k, site.x, site.y)) return DM.nameOf(k) + ' non può stare qui.';
+    // 8.1: una Nave nasce in un Porto, oppure sul fiume entro 1 cm da una Città
+    let at = [site.x, site.y];
+    if (k === 'N' && (site.k === 'cap' || site.k === 'citta')) {
+      at = DM.riverSpot(G, site);
+      if (!at) return 'Le Navi nascono nei Porti, oppure sul fiume entro 1 cm da una Città.';
+    } else if (T[k] && !DM.SPAWNS[site.k].includes(k)) return 'Qui non si può creare ' + DM.nameOf(k) + '.';
+    if (T[k] && !DM.canStand(G, k, at[0], at[1])) return DM.nameOf(k) + ' non può stare qui.';
     if (k === 'bomba' && !DM.BOMB.bomba.from.includes(site.k)) return 'Le Bombe si creano in Capitale, Città o Accampamento.';
     if (k === 'superbomba' && !DM.BOMB.superbomba.from.includes(site.k)) return 'Le Superbombe si creano in Capitale o Città.';
     if (!DM.pay([site.inv], DM.COST[k])) return 'Non hai abbastanza risorse in questo edificio per ' + DM.nameOf(k) + '. Serve: ' + DM.costsText(k) + '.';
     if (T[k]) {
-      DM.addUnit(G, k, G.p, site.x, site.y);
+      DM.addUnit(G, k, G.p, at[0], at[1]);
       DM.claim(G, G.p, site.x, site.y);
       let extra = '';
       if (k === 'X' || k === 'A') {   // in regalo un Carro
         const v = G.units[G.units.length - 1];
-        DM.addUnit(G, 'C', G.p, site.x, site.y).carried = v.id;   // parte già a bordo
+        DM.addUnit(G, 'C', G.p, at[0], at[1]).carried = v.id;   // parte già a bordo
         extra = ' In regalo un Carro, già a bordo.';
       }
       return DM.nameOf(k) + ' creato in ' + DM.nameOf(site.k) + '.' + extra;

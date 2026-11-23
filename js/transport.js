@@ -4,6 +4,31 @@
   const T = DM.TROOPS;
 
   DM.hasPort = (G, o) => G.sites.some(s => s.o === o && s.k === 'porto');
+
+  // Molo di un Porto: dal Porto alla terra più vicina (entro 1,2 cm). Le truppe di terra ci camminano.
+  DM.dockOf = function (G, s) {
+    if (s.dock === undefined) {
+      s.dock = null;
+      for (let r = 0; r <= 1.2001 && !s.dock; r += .05) {
+        for (let a = 0; a < 32; a++) {
+          const x = s.x + Math.cos(a * Math.PI / 16) * r, y = s.y + Math.sin(a * Math.PI / 16) * r, b = DM.bAt(G, x, y);
+          if (b && !DM.WATER.includes(b) && b !== 'I') { s.dock = [x, y]; break; }
+        }
+      }
+    }
+    return s.dock;
+  };
+  DM.onPier = (G, o, x, y) => G.sites.some(s => s.o === o && s.k === 'porto' && Math.hypot(s.x - x, s.y - y) < 1.6 &&
+    (Math.hypot(s.x - x, s.y - y) <= .35 || (DM.dockOf(G, s) && DM.segD(x, y, { x1: s.x, y1: s.y, x2: s.dock[0], y2: s.dock[1] }) <= .2)));
+  // punto di fiume entro 1 cm dalla città (per mettere in acqua una Nave senza Porto)
+  DM.riverSpot = function (G, s) {
+    for (let r = .1; r <= 1.0001; r += .1) for (let a = 0; a < 24; a++) {
+      const x = s.x + Math.cos(a * Math.PI / 12) * r, y = s.y + Math.sin(a * Math.PI / 12) * r;
+      if (DM.bAt(G, x, y) === 'F') return [x, y];
+    }
+    return null;
+  };
+  DM.portAt = (G, o, x, y) => G.sites.find(s => s.o === o && s.k === 'porto' && Math.hypot(s.x - x, s.y - y) <= .35);
   DM.aboard = (G, v) => G.units.filter(u => u.carried === v.id);
   DM.aboardPts = (G, v) => DM.aboard(G, v).reduce((s, u) => s + DM.TROOP_VALUE[u.t], 0);
   const atAirport = (G, v) => G.sites.some(s => s.o === v.o && s.k === 'aer' && Math.hypot(s.x - v.x, s.y - v.y) <= .3);
@@ -42,8 +67,8 @@
   };
 
   // Punto dove una truppa può scendere: sul veicolo o il più vicino entro 1 cm
-  function dropSpot(G, t, x, y) {
-    const ok = (px, py) => DM.canStand(G, t, px, py) && !(T[t].kind === 'air' && 'ZI'.includes(DM.bAt(G, px, py)));
+  function dropSpot(G, t, x, y, o) {
+    const ok = (px, py) => DM.canStand(G, t, px, py, o) && !(T[t].kind === 'air' && 'ZI'.includes(DM.bAt(G, px, py)));
     if (ok(x, y)) return [x, y];
     for (let r = .2; r <= 1.001; r += .1) {
       for (let a = 0; a < 24; a++) {
@@ -57,7 +82,13 @@
   DM.unboard = function (G, v, u) {
     if (!v || !u || u.carried !== v.id || v.o !== G.p) return 'Questa truppa non è a bordo di questo veicolo.';
     if (v.t === 'A' && !atAirport(G, v)) return 'L’Aereo Carro fa scendere le truppe solo in un Aeroporto.';
-    const spot = dropSpot(G, u.t, v.x, v.y);
+    let spot;
+    if (T[v.t].kind === 'sea' && T[u.t].kind !== 'sea') {
+      // dalle navi si scende dentro un proprio Porto
+      const port = DM.portAt(G, v.o, v.x, v.y);
+      if (!port) return 'Dalle navi si scende solo dentro un tuo Porto: porta la nave nel Porto.';
+      spot = [port.x, port.y];
+    } else spot = dropSpot(G, u.t, v.x, v.y, v.o);
     if (!spot) return 'Qui ' + T[u.t].name + ' non può scendere (serve un terreno adatto entro 1 cm).';
     u.carried = 0;
     u.x = u.px = spot[0]; u.y = u.py = spot[1];
@@ -73,10 +104,10 @@
     let saved = 0, lost = 0;
     on.forEach(u => {
       u.carried = 0;
-      const spot = dropSpot(G, u.t, v.x, v.y);
+      const spot = dropSpot(G, u.t, v.x, v.y, v.o);
       if (spot) { u.x = u.px = spot[0]; u.y = u.py = spot[1]; saved++; } else { u.hp = 0; u.lost = true; lost++; }
     });
-    const ds = dropSpot(G, 'S', v.x, v.y);
+    const ds = dropSpot(G, 'S', v.x, v.y, v.o);
     let msg = ' ' + T[v.t].name + ' distrutto: ';
     if (ds) { DM.addUnit(G, 'S', v.o, ds[0], ds[1]).m = true; msg += 'l’autista si salva'; } else msg += 'l’autista finisce in acqua';
     if (saved) msg += ', scendono ' + saved + ' truppe';

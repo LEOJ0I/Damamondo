@@ -110,6 +110,13 @@
       cx.beginPath(); cx.moveTo(r.x1, r.y1); cx.lineTo(r.x2, r.y2); cx.stroke();
       cx.setLineDash([.15, .1]); cx.strokeStyle = pc[r.o]; cx.lineWidth = .08; cx.stroke(); cx.setLineDash([]);
     });
+    // moli dei Porti: dove le truppe scese dalle navi camminano fino a terra
+    G.sites.forEach(s => {
+      const d = s.k === 'porto' && DM.dockOf(G, s);
+      if (!d) return;
+      cx.lineCap = 'round'; cx.strokeStyle = '#7a5a33'; cx.lineWidth = .2;
+      cx.beginPath(); cx.moveTo(s.x, s.y); cx.lineTo(d[0], d[1]); cx.stroke();
+    });
     G.roads.forEach(r => {
       cx.lineCap = 'round'; cx.strokeStyle = '#5b4a3a'; cx.lineWidth = .24;
       cx.beginPath(); cx.moveTo(r.x1, r.y1); cx.lineTo(r.x2, r.y2); cx.stroke();

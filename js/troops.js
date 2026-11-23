@@ -15,25 +15,25 @@
   DM.bridgeAt = (G, x, y) => G.bridges.find(r => DM.segD(x, y, r) < .35);
   DM.inRad = (G, x, y) => G.rad.some(z => z.until > G.round && Math.hypot(z.x - x, z.y - y) <= z.r);
 
-  // Velocità di base nel punto, con i ponti (8.3)
-  DM.baseSpeed = function (G, t, x, y) {
+  // Velocità di base nel punto, con i ponti (8.3) e i moli dei Porti del giocatore o
+  DM.baseSpeed = function (G, t, x, y, o) {
     const d = T[t], b = DM.bAt(G, x, y);
     if (!b) return 0;
     if (d.kind === 'air' || !DM.WATER.includes(b)) return DM.terrainSpeed(t, b);
     const br = DM.bridgeAt(G, x, y);
     if (d.kind === 'sea') return br && br.lv === 1 ? 0 : DM.terrainSpeed(t, b);
-    // a terra sull'acqua: solo sui ponti. Il Carrarmato non passa sul liv. 1, il Carro non attraversa i fiumi.
+    // a terra sull'acqua: nel proprio Porto e sul suo molo fino alla riva
+    if (o !== undefined && DM.onPier(G, o, x, y)) return d.land.P;
+    // altrimenti solo sui ponti. Il Carrarmato non passa sul liv. 1, il Carro non attraversa i fiumi.
     return br && t !== 'C' && !(t === 'T' && br.lv === 1) ? d.land.P : 0;
   };
-  DM.canStand = (G, t, x, y) => DM.baseSpeed(G, t, x, y) > 0;
+  DM.canStand = (G, t, x, y, o) => DM.baseSpeed(G, t, x, y, o) > 0;
 
   // Velocità effettiva di una truppa nel punto: bioma → strada → pozione → bacca → radioattività
   DM.speedAt = function (G, u, x, y, road) {
     const d = T[u.t], b = DM.bAt(G, x, y);
-    let v = DM.baseSpeed(G, u.t, x, y);
+    let v = DM.baseSpeed(G, u.t, x, y, u.o);
     if (v <= 0) return 0;
-    // 8.1: per navigare in mare aperto serve un Porto
-    if (d.kind === 'sea' && b === 'S' && !DM.hasPort(G, u.o)) return 0;
     if (road && (u.t === 'S' || u.t === 'T')) v *= 2;
     if (u.vp === G.round && u.o === G.p) {
       // Pozione Velocità: +1 cm, oppure x2 se il bioma ha un malus (calcolato dopo il malus)
@@ -147,10 +147,7 @@
     if (!plan) plan = DM.planStraight(G, A, target ? target.x : tx, target ? target.y : ty);
     const { dx, dy } = plan;
     if (plane && Math.hypot(mx + dx - target.x, my + dy - target.y) > .05) return 'Aeroporto troppo lontano per un turno (' + DM.TROOPS.A.air + ' cm).';
-    if (Math.hypot(dx, dy) < .05) {
-      if (A.some(v => T[v.t].kind === 'sea') && !DM.hasPort(G, G.p) && DM.bAt(G, tx, ty) === 'S') return 'Per navigare in mare aperto ti serve almeno un Porto.';
-      return 'Non puoi muoverti verso quel punto.';
-    }
+    if (Math.hypot(dx, dy) < .05) return 'Non puoi muoverti verso quel punto.';
     if (A.some(v => T[v.t].kind === 'air' && 'ZI'.includes(DM.bAt(G, v.x + dx, v.y + dy) || ' '))) return 'Le truppe aeree non possono atterrare su Lavico o Banchisa.';
     // punti del percorso per prendere le terre di nessuno lungo la strada
     const pts = plan.path ? plan.path.map(s => [s.x - mx, s.y - my]) : [[dx, dy]];
@@ -200,7 +197,7 @@
   };
   DM.formArmy = function (G, pick) {
     if (pick.length < 2) return { err: 'Servono almeno 2 truppe.' };
-    const pos = pick.find(a => pick.every(u => DM.canStand(G, u.t, a.x, a.y)));
+    const pos = pick.find(a => pick.every(u => DM.canStand(G, u.t, a.x, a.y, u.o)));
     if (!pos) return { err: 'Le truppe non possono stare tutte nello stesso punto (terreno non valido).' };
     const g = ++G.gid, used = G.units.filter(u => u.o === G.p && u.g).map(u => u.an);
     let n = 1;
@@ -217,7 +214,7 @@
     u.g = 0; u.an = 0;
     const rest = G.units.filter(v => v.g === g);
     if (rest.length < 2) { rest.forEach(v => { v.g = 0; v.an = 0; }); return 'Esercito ' + an + ' sciolto.'; }
-    const spot = [0, 1, 2, 3, 4, 5, 6, 7].map(i => [u.x + Math.cos(i * .785) * .8, u.y + Math.sin(i * .785) * .8]).find(q => DM.canStand(G, u.t, q[0], q[1]));
+    const spot = [0, 1, 2, 3, 4, 5, 6, 7].map(i => [u.x + Math.cos(i * .785) * .8, u.y + Math.sin(i * .785) * .8]).find(q => DM.canStand(G, u.t, q[0], q[1], u.o));
     if (spot) { u.x = u.px = spot[0]; u.y = u.py = spot[1]; DM.syncCarried(G); }
     return T[u.t].name + ' ha lasciato l’esercito ' + an + '.';
   };
