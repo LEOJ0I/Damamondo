@@ -16,9 +16,27 @@
       c.width = w; c.height = h;
       const g = c.getContext('2d'), im = g.createImageData(w, h);
       const pal = DM.BIOMES.split('').map(k => rgb(plain && !'SFI'.includes(k) ? '#d9d2b0' : DM.BIOME_COLOR[k]));
+      // acqua più chiara vicino a riva e riva più scura: la costa si legge meglio
+      const water = i => DM.WATER.includes(DM.BIOMES[map.cells[i]]);
+      const S = DM.BIOMES.indexOf('S');
       for (let i = 0; i < map.cells.length; i++) {
-        const q = pal[map.cells[i]];
-        im.data[i * 4] = q[0]; im.data[i * 4 + 1] = q[1]; im.data[i * 4 + 2] = q[2]; im.data[i * 4 + 3] = 255;
+        const q = pal[map.cells[i]], x = i % w;
+        let f = 1, lift = 0;
+        {
+          const wt = water(i);
+          let near = 0;
+          for (let d = 1; d <= 3 && !near; d++) {
+            for (const j of [i - d, i + d, i - d * w, i + d * w]) {
+              const jx = j % w;
+              if (j < 0 || j >= map.cells.length || Math.abs(jx - x) > 3) continue;
+              if (water(j) !== wt) { near = d; break; }
+            }
+          }
+          if (near && wt && map.cells[i] === S) lift = (4 - near) * 12;
+          if (near === 1 && !wt) f = .82;
+        }
+        im.data[i * 4] = Math.min(255, q[0] * f + lift); im.data[i * 4 + 1] = Math.min(255, q[1] * f + lift);
+        im.data[i * 4 + 2] = Math.min(255, q[2] * f + lift); im.data[i * 4 + 3] = 255;
       }
       g.putImageData(im, 0, 0);
       return c;
@@ -67,6 +85,12 @@
     const imgs = baseImages(G.map);
     cx.imageSmoothingEnabled = true;
     cx.drawImage(view.biomes ? imgs.bio : imgs.plain, 0, 0, W, H);
+    // dettagli del terreno quando si ingrandisce (compaiono piano piano da 10 a 18 pixel per cm)
+    if (view.biomes && Z >= 10) {
+      cx.globalAlpha = Math.min(1, (Z - 10) / 8);
+      cx.drawImage(DM.detailLayer(G.map), 0, 0, W, H);
+      cx.globalAlpha = 1;
+    }
     if (view.terr) cx.drawImage(territoryImage(G), 0, 0, W, H);
     if (view.sheets) {
       cx.strokeStyle = 'rgba(255,255,255,.85)'; cx.lineWidth = .08; cx.setLineDash([.4, .3]);
@@ -148,15 +172,11 @@
       cx.fillRect(x - z, y - z, 2 * z, 2 * z); cx.strokeRect(x - z, y - z, 2 * z, 2 * z);
       glyph(k, x, y, z * .8);
     };
-    // posizione del distintivo di un edificio interno: in alto a destra (Aeroporto) o a sinistra (Porto)
-    const innerPos = s => { const p = DM.siteById(G, s.par) || s; return [p.x + (s.k === 'aer' ? 1 : -1) * .8 * sz, p.y - .8 * sz]; };
     G.sites.filter(s => !s.par).concat(G.sites.filter(s => s.par)).forEach(s => {
       const col = pc[s.o];
       cx.lineWidth = .12;
       if (s.par) {
-        // edificio dentro una città: distintivo in basso a destra (Aeroporto) o a sinistra (Porto)
-        const [bx, by] = innerPos(s);
-        badge(s.k, bx, by, Math.max(.3, 9 * px), col);
+        // edificio dentro una città: sulla mappa si vede solo la città; il pannello dice cosa c'è dentro
       } else if (s.k === 'cap') {
         star(cx, s.x, s.y, .75 * sz); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke();
       } else if (s.k === 'min') {
@@ -164,16 +184,17 @@
         for (let i = 0; i < 6; i++) cx.lineTo(s.x + Math.cos(i * 1.047) * .4 * sz, s.y + Math.sin(i * 1.047) * .4 * sz);
         cx.closePath(); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.lineWidth = .08; cx.stroke();
         cx.fillStyle = '#fff'; cx.font = 'bold ' + (.3 * sz) + 'px sans-serif'; cx.fillText(DM.SYMBOL[s.mt], s.x, s.y + .02);
+        if (Z >= 12) DM.drawOre(cx, s, sz);
       } else if (ICON[s.k]) {
         badge(s.k, s.x, s.y, .38 * sz, col);
       } else {
         const z = (s.k === 'citta' ? .55 : .35) * sz;
         cx.fillStyle = col; cx.strokeStyle = '#fff';
         cx.fillRect(s.x - z, s.y - z, 2 * z, 2 * z); cx.strokeRect(s.x - z, s.y - z, 2 * z, 2 * z);
+        if (Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
       }
       if (ui.selB === s) {
-        const [x, y] = s.par ? innerPos(s) : [s.x, s.y];
-        cx.strokeStyle = '#ffd54a'; cx.lineWidth = Math.max(.12, 3 * px); cx.beginPath(); cx.arc(x, y, (s.par ? .5 : .9) * sz, 0, 7); cx.stroke();
+        cx.strokeStyle = '#ffd54a'; cx.lineWidth = Math.max(.12, 3 * px); cx.beginPath(); cx.arc(s.x, s.y, .9 * sz, 0, 7); cx.stroke();
       }
     });
     // raggio del selezionato (movimento o gittata)

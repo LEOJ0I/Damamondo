@@ -165,8 +165,8 @@ test('partita completa sul telefono', async (t) => {
 
   await t.test('Aeroporto dentro la Capitale: si vede e si apre', async () => {
     await selectAt(A[0], A[1], /^Capitale/m);
-    assert.match(await info(), /Dentro:\s*✈ Aeroporto/);
-    await act('✈ Aeroporto');
+    assert.match(await info(), /Dentro c’è un Aeroporto\./);
+    await act('Apri l’Aeroporto');
     assert.match(await info(), /^Aeroporto \(dentro una città\)/m);
     await act('Torna a Capitale');
     assert.match(await info(), /^Capitale/m);

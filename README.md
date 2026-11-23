@@ -21,6 +21,7 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/turn.js` | fine turno, giri, eruzioni, Lavico |
 | `js/save.js` | salvare e riprendere la partita |
 | `js/render.js` | disegno della mappa |
+| `js/decor.js` | dettagli quando si ingrandisce: alberi, montagne, onde, minerali, case |
 | `js/ui.js`, `js/main.js` | tocchi, pannelli, pulsanti, avvio |
 
 Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e riusare per un'app.

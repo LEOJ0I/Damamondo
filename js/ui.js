@@ -119,7 +119,10 @@
       (s.k === 'min' ? ' · ' + s.mt : '') + (s.ign ? ' · ignifuga' : '') + (s.up ? ' · migliorata' : '') +
       `<br>Contiene: ${DM.fmtInv(I)}` + (inside.length ? '<br>Truppe dentro: ' + DM.composition(inside) : '');
     const inner = G.sites.filter(z => z.par === s.id);
-    if (inner.length) h += row('<span>Dentro:</span>' + inner.map(z => btn('opensite', (z.k === 'aer' ? '✈ ' : '⚓ ') + DM.nameOf(z.k), z.id)).join(''));
+    if (inner.length) {
+      const un = k => 'un ' + DM.nameOf(k);
+      h += `<br><b>Dentro c’è ${inner.map(z => un(z.k)).join(' e ')}.</b>` + row(inner.map(z => btn('opensite', 'Apri ' + (z.k === 'aer' ? 'l’Aeroporto' : 'il Porto'), z.id)).join(''));
+    }
     if (s.par && DM.siteById(G, s.par)) h += row(btn('opensite', '← Torna a ' + DM.nameOf(DM.siteById(G, s.par).k), s.par));
     if (s.k === 'citta' && I.mon < DM.CITY_MIN_MONEY) h += '<br><small>Con meno di 5.000 soldi dentro conta come Accampamento (niente rendita).</small>';
     if (s.k === 'col') { const k = DM.BERRY_OF_BIOME[DM.bAt(G, s.x, s.y)]; h += '<br><small>Bacche ' + k + ': prossima al giro ' + (G.round + 5 - ((G.round - s.r0) % 5 + 5) % 5) + '.</small>'; }
