@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Damamondo Classico</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <section id="menu" class="menu" aria-label="Menu">
+    <canvas id="menuBg" aria-hidden="true"></canvas>
+    <div id="menuBody" class="menu-body"></div>
+  </section>
+
+  <div id="game" class="game" hidden>
+  <header class="w panel" id="hud"></header>
+  <div class="w" id="vp"><canvas id="c" aria-label="Mappa di gioco"></canvas></div>
+  <section class="w panel" id="info" aria-live="polite"></section>
+
+  <nav class="w r" aria-label="Comandi">
+    <button type="button" class="go playonly" id="end">Fine turno</button>
+    <button type="button" class="playonly" id="undo">Annulla mossa</button>
+    <button type="button" class="playonly" id="army">Forma esercito</button>
+    <button type="button" class="playonly" id="shoot">Spara</button>
+    <button type="button" class="playonly" id="ced">Cedi territorio</button>
+    <button type="button" id="zi">Zoom +</button>
+    <button type="button" id="zo">Zoom −</button>
+    <button type="button" id="toMenu">Menu</button>
+  </nav>
+  <div class="w r">
+    <select id="sp" class="playonly" aria-label="Riserva"><option value="">Schiera o costruisci dalla riserva…</option></select>
+  </div>
+
+  <details class="w panel" id="ecoP">
+    <summary>Risorse, Banco e acquisti</summary>
+    <div id="ecoT"></div>
+    <div class="r"><select id="bm" aria-label="Materiale da vendere"></select><input type="number" id="bq" value="1" min="1" inputmode="numeric" aria-label="Lotti"><button type="button" id="bs" class="playonly">Vendi al Banco</button></div>
+    <div class="r"><select id="by" aria-label="Cosa comprare"></select><button type="button" id="bb" class="playonly">Compra</button></div>
+  </details>
+
+  <details class="w panel" id="opt">
+    <summary>Visualizza</summary>
+    <label><input type="checkbox" id="oS" checked>Righe e nomi dei fogli</label>
+    <label><input type="checkbox" id="oG">Quadretti (1 cm)</label>
+    <label><input type="checkbox" id="oD" checked>Dettagli quando ingrandisci</label>
+    <label><input type="checkbox" id="oB" checked>Biomi</label>
+    <label><input type="checkbox" id="oR">Territori</label>
+    <label><input type="checkbox" id="oU" checked>Truppe</label>
+    <div id="leg"></div>
+  </details>
+
+  <details class="w panel" id="saveP">
+    <summary>Salvataggi</summary>
+    <div id="saveT"></div>
+    <small id="seedInfo"></small>
+  </details>
+
+  <p class="w help"><small>Tocca una tua truppa, poi dove muoverla. Tocca un tuo edificio per vedere cosa contiene e cosa puoi fare. Le truppe del kit sono nella riserva: schierale vicino a Capitale, Città o Accampamenti (navi nei Porti, Aereo Carro negli Aeroporti). Le distanze sono in cm come sul foglio.</small></p>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/territory.js"></script>
+  <script src="js/troops.js"></script>
+  <script src="js/combat.js"></script>
+  <script src="js/economy.js"></script>
+  <script src="js/buildings.js"></script>
+  <script src="js/transport.js"></script>
+  <script src="js/turn.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/decor.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

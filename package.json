@@ -1,0 +1,10 @@
+{
+  "name": "damamondo",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Damamondo Classico – prototipo giocabile nel browser",
+  "scripts": {
+    "test": "node --test tests/setup.test.js tests/troops.test.js tests/combat.test.js tests/economy.test.js tests/territory.test.js tests/transport.test.js tests/save.test.js",
+    "test:browser": "node --test tests/e2e.test.js"
+  }
+}
