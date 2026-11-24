@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://leoj0i.github.io/Damamondo/sitemap.xml
