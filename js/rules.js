@@ -75,6 +75,7 @@
       table(['Veicolo', 'Punti truppa', 'Punti cose'], DM.TROOP_KEYS.split('').map(k => [T[k].name, DM.TROOP_CAP[k] || 0, DM.CARGO_CAP[k] || '–'])) +
       `<h4>Valore delle truppe</h4>` + table(['Truppa', 'Punti truppa'], Object.keys(DM.TROOP_VALUE).map(k => [T[k].name, n(DM.TROOP_VALUE[k])])) +
       `<h4>Valore delle cose (quanto vale 1 punto)</h4>` + table(['Cosa', '1 punto'], things) + ul([
+        'I punti sono sempre <b>interi</b>: ogni tipo di cosa si arrotonda per eccesso. Per esempio 20.000 soldi occupano 1 punto, 1,5 t di ferro occupano 2 punti. Conviene caricare a quantità piene (30.000 soldi, 1 t di ferro…).',
         'Si sale su un veicolo entro 1 cm. Chi è a bordo non si muove e non spara finché non scende.',
         'Sulle navi si sale e si scende solo <b>dentro un proprio Porto</b>; dal Porto si va a terra camminando sul molo.',
         'Quando un veicolo viene distrutto, scendono le truppe che portava e in più 1 Soldato (l\'autista). In mare aperto si perdono.',
