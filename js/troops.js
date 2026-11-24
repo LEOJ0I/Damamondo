@@ -87,13 +87,13 @@
   };
 
   // Costo (in frazioni di turno) di un tratto di strada per il gruppo
-  function roadCost(G, us, a, b) {
+  function roadCost(G, us, a, b, road = true) {
     const L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(L / .05));
     let cost = 0;
     for (let i = 0; i < n; i++) {
       const f = (i + .5) / n, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f;
       let s = Infinity;
-      for (const u of us) s = Math.min(s, T[u.t].kind === 'land' ? DM.speedAt(G, u, x, y, true) : 0);
+      for (const u of us) s = Math.min(s, T[u.t].kind === 'land' ? DM.speedAt(G, u, x, y, road) : 0);
       if (s <= 0) return Infinity;
       cost += (L / n) / s;
     }
@@ -101,27 +101,34 @@
   }
 
   // Viaggio sulle strade da un edificio a un altro (passando dagli edifici collegati). Solo truppe di terra.
+  // La rete: edifici ed estremità dei ponti, unite dalle strade; ogni ponte unisce le sue due estremità.
   DM.planRoad = function (G, us, from, to) {
-    if (!from || !to || from === to || us.some(u => T[u.t].kind !== 'land')) return null;
-    const dist = new Map([[from.id, 0]]), prev = new Map(), todo = new Set([from.id]);
+    if (!from || !to || from.id === to.id || us.some(u => T[u.t].kind !== 'land')) return null;
+    const o = us[0].o, dist = new Map([[from.id, 0]]), prev = new Map(), todo = new Set([from.id]);
+    const links = cur => {
+      const out = G.roads.filter(r => r.o === o && (r.a === cur || r.b === cur)).map(r => ({ id: r.a === cur ? r.b : r.a, road: true }));
+      if (typeof cur === 'string' && cur[0] === 'b') { const [bid, end] = cur.slice(1).split(':'); out.push({ id: 'b' + bid + ':' + (end === '1' ? '2' : '1'), road: false }); }
+      return out;
+    };
     while (todo.size) {
       let cur = null;
       todo.forEach(id => { if (cur === null || dist.get(id) < dist.get(cur)) cur = id; });
       todo.delete(cur);
       if (cur === to.id) break;
-      const a = DM.siteById(G, cur);
-      G.roads.filter(r => r.o === us[0].o && (r.a === cur || r.b === cur)).forEach(r => {
-        const nid = r.a === cur ? r.b : r.a, b = DM.siteById(G, nid);
+      const a = DM.nodePos(G, cur);
+      if (!a) continue;
+      links(cur).forEach(l => {
+        const b = DM.nodePos(G, l.id);
         if (!b) return;
-        const c = dist.get(cur) + roadCost(G, us, a, b);
-        if (c < (dist.has(nid) ? dist.get(nid) : Infinity)) { dist.set(nid, c); prev.set(nid, cur); todo.add(nid); }
+        const c = dist.get(cur) + roadCost(G, us, a, b, l.road);
+        if (c < (dist.has(l.id) ? dist.get(l.id) : Infinity)) { dist.set(l.id, c); prev.set(l.id, cur); todo.add(l.id); }
       });
     }
     if (!dist.has(to.id) || dist.get(to.id) > 1 + 1e-9) return null;
     const path = [to.id];
     while (path[0] !== from.id) path.unshift(prev.get(path[0]));
     const [mx, my] = centroid(us);
-    return { dx: to.x - mx, dy: to.y - my, left: 1 - dist.get(to.id), path: path.map(id => DM.siteById(G, id)) };
+    return { dx: to.x - mx, dy: to.y - my, left: 1 - dist.get(to.id), path: path.map(id => DM.nodePos(G, id)) };
   };
 
   // Muove la truppa o l'esercito di u verso (tx, ty). Restituisce un messaggio.
@@ -142,8 +149,14 @@
       if (!target) return 'L’Aereo Carro atterra solo in un tuo Aeroporto: tocca l’Aeroporto di arrivo.';
     }
     let plan = null;
-    if (target) G.sites.filter(s => own(s) && Math.hypot(s.x - mx, s.y - my) <= .3)
-      .forEach(s => { if (!plan) plan = DM.planRoad(G, A, s, target); });
+    // viaggio sulla rete stradale: si parte da un edificio o dall'estremità di un ponte, si arriva a un altro
+    const goal = plane ? null : (target ? { id: target.id, x: target.x, y: target.y } : DM.nodeNear(G, tx, ty));
+    if (goal) {
+      const starts = G.sites.filter(s => own(s) && Math.hypot(s.x - mx, s.y - my) <= .3).map(s => ({ id: s.id, x: s.x, y: s.y }));
+      const here = DM.nodeNear(G, mx, my, null, .3);
+      if (here && !here.site) starts.push(here);
+      starts.forEach(st => { if (!plan) plan = DM.planRoad(G, A, st, goal); });
+    }
     if (!plan) plan = DM.planStraight(G, A, target ? target.x : tx, target ? target.y : ty);
     const { dx, dy } = plan;
     if (plane && Math.hypot(mx + dx - target.x, my + dy - target.y) > .05) return 'Aeroporto troppo lontano per un turno (' + DM.TROOPS.A.air + ' cm).';

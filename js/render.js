@@ -144,10 +144,27 @@
       cx.lineCap = 'round'; cx.strokeStyle = '#7a5a33'; cx.lineWidth = .2;
       cx.beginPath(); cx.moveTo(s.x, s.y); cx.lineTo(d[0], d[1]); cx.stroke();
     });
+    // strade: si disegnano solo sulla terra (sull'acqua c'è il ponte)
     G.roads.forEach(r => {
-      cx.lineCap = 'round'; cx.strokeStyle = '#5b4a3a'; cx.lineWidth = .24;
-      cx.beginPath(); cx.moveTo(r.x1, r.y1); cx.lineTo(r.x2, r.y2); cx.stroke();
-      cx.strokeStyle = pc[r.o]; cx.lineWidth = .1; cx.stroke();
+      if (!r.parts) {
+        const L = Math.hypot(r.x2 - r.x1, r.y2 - r.y1), n = Math.max(1, Math.ceil(L / .05)), parts = [];
+        let on = null;
+        for (let i = 0; i <= n; i++) {
+          const t = i / n, x = r.x1 + (r.x2 - r.x1) * t, y = r.y1 + (r.y2 - r.y1) * t, k = DM.bAt(G, x, y);
+          const land = k && !DM.WATER.includes(k);
+          if (land && !on) on = [x, y, x, y];
+          if (land) { on[2] = x; on[3] = y; }
+          if (!land && on) { parts.push(on); on = null; }
+        }
+        if (on) parts.push(on);
+        Object.defineProperty(r, 'parts', { value: parts, enumerable: false, writable: true });   // non finisce nel salvataggio
+      }
+      cx.lineCap = 'round';
+      r.parts.forEach(([x1, y1, x2, y2]) => {
+        cx.strokeStyle = '#5b4a3a'; cx.lineWidth = .24;
+        cx.beginPath(); cx.moveTo(x1, y1); cx.lineTo(x2, y2); cx.stroke();
+        cx.strokeStyle = pc[r.o]; cx.lineWidth = .1; cx.stroke();
+      });
     });
     // edifici (prima quelli normali, poi quelli dentro le città, sopra)
     const sz = Math.max(1, 6 * px);   // non scendere sotto qualche pixel

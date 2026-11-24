@@ -32,30 +32,23 @@ Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e 
 ## Prove
 
 ```
-npm test               # 51 prove delle regole (serve Node 18+)
-npm run test:browser   # 33 passi giocati in un browser che finge un iPhone (serve Playwright)
+npm test               # 54 prove delle regole (serve Node 18+)
+npm run test:browser   # 34 passi giocati in un browser che finge un iPhone (serve Playwright)
 ```
 
-## Decisioni prese (da confermare)
+## Regole decise insieme (oltre al PDF)
 
-Le correzioni del documento di passaggio hanno la precedenza sul PDF. Dove il regolamento non diceva abbastanza:
+Le correzioni del documento di passaggio e le decisioni prese con l'utente sono tutte nel regolamento dentro il gioco (menu "Regole"). Le principali:
 
-- **Bomba con limite sotto 3**: si lancia solo se nel turno non si è ancora sparato. Con limite 5 si lancia 1 Bomba (3+3 supererebbe 5), con 8 due.
-- **Superbomba**: vale 5 spari, quindi si usa dal giro 16. Può essere lanciata anche su un punto vuoto (lascia l'area radioattiva).
-- **Bombe sui propri edifici**: permesse (consiglio "bombarda la tua città prima che la conquistino"); le truppe nemiche hanno la precedenza.
-- **Truppa nemica dentro un edificio**: chi spara colpisce prima la truppa, poi l'edificio.
-- **Città con meno di 5.000 soldi**: niente rendita (conta come Accampamento). La Capitale paga sempre.
-- **Ponte**: si paga per ogni cm d'acqua attraversata (arrotondato per eccesso).
-- **Strade**: possono passare sull'acqua solo sopra un proprio ponte. Il viaggio può passare da più edifici collegati.
-- **Porto**: si può costruire in mare, nei fiumi e nei laghi.
-- **Coltivazione**: solo nei biomi che danno bacche (Deserto, Giungla, Palude, Tundra).
-- **Aereo Carro**: carica e scarica solo in un Aeroporto.
-- **Edificio distrutto**: muoiono le truppe del proprietario che ci sono dentro, non quelle nemiche vicine.
-
-- **Navi e Porti** (deciso dall'utente): le Navi partono da un Porto, oppure da un fiume entro 1 cm da una propria Città. Chi scende da una nave scende dentro un proprio Porto e poi va a terra camminando sul molo.
-- **Trasporto**: si sale entro 1 cm dal veicolo; chi è a bordo non muove, non spara e non può essere colpito. Il Carro regalato con Nave Carro e Aereo Carro parte a bordo.
-- **Veicolo distrutto**: scendono quelli a bordo e l'autista (un Soldato) nel punto più vicino dove possono stare; se sono in mare aperto, si perdono.
-- **Aereo Carro**: parte e atterra solo nei propri Aeroporti (al massimo 12 cm a turno), e solo lì carica e scarica.
+- **Truppe aeree**: tutte le truppe le possono colpire.
+- **Colpi sugli eserciti**: chi subisce riceve ogni colpo su una truppa a caso, solo tra le vive (anche le truppe dentro un edificio). Chi spara resta com'era.
+- **Bersagli**: chi spara sceglie se colpire una truppa, un esercito, le truppe dentro un edificio (come un esercito) o l'edificio. Le truppe non sparano mai alle cose proprie; Bombe, Superbombe e bacche invece possono colpire anche quelle.
+- **Edificio distrutto**: si perde quello che conteneva, ma le truppe dentro restano vive (le ferisce solo una Bomba sull'edificio, che colpisce tutto quello che c'è dentro).
+- **Ponti a pezzi**: si comprano pezzi da 1 cm; il ponte usa un pezzo per ogni cm d'acqua, arrotondato per eccesso.
+- **Strade**: si fermano all'acqua e si collegano alle estremità dei ponti; si paga solo la parte sulla terra.
+- **Navi e Porti**: le Navi partono da un Porto o da un fiume entro 1 cm da una propria Città; sulle navi si sale e si scende solo in un proprio Porto.
+- **Bomba con limite sotto 3**: una sola, se non si è ancora sparato. **Superbomba**: 5 spari, quindi dal giro 16.
+- **Città con meno di 5.000 soldi**: niente rendita. **Coltivazione**: solo nei biomi che danno bacche.
 
 ## Menu e salvataggi
 

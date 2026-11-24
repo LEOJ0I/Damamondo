@@ -85,10 +85,10 @@ test('partita completa sul telefono', async (t) => {
     await page.click('[data-m=home]');
     await page.click('[data-m=regole]');
     const r = await page.locator('.rules').innerText();
-    assert.match(r, /1\. Introduzione/); assert.match(r, /Scelte del prototipo/);
+    assert.match(r, /1\. Introduzione/); assert.doesNotMatch(r, /Scelte del prototipo/); assert.match(r, /0,7 cm usa 1 pezzo/);
     assert.match(r, /Carrarmato\s+2\s+1500/);
     assert.doesNotMatch(r, /undefined|NaN/);
-    assert.equal(await page.locator('.rules section').count(), 17);
+    assert.equal(await page.locator('.rules section').count(), 16);
     await page.locator('[data-m=home]').first().click();
     await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
     assert.match(await page.locator('#menu').innerText(), /Nessuna partita salvata/);
@@ -260,11 +260,27 @@ test('partita completa sul telefono', async (t) => {
     await act('Collega con strada');
     await tapCm(A[0] + 1.5, A[1] + 1.2);
     assert.match(await info(), /Strada costruita/);
-    await selectAt(A[0], A[1], /^Capitale/m);
-    await act('Ponte liv.1');
-    await tapCm(A[0] + 1, A[1] + 1);
-    assert.match(await info(), /attraversare l’acqua/);
+    // il ponte si posa dalla riserva con due tocchi (qui non c'è acqua, quindi non si può)
+    await page.selectOption('#sp', 'ponte1');
+    assert.match(await info(), /Ogni cm di ponte usa un pezzo/);
+    await tapCm(A[0] + .8, A[1] + .8);
+    assert.match(await info(), /dall’altra parte dell’acqua/);
+    await tapCm(A[0] + 1.3, A[1] + .9);
+    assert.match(await info(), /non c’è acqua|Tocca la terra/);
     await shot('04-strada');
+  });
+
+  await t.test('scegliere il bersaglio: l’edificio o le truppe che ci sono dentro', async () => {
+    await page.click('#end'); await page.click('#end');
+    const P = [A[0] + 1.5, A[1] - .9];
+    await ev(([x, y]) => { const G = DM.game; DM.addSite(G, 1, 'acc', x, y); DM.addUnit(G, 'S', 1, x, y); DM.ui.sel = G.units.find(u => u.o === 0 && u.t === 'S' && Math.hypot(u.x - x, u.y - y) <= 1); DM.ui.selB = null; DM.redraw(); }, P);
+    await page.click('#shoot');
+    await tapCm(P[0], P[1]);
+    assert.match(await info(), /A cosa spari\?/);
+    assert.match(await info(), /Truppe dentro Accampamento di Giocatore 2/);
+    await shot('04b-bersaglio');
+    await page.locator('#info button', { hasText: /^Accampamento di Giocatore 2/ }).click();
+    assert.match(await info(), /1 truppa ha sparato: 70 danni a Accampamento/);
   });
 
   await t.test('cessione di territorio a nessuno', async () => {
@@ -304,7 +320,9 @@ test('partita completa sul telefono', async (t) => {
     await page.uncheck('#oU');
     await tapCm(B[0], B[1]);
     assert.match(await info(), /Truppe nascoste/);
-    await page.check('#oU'); await page.check('#oB'); await page.uncheck('#oS');
+    assert.equal(await page.isChecked('#oS'), false, 'i fogli sono nascosti di partenza');
+    await page.check('#oS'); await page.uncheck('#oS');
+    await page.check('#oU'); await page.check('#oB');
     await page.check('#oG');
     assert.equal(await page.isChecked('#oD'), true, 'i dettagli sono attivi di partenza');
     await page.uncheck('#oD'); await page.check('#oD');

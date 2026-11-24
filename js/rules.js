@@ -28,7 +28,7 @@
         ['Soldati', ...DM.KITS.map(k => k.S || '–')], ['Navi', ...DM.KITS.map(k => k.N || '–')], ['Elicotteri', ...DM.KITS.map(k => k.E || '–')],
         ['Accampamenti', ...DM.KITS.map(k => k.acc || '–')], ['Città', ...DM.KITS.map(k => k.citta || '–')], ['Porti', ...DM.KITS.map(k => k.porto || '–')],
         ['Miniere', ...DM.KITS.map(k => k.min ? k.min + (k.diceChoice ? ' (*)' : '') : '–')], ['Aeroporti', ...DM.KITS.map(k => k.aer || '–')],
-        ['Ponte liv. 1', ...DM.KITS.map(k => k.ponte1 || '–')], ['Materiali', ...DM.KITS.map(k => k.materials ? '1 punto di ogni materiale' : '–')],
+        ['Pezzi di ponte liv. 1', ...DM.KITS.map(k => k.ponte1 || '–')], ['Materiali', ...DM.KITS.map(k => k.materials ? '1 punto di ogni materiale' : '–')],
         ['Pozioni', ...DM.KITS.map(k => k.potions ? '2 di ogni tipo (1 di Stipendio+)' : '–')]]) +
       `<p>(*) Il giocatore sceglie il risultato del dado per ciascuna delle due miniere. Tribù è il kit standard.</p>` +
       ul(['Ogni kit comprende la Capitale e 1 Carro.', 'La prima Città o Capitale ha un <b>Aeroporto gratis</b> dentro.',
@@ -52,7 +52,8 @@
       })) +
       `<h4>Costi</h4>` + table(['Truppa', 'Costo'], DM.TROOP_KEYS.split('').map(k => [T[k].name, cost(k)])) +
       `<h4>Regole speciali</h4>` + ul([
-        '<b>Truppe aeree</b> (Elicottero, Aereo Carro): le colpiscono solo Soldati, Navi e Carrarmati.',
+        '<b>Chi spara sceglie il bersaglio</b>: una truppa, un esercito, le truppe che stanno dentro un edificio (valgono come un esercito) oppure l\'edificio. Le truppe sparano solo alle cose degli altri giocatori, mai alle proprie.',
+        '<b>Truppe aeree</b> (Elicottero, Aereo Carro): tutte le truppe le possono colpire.',
         '<b>Nave</b>: si muove sul mare e sui fiumi. Parte da un Porto, oppure da un fiume se c\'è una tua Città entro 1 cm.',
         '<b>Nave Carro</b>: non naviga nei fiumi. Sulla Banchisa va a 6 cm (è una specie di rompighiaccio).',
         '<b>Elicottero</b>: velocità 4; quando parte da un Aeroporto ha +2 cm (solo alla partenza).',
@@ -62,6 +63,7 @@
 
     add('Eserciti e flotte', `<p>Un esercito è un gruppo di truppe che si muovono e attaccano insieme. Un esercito con almeno una Nave o una Nave Carro si chiama flotta. Le truppe si uniscono se sono entro 1 cm l'una dall'altra.</p>` + ul([
       '<b>Movimento</b>: l\'esercito va alla velocità della sua truppa più lenta.',
+      '<b>Subire i colpi</b>: quando si spara a un esercito, o alle truppe dentro un edificio, ogni colpo va su una truppa <b>a caso</b>, scelta solo tra quelle ancora vive. Esempio: 10 Soldati sparano a un esercito di 2 Carrarmati, 1 Elicottero e 10 Soldati; ognuno dei 10 colpi da 70 cade a caso: magari 1 su un Carrarmato e 9 sui Soldati, e un Soldato può essere colpito due volte. Le Bombe invece colpiscono tutte le truppe.',
       '<b>Sparo</b>: ogni truppa spara con le sue statistiche. Un esercito conta come 1 solo sparo del limite, ma possono sparare fino al doppio del limite di truppe. Esempio: al 16° giro il limite è 5, quindi un esercito fa sparare fino a 10 truppe contando 1 sparo.',
       '<b>Compatibilità</b>: le Navi stanno solo con Navi, Elicotteri e Navi Carro. La Nave Carro sta con Navi, Elicotteri e Aerei Carro, mai con Soldati, Carrarmati e Carri. Un esercito di terra comprende Soldati, Carrarmati, Carri, Elicotteri e Aerei Carro.',
       '<b>Tetto</b>: massimo 100 punti (tabella). Questi punti servono solo per il tetto.']) +
@@ -74,7 +76,7 @@
       `<h4>Valore delle truppe</h4>` + table(['Truppa', 'Punti truppa'], Object.keys(DM.TROOP_VALUE).map(k => [T[k].name, n(DM.TROOP_VALUE[k])])) +
       `<h4>Valore delle cose (quanto vale 1 punto)</h4>` + table(['Cosa', '1 punto'], things) + ul([
         'Si sale su un veicolo entro 1 cm. Chi è a bordo non si muove e non spara finché non scende.',
-        'Dalle navi si scende solo <b>dentro un proprio Porto</b>; dal Porto si va a terra camminando sul molo.',
+        'Sulle navi si sale e si scende solo <b>dentro un proprio Porto</b>; dal Porto si va a terra camminando sul molo.',
         'Quando un veicolo viene distrutto, scendono le truppe che portava e in più 1 Soldato (l\'autista). In mare aperto si perdono.',
         'La Nave Carro e l\'Aereo Carro non si possono trasportare.',
         'Il Carro è il mezzo per spostare soldi e materiali tra le città: i soldi non si trasferiscono da soli. Soldi a multipli di 1.000, materiali a peso intero.']));
@@ -83,26 +85,29 @@
       'La rendita si conta dal giro di costruzione: una Città costruita all\'8° giro paga al 18°.',
       'Ogni Città deve avere dentro almeno 5.000 soldi, altrimenti conta come Accampamento (niente rendita).',
       'L\'Accampamento serve solo a far nascere truppe. Diventa Città pagando solo la differenza di costo.',
-      'Se una Città viene distrutta si perde tutto quello che c\'era dentro: truppe, soldi, bacche, minerali e bombe.',
+      'Se una Città (o un altro edificio) viene distrutta si perde tutto quello che c\'era dentro: soldi, bacche, minerali, pozioni e bombe. Le truppe dentro <b>non</b> muoiono, a meno che non le colpisca una Bomba.',
       '<b>Capitale distrutta</b>: si sposta da sola in una Città che abbia almeno il 50% dei soldi del giocatore. Se nessuna Città li ha, il giocatore ha tutto il tempo che vuole per portarli (con il Carro) e scegliere la nuova Capitale, ma perde 10.000 soldi a ogni suo turno. Senza Capitale e senza Città, perde.']));
 
     add('Edifici e armi', table(['Edificio', 'Vita', 'Costo'], [['Capitale', n(DM.BUILDING_HP.cap), 'nel kit'], ['Città', n(DM.BUILDING_HP.citta), cost('citta')],
       ['Accampamento', n(DM.BUILDING_HP.acc), cost('acc')], ['Porto', n(DM.BUILDING_HP.porto), cost('porto')], ['Aeroporto', n(DM.BUILDING_HP.aer), cost('aer')],
       ['Coltivazione', n(DM.BUILDING_HP.col), cost('col')], ['Miniera', n(DM.BUILDING_HP.min), cost('min')],
-      ['Ponte liv. 1', n(DM.BRIDGE_HP[1]), n(DM.BRIDGE_COST[1].m) + ' soldi + 100 kg ferro per 1 cm'], ['Ponte liv. 2', n(DM.BRIDGE_HP[2]), n(DM.BRIDGE_COST[2].m) + ' soldi + 200 kg ferro per 1 cm'],
+      ['Ponte liv. 1', n(DM.BRIDGE_HP[1]), cost('ponte1') + ' per pezzo (1 cm)'], ['Ponte liv. 2', n(DM.BRIDGE_HP[2]), cost('ponte2') + ' per pezzo (1 cm)'],
       ['Strada', '5.000', n(DM.ROAD_COST.m) + ' soldi + 2 t ferro + 100 kg oro per pezzo (max 5 cm)']]) +
-      '<p>Gli edifici si costruiscono nel proprio territorio, con una propria truppa entro 2 cm, e mai su mare, fiumi, Banchisa e Lavico. Niente città in Giungla, Palude e Alta montagna.</p>' +
-      '<h4>Porti</h4>' + ul(['Le Navi partono da un Porto. Sui fiumi il Porto non serve se c\'è una propria Città entro 1 cm.', 'Il Porto si costruisce in acqua con terra propria entro 1 cm, oppure dentro una Città che sia entro 0,2 cm dall\'acqua.']) +
+      '<p>Gli edifici si costruiscono nel proprio territorio, con una propria truppa entro 2 cm, e mai su mare, fiumi, Banchisa e Lavico. Niente città in Giungla, Palude e Alta montagna. La Coltivazione si costruisce solo in Deserto, Giungla, Palude e Tundra (gli unici biomi che danno bacche).</p>' +
+      '<h4>Porti</h4>' + ul(['Le Navi partono da un Porto. Sui fiumi il Porto non serve se c\'è una propria Città entro 1 cm.', 'Il Porto si costruisce in acqua (mare, fiume o lago) con terra propria entro 1 cm, oppure dentro una Città che sia entro 0,2 cm dall\'acqua.']) +
       '<h4>Aeroporti</h4><p>Servono per far partire e atterrare l\'Aereo Carro e danno agli Elicotteri +2 cm alla partenza. Si costruiscono anche dentro una Città.</p>' +
-      '<h4>Ponti</h4>' + ul(['Liv. 1: attraversa fiumi e laghi (non il mare). I Carrarmati non ci passano sopra e le Navi non ci passano sotto.',
+      '<h4>Ponti</h4>' + ul(['Si comprano a <b>pezzi</b>: ogni pezzo vale 1 cm di ponte. Per posarlo si tocca la terra sulle due rive: il ponte copre l\'acqua tra le rive e usa un pezzo per ogni cm, arrotondato per eccesso (un ponte di 0,7 cm usa 1 pezzo, uno di 1,3 cm ne usa 2). Serve una propria truppa entro 2 cm e almeno una riva nel proprio territorio.',
+        'Liv. 1: attraversa fiumi e laghi (non il mare). I Carrarmati non ci passano sopra e le Navi non ci passano sotto.',
         'Liv. 2: le Navi ci passano sotto e i Carrarmati sopra. Sul mare si può fare solo se è più corto di 2 cm. Se lo colpisce una Bomba torna di livello 1.',
         'I ponti si attaccano solo con Bombe, Superbombe e Navi.']) +
-      '<h4>Strade</h4>' + ul(['Collegano due edifici propri; ogni pezzo è lungo al massimo 5 cm. Sull\'acqua la strada si interrompe: serve un ponte.',
+      '<h4>Strade</h4>' + ul(['Collegano due edifici propri, oppure un edificio e l\'estremità di un proprio ponte; ogni pezzo è lungo al massimo 5 cm e si paga solo la parte sulla terra.',
+        'Quando trova l\'acqua la strada si interrompe; si collega al ponte e il viaggio continua sopra il ponte.',
         'Chi viaggia sulla strada va a velocità doppia (non le Navi, le truppe volanti e il Carro). Il viaggio può passare da più edifici collegati.',
         'Dove non si costruiscono città (Giungla, Palude, Alta montagna) costano il doppio. Mai su Banchisa e Lava.']) +
       '<h4>Bombe e Superbombe</h4>' + table(['Arma', 'Danno', 'Gittata', 'Costo'], [['Bomba', n(DM.BOMB.bomba.dmg), '15 cm dalla Città (10 dall\'Accampamento)', cost('bomba')], ['Superbomba', n(DM.BOMB.superbomba.dmg), '30 cm dalla Città', cost('superbomba')]]) +
       ul(['La gittata si conta dall\'edificio in cui si trova la bomba. Le Superbombe partono solo da Capitale e Città.',
-        'Bomba: danno ad area. Se colpisce un esercito, colpisce tutte le sue truppe.',
+        'Chi lancia sceglie il bersaglio, anche tra le cose proprie (per esempio la propria Città, per distruggerla prima che la conquistino).',
+        'Bomba: danno ad area. Se colpisce un esercito, colpisce tutte le sue truppe. Se colpisce un edificio, colpisce anche tutto quello che c\'è dentro, truppe comprese.',
         'Superbomba: colpisce tutto entro 0,5 cm dal punto d\'impatto e lascia un\'area radioattiva per 3 giri (12.7).']));
 
     add('Miniere', ul(['Si costruisce con una propria truppa entro 2 cm, ad almeno 2 cm dalle altre miniere. Costa 5.000 soldi e la costruzione è garantita.',
@@ -141,7 +146,7 @@
       '<h4>Area radioattiva</h4><p>La lascia la Superbomba: dura 3 giri, anche sul mare, e dimezza la velocità dopo il malus del bioma, arrotondando per eccesso al millimetro. Esempio: un Soldato nel Deserto va a 0,3 cm; nell\'area radioattiva 0,3 : 2 = 0,15 → 0,2 cm.</p>');
 
     add('Le bacche', ul(['Crescono nelle Coltivazioni, una ogni 5 giri, del bioma in cui si trova la Coltivazione. Non ci sono bacche in Pianura, Montagna, Alta montagna, Vulcanico, Glaciale e Banchisa.',
-      'Si lanciano da Capitale, Città e Accampamenti, con la gittata delle Bombe (15 cm, 10 dagli Accampamenti), su truppe amiche o nemiche. L\'effetto dura 3 giri e colpisce tutto l\'esercito.',
+      'Si lanciano da Capitale, Città e Accampamenti, con la gittata delle Bombe (15 cm, 10 dagli Accampamenti), su qualsiasi truppa (proprie o degli altri): decide chi lancia. L\'effetto dura 3 giri e colpisce tutto l\'esercito.',
       'Al massimo 1 bacca per turno; non conta come sparo.']) +
       table(['Bacca', 'Effetto per 3 giri'], [['Deserto', 'danno :1,5'], ['Giungla', 'danno x1,5'], ['Palude', 'velocità :5'], ['Tundra', 'gittata x2']]) +
       '<p>Se la truppa è nel bioma della bacca, il primo effetto vale normalmente e il secondo aggiunge o toglie una quantità fissa. Deserto e Giungla insieme si annullano.</p>' +
@@ -152,19 +157,13 @@
       poz_curatruppe: 'Cura 1 truppa del 50% della sua vita, solo dentro Città o Accampamento (Navi anche nel Porto, Elicotteri e Aereo Carro anche nell\'Aeroporto).', poz_ignifuga: 'Protegge 1 edificio dalle eruzioni finché non viene distrutto.' };
     add('Le pozioni', table(['Pozione', 'Costo', 'Effetto'], Object.keys(PZ).map(k => [DM.POTIONS[k], cost(k), PZ[k]])));
 
-    add('Consigli di gioco', '<p>Non sono regole, solo suggerimenti.</p>' + ul(['Se una tua città sta per essere conquistata, puoi bombardarla tu stesso per distruggerla prima, oppure scappare con il Carro portando via soldi e materiali.']));
+    add('Consigli di gioco', '<p>Non sono regole, solo suggerimenti.</p>' + ul(['Se una tua città sta per essere conquistata, puoi bombardarla tu stesso per distruggerla prima, oppure scappare con il Carro portando via soldi e materiali.',
+      'Sui fiumi il Porto di solito non serve: una Nave parte già da un fiume se c\'è una tua Città entro 1 cm.',
+      '<b>Colpi a caso sul tavolo</b>: metti in un bicchiere le perline dell\'esercito colpito (una per truppa). Per ogni colpo pescane una a occhi chiusi: è la truppa colpita. Rimettila nel bicchiere (si può essere colpiti due volte); se muore, toglila. Con poche truppe va bene anche un dado: numera le truppe e tira (se esce un numero senza truppa, ritira).']));
 
     add('Glossario', table(['Termine', 'Significato'], [['Truppa', 'Una singola unità: Soldato, Nave, Elicottero, Carrarmato, Carro, Nave Carro o Aereo Carro.'], ['Esercito', 'Insieme di truppe che si muovono e attaccano insieme.'],
       ['Flotta', 'Esercito con almeno una Nave o una Nave Carro.'], ['Spawn', 'La nascita di una truppa in una Città, nella Capitale o in un Accampamento.'], ['Banco', 'Il compratore dei materiali.'],
       ['Gittata', 'La distanza (in cm) a cui una truppa o un\'arma può colpire.'], ['Buff / nerf', 'Un aumento o una diminuzione di velocità, danno o gittata.'], ['Territorio', 'L\'area conquistata da un giocatore.'], ['Giro', 'Un turno di ogni giocatore.']]));
-
-    add('Scelte del prototipo (da confermare)', ul([
-      'Se dentro un edificio c\'è una truppa nemica, chi spara colpisce prima la truppa.',
-      'Le Bombe possono colpire anche i propri edifici; le truppe nemiche hanno la precedenza.',
-      'Il ponte si paga per i cm d\'acqua attraversati. Il Porto si può fare anche su fiumi e laghi.',
-      'La Coltivazione si costruisce solo nei biomi che danno bacche.',
-      'Quando un edificio è distrutto muoiono le truppe del proprietario che ci sono dentro.',
-      'Si sale sulle navi da qualsiasi punto entro 1 cm; si scende solo nei Porti.']));
 
     return '<nav class="toc"><b>Indice</b><ol>' + ch.map((c, i) => `<li><a href="#reg${i + 1}">${c.title}</a></li>`).join('') + '</ol></nav>' +
       ch.map((c, i) => `<section class="rule" id="reg${i + 1}"><h3>${i + 1}. ${c.title}</h3>${c.html}</section>`).join('');

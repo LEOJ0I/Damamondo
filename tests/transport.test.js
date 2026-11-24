@@ -17,7 +17,7 @@ test('salire e scendere: capacità in punti truppa, entro 1 cm, non da un eserci
   assert.match(DM.boardError(G, soldier, s[4]), /non trasporta/);
   const x = DM.addUnit(G, 'X', 0, 20, 20), n = DM.addUnit(G, 'N', 0, 20, 20);
   assert.match(DM.boardError(G, n, x), /non si può trasportare/);
-  assert.match(DM.boardError(G, x, n), /non si può trasportare|Non c’è posto/);   // la Nave vale 1000 punti: non entra in niente
+  assert.match(DM.boardError(G, x, n), /non si può trasportare|Non c’è posto|Porto/);   // la Nave vale 1000 punti: non entra in niente
   const a = DM.addUnit(G, 'S', 0, 19, 20), b = DM.addUnit(G, 'S', 0, 19, 20);
   DM.formArmy(G, [a, b]);
   assert.match(DM.boardError(G, c, a), /esercito/);
@@ -33,14 +33,18 @@ test('salire e scendere: capacità in punti truppa, entro 1 cm, non da un eserci
   assert.equal(DM.aboardPts(G, c), 3);
 });
 
-test('dalla nave si scende solo dentro un proprio Porto, e dal Porto si cammina a terra lungo il molo', () => {
+test('sulle navi si sale e si scende solo dentro un proprio Porto; dal Porto si cammina a terra lungo il molo', () => {
   const G = testGame();
   const port = DM.addSite(G, 0, 'porto', 1.3, 20);   // terra da x = 2: molo di 0,7 cm
   const n = DM.addUnit(G, 'N', 0, 1.3, 22.5), s = DM.addUnit(G, 'S', 0, 2.3, 22.5);
-  assert.match(DM.board(G, n, s), /salito/);
-  assert.match(DM.unboard(G, n, s), /solo dentro un tuo Porto/);
+  assert.match(DM.board(G, n, s), /solo in un tuo Porto/);
   DM.moveUnit(G, n, 1.3, 20);
   assert.ok(Math.hypot(n.x - port.x, n.y - port.y) < .05, 'la nave è nel Porto');
+  s.x = 2.2; s.y = 20;
+  assert.match(DM.board(G, n, s), /salito/);
+  n.x = 1.3; n.y = 22.5; DM.syncCarried(G);
+  assert.match(DM.unboard(G, n, s), /solo dentro un tuo Porto/);
+  n.x = port.x; n.y = port.y; DM.syncCarried(G);
   assert.match(DM.unboard(G, n, s), /sceso/);
   assert.deepEqual([s.x, s.y], [port.x, port.y], 'dentro il Porto');
   G.moved = 0;

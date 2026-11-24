@@ -3,7 +3,7 @@
   'use strict';
   const VERSION = 1;
   const KEYS = ['seed', 'phase', 'np', 'names', 'players', 'p', 'round', 'moved', 'shots', 'berried',
-    'units', 'sites', 'roads', 'bridges', 'rad', 'uid', 'gid', 'sid'];
+    'units', 'sites', 'roads', 'bridges', 'rad', 'uid', 'gid', 'sid', 'bid'];
 
   // La mappa si rifà da opzioni + numero; si salvano solo le eruzioni in corso.
   DM.serialize = function (G) {
