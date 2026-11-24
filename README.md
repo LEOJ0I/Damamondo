@@ -32,7 +32,7 @@ Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e 
 ## Prove
 
 ```
-npm test               # 53 prove delle regole (serve Node 18+)
+npm test               # 54 prove delle regole (serve Node 18+)
 npm run test:browser   # 34 passi giocati in un browser che finge un iPhone (serve Playwright)
 ```
 
@@ -40,6 +40,8 @@ npm run test:browser   # 34 passi giocati in un browser che finge un iPhone (ser
 
 Le correzioni del documento di passaggio e le decisioni prese con l'utente sono tutte nel regolamento dentro il gioco (menu "Regole"). Le principali:
 
+- **Truppe aeree**: tutte le truppe le possono colpire.
+- **Colpi sugli eserciti**: chi subisce riceve ogni colpo su una truppa a caso, solo tra le vive (anche le truppe dentro un edificio). Chi spara resta com'era.
 - **Bersagli**: chi spara sceglie se colpire una truppa, un esercito, le truppe dentro un edificio (come un esercito) o l'edificio. Le truppe non sparano mai alle cose proprie; Bombe, Superbombe e bacche invece possono colpire anche quelle.
 - **Edificio distrutto**: si perde quello che conteneva, ma le truppe dentro restano vive (le ferisce solo una Bomba sull'edificio, che colpisce tutto quello che c'è dentro).
 - **Ponti a pezzi**: si comprano pezzi da 1 cm; il ponte usa un pezzo per ogni cm d'acqua, arrotondato per eccesso.

@@ -43,7 +43,6 @@
     A: { name: 'Aereo Carro', label: 'AC', kind: 'air', range: 6, dmg: 100, hp: 20000, air: 12 }
   };
   DM.TROOP_KEYS = 'SNETCXA';
-  DM.CAN_HIT_AIR = 'STN';        // 4.3 + correzione (Carrarmato colpisce l'aria)
 
   // 12.3 danno nei biomi (correzione: Carrarmato 1000 Deserto, 2200 Giungla).
   DM.BIOME_DMG = { S: { D: 50, G: 100 }, E: { D: 350, G: 800 }, T: { D: 1000, G: 2200 } };

@@ -2,8 +2,8 @@
 (function (DM) {
   'use strict';
   const T = DM.TROOPS;
-  const isAir = u => T[u.t].kind === 'air';
-  DM.canHit = (shooter, target) => DM.CAN_HIT_AIR.includes(shooter.t) || !isAir(target);
+  // Decisione dell'utente: tutte le truppe possono colpire anche le truppe aeree.
+  DM.canHit = () => true;
 
   const owner = (G, o) => o >= 0 && G.names[o] ? G.names[o] : 'nessuno';
   // l'edificio (non interno) in cui si trova la truppa, se c'è
@@ -83,18 +83,22 @@
         .filter(q => q.st[0] > 0 && inRange(q, Math.hypot(q.v.x - lead.x, q.v.y - lead.y)) && TG.some(t => DM.canHit(q.v, t)))
         .sort((a, b) => b.st[0] - a.st[0]).slice(0, maxShooters);
       if (!able.length) return 'Bersaglio fuori portata o non colpibile da queste truppe.';
+      // Chi subisce: ogni colpo va su una truppa a caso del gruppo (esercito o truppe dentro l'edificio), solo tra quelle ancora vive.
       let hit = 0, dmg = 0;
+      const got = {};
       for (const q of able) {
-        const order = [lead].concat(TG.filter(t => t !== lead));
-        const t = order.find(t => t.hp > 0 && DM.canHit(q.v, t));
-        if (!t) break;
+        const live = TG.filter(t => t.hp > 0 && DM.canHit(q.v, t));
+        if (!live.length) break;
+        const t = live[Math.min(live.length - 1, Math.floor(DM.rand() * live.length))];
         t.hp -= q.st[0]; dmg += q.st[0]; hit++;
+        got[T[t.t].name] = (got[T[t.t].name] || 0) + 1;
       }
       A.forEach(v => { v.s = true; });
       G.shots++;
       const dead = DM.cleanupDead(G);
-      return hit + (hit > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni.' +
-        (dead.length ? ' Distrutte: ' + dead.length + '.' : '') + (lead.hp > 0 ? ' Il bersaglio ha ' + lead.hp + ' di vita.' : '') + DM.vehicleNote(dead);
+      const spread = TG.length > 1 ? ' Colpi: ' + Object.entries(got).map(e => e[1] + ' su ' + e[0]).join(', ') + '.' : '';
+      return hit + (hit > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni.' + spread +
+        (dead.length ? ' Distrutte: ' + dead.length + '.' : '') + (TG.length === 1 && lead.hp > 0 ? ' Il bersaglio ha ' + lead.hp + ' di vita.' : '') + DM.vehicleNote(dead);
     }
     const br = tg.type === 'bridge';
     const able = A.map(v => ({ v, st: DM.stat(G, v) }))

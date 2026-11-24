@@ -53,7 +53,7 @@
       `<h4>Costi</h4>` + table(['Truppa', 'Costo'], DM.TROOP_KEYS.split('').map(k => [T[k].name, cost(k)])) +
       `<h4>Regole speciali</h4>` + ul([
         '<b>Chi spara sceglie il bersaglio</b>: una truppa, un esercito, le truppe che stanno dentro un edificio (valgono come un esercito) oppure l\'edificio. Le truppe sparano solo alle cose degli altri giocatori, mai alle proprie.',
-        '<b>Truppe aeree</b> (Elicottero, Aereo Carro): le colpiscono solo Soldati, Navi e Carrarmati.',
+        '<b>Truppe aeree</b> (Elicottero, Aereo Carro): tutte le truppe le possono colpire.',
         '<b>Nave</b>: si muove sul mare e sui fiumi. Parte da un Porto, oppure da un fiume se c\'è una tua Città entro 1 cm.',
         '<b>Nave Carro</b>: non naviga nei fiumi. Sulla Banchisa va a 6 cm (è una specie di rompighiaccio).',
         '<b>Elicottero</b>: velocità 4; quando parte da un Aeroporto ha +2 cm (solo alla partenza).',
@@ -63,6 +63,7 @@
 
     add('Eserciti e flotte', `<p>Un esercito è un gruppo di truppe che si muovono e attaccano insieme. Un esercito con almeno una Nave o una Nave Carro si chiama flotta. Le truppe si uniscono se sono entro 1 cm l'una dall'altra.</p>` + ul([
       '<b>Movimento</b>: l\'esercito va alla velocità della sua truppa più lenta.',
+      '<b>Subire i colpi</b>: quando si spara a un esercito, o alle truppe dentro un edificio, ogni colpo va su una truppa <b>a caso</b>, scelta solo tra quelle ancora vive. Esempio: 10 Soldati sparano a un esercito di 2 Carrarmati, 1 Elicottero e 10 Soldati; ognuno dei 10 colpi da 70 cade a caso: magari 1 su un Carrarmato e 9 sui Soldati, e un Soldato può essere colpito due volte. Le Bombe invece colpiscono tutte le truppe.',
       '<b>Sparo</b>: ogni truppa spara con le sue statistiche. Un esercito conta come 1 solo sparo del limite, ma possono sparare fino al doppio del limite di truppe. Esempio: al 16° giro il limite è 5, quindi un esercito fa sparare fino a 10 truppe contando 1 sparo.',
       '<b>Compatibilità</b>: le Navi stanno solo con Navi, Elicotteri e Navi Carro. La Nave Carro sta con Navi, Elicotteri e Aerei Carro, mai con Soldati, Carrarmati e Carri. Un esercito di terra comprende Soldati, Carrarmati, Carri, Elicotteri e Aerei Carro.',
       '<b>Tetto</b>: massimo 100 punti (tabella). Questi punti servono solo per il tetto.']) +
@@ -93,7 +94,7 @@
       ['Ponte liv. 1', n(DM.BRIDGE_HP[1]), cost('ponte1') + ' per pezzo (1 cm)'], ['Ponte liv. 2', n(DM.BRIDGE_HP[2]), cost('ponte2') + ' per pezzo (1 cm)'],
       ['Strada', '5.000', n(DM.ROAD_COST.m) + ' soldi + 2 t ferro + 100 kg oro per pezzo (max 5 cm)']]) +
       '<p>Gli edifici si costruiscono nel proprio territorio, con una propria truppa entro 2 cm, e mai su mare, fiumi, Banchisa e Lavico. Niente città in Giungla, Palude e Alta montagna. La Coltivazione si costruisce solo in Deserto, Giungla, Palude e Tundra (gli unici biomi che danno bacche).</p>' +
-      '<h4>Porti</h4>' + ul(['Le Navi partono da un Porto. Sui fiumi il Porto non serve se c\'è una propria Città entro 1 cm.', 'Il Porto si costruisce in acqua (mare, fiume o lago) con terra propria entro 1 cm, oppure dentro una Città che sia entro 0,2 cm dall\'acqua. Sui fiumi di solito non serve, perché le Navi partono già dalle Città vicine.']) +
+      '<h4>Porti</h4>' + ul(['Le Navi partono da un Porto. Sui fiumi il Porto non serve se c\'è una propria Città entro 1 cm.', 'Il Porto si costruisce in acqua (mare, fiume o lago) con terra propria entro 1 cm, oppure dentro una Città che sia entro 0,2 cm dall\'acqua.']) +
       '<h4>Aeroporti</h4><p>Servono per far partire e atterrare l\'Aereo Carro e danno agli Elicotteri +2 cm alla partenza. Si costruiscono anche dentro una Città.</p>' +
       '<h4>Ponti</h4>' + ul(['Si comprano a <b>pezzi</b>: ogni pezzo vale 1 cm di ponte. Per posarlo si tocca la terra sulle due rive: il ponte copre l\'acqua tra le rive e usa un pezzo per ogni cm, arrotondato per eccesso (un ponte di 0,7 cm usa 1 pezzo, uno di 1,3 cm ne usa 2). Serve una propria truppa entro 2 cm e almeno una riva nel proprio territorio.',
         'Liv. 1: attraversa fiumi e laghi (non il mare). I Carrarmati non ci passano sopra e le Navi non ci passano sotto.',
@@ -156,7 +157,9 @@
       poz_curatruppe: 'Cura 1 truppa del 50% della sua vita, solo dentro Città o Accampamento (Navi anche nel Porto, Elicotteri e Aereo Carro anche nell\'Aeroporto).', poz_ignifuga: 'Protegge 1 edificio dalle eruzioni finché non viene distrutto.' };
     add('Le pozioni', table(['Pozione', 'Costo', 'Effetto'], Object.keys(PZ).map(k => [DM.POTIONS[k], cost(k), PZ[k]])));
 
-    add('Consigli di gioco', '<p>Non sono regole, solo suggerimenti.</p>' + ul(['Se una tua città sta per essere conquistata, puoi bombardarla tu stesso per distruggerla prima, oppure scappare con il Carro portando via soldi e materiali.']));
+    add('Consigli di gioco', '<p>Non sono regole, solo suggerimenti.</p>' + ul(['Se una tua città sta per essere conquistata, puoi bombardarla tu stesso per distruggerla prima, oppure scappare con il Carro portando via soldi e materiali.',
+      'Sui fiumi il Porto di solito non serve: una Nave parte già da un fiume se c\'è una tua Città entro 1 cm.',
+      '<b>Colpi a caso sul tavolo</b>: metti in un bicchiere le perline dell\'esercito colpito (una per truppa). Per ogni colpo pescane una a occhi chiusi: è la truppa colpita. Rimettila nel bicchiere (si può essere colpiti due volte); se muore, toglila. Con poche truppe va bene anche un dado: numera le truppe e tira (se esce un numero senza truppa, ritira).']));
 
     add('Glossario', table(['Termine', 'Significato'], [['Truppa', 'Una singola unità: Soldato, Nave, Elicottero, Carrarmato, Carro, Nave Carro o Aereo Carro.'], ['Esercito', 'Insieme di truppe che si muovono e attaccano insieme.'],
       ['Flotta', 'Esercito con almeno una Nave o una Nave Carro.'], ['Spawn', 'La nascita di una truppa in una Città, nella Capitale o in un Accampamento.'], ['Banco', 'Il compratore dei materiali.'],

@@ -52,15 +52,18 @@ test('sparo singolo: gittata, danno, limite di spari, una volta per turno', () =
   assert.ok(G.units.includes(e));
 });
 
-test('truppe aeree: solo Soldati, Navi e Carrarmati le colpiscono', () => {
+test('truppe aeree: tutte le truppe le possono colpire', () => {
   const G = testGame();
   G.round = 21;
   const heli = DM.addUnit(G, 'E', 1, 20.5, 20);
   const e = DM.addUnit(G, 'E', 0, 20, 20);
-  assert.match(DM.shoot(G, e, 20.5, 20), /non colpibile/);
+  assert.match(DM.shoot(G, e, 20.5, 20), /500 danni/, 'un Elicottero colpisce un Elicottero');
   const t = DM.addUnit(G, 'T', 0, 19.5, 20);
   assert.match(DM.shoot(G, t, 20.5, 20), /1500/);
-  assert.equal(heli.hp, 500);
+  assert.ok(!G.units.includes(heli));
+  const ac = DM.addUnit(G, 'A', 1, 22, 20), x = DM.addUnit(G, 'X', 0, 22, 21);
+  assert.match(DM.shoot(G, x, 22, 20), /100 danni/, 'anche la Nave Carro colpisce l’Aereo Carro');
+  assert.equal(ac.hp, 19900);
 });
 
 test('esercito: conta 1 sparo e fa sparare fino a 2 × limite truppe', () => {
@@ -72,7 +75,9 @@ test('esercito: conta 1 sparo e fa sparare fino a 2 × limite truppe', () => {
   const tanks = [DM.addUnit(G, 'T', 1, 20.5, 20), DM.addUnit(G, 'T', 1, 20.5, 20.05)];
   DM.formArmy({ ...G, p: 1, units: G.units }, tanks);   // esercito nemico
   assert.ok(tanks[0].g && tanks[0].g === tanks[1].g);
-  assert.match(DM.shoot(G, sol[0], 20.5, 20), /10 truppe hanno sparato: 700/);
+  DM.rand = () => 0;   // il caso sceglie sempre la prima truppa ancora viva
+  assert.match(DM.shoot(G, sol[0], 20.5, 20), /10 truppe hanno sparato: 700 danni\. Colpi: 10 su Carrarmato/);
+  DM.rand = Math.random;
   assert.equal(G.shots, 1);
   assert.equal(tanks[0].hp, 5000 - 700);
   // un esercito in giro 1: 2 truppe
@@ -81,6 +86,35 @@ test('esercito: conta 1 sparo e fa sparare fino a 2 × limite truppe', () => {
   DM.formArmy(G2, two);
   DM.addUnit(G2, 'T', 1, 20.5, 20);
   assert.match(DM.shoot(G2, two[0], 20.5, 20), /2 truppe hanno sparato: 140/);
+});
+
+test('chi subisce: i colpi vanno a caso tra le truppe ancora vive dell’esercito (o dentro l’edificio)', () => {
+  const G = testGame();
+  G.round = 16;   // limite 5 → l'esercito fa sparare 10 Soldati da 70
+  const sol = [];
+  for (let i = 0; i < 10; i++) sol.push(DM.addUnit(G, 'S', 0, 20, 20));
+  DM.formArmy(G, sol);
+  const t1 = DM.addUnit(G, 'T', 1, 20.5, 20), s1 = DM.addUnit(G, 'S', 1, 20.5, 20), s2 = DM.addUnit(G, 'S', 1, 20.5, 20);
+  DM.formArmy({ ...G, p: 1, units: G.units }, [t1, s1, s2]);
+  // sequenza del caso: colpo 1 → Soldato 1, colpo 2 → Soldato 1 (muore), poi solo sui vivi
+  const seq = [.5, .5, .99, .99, 0, 0, 0, 0, 0, 0];
+  let k = 0;
+  DM.rand = () => seq[k++];
+  const msg = DM.shoot(G, sol[0], 20.5, 20);
+  DM.rand = Math.random;
+  assert.match(msg, /700 danni\. Colpi: /);
+  assert.match(msg, /Distrutte: 2/);
+  assert.ok(!G.units.includes(s1) && !G.units.includes(s2), 'due Soldati da 100 di vita: due colpi a testa');
+  assert.equal(t1.hp, 5000 - 6 * 70, 'gli altri 6 colpi sul Carrarmato, nessun colpo sprecato sui morti');
+  // anche il colpo singolo di una truppa va a caso dentro l'edificio
+  const acc = DM.addSite(G, 1, 'acc', 30, 30), a1 = DM.addUnit(G, 'S', 1, 30, 30), a2 = DM.addUnit(G, 'T', 1, 30, 30);
+  G.shots = 0;
+  const me = DM.addUnit(G, 'S', 0, 29.5, 30);
+  DM.rand = () => .99;
+  DM.shootAt(G, me, DM.shootTargets(G, 30, 30)[0]);
+  DM.rand = Math.random;
+  assert.deepEqual([a1.hp, a2.hp], [100, 4930]);
+  assert.ok(acc);
 });
 
 test('edifici: si sceglie se colpire l’edificio o le truppe dentro; distrutto, le truppe dentro restano vive; ponti solo dalle Navi', () => {
@@ -104,7 +138,9 @@ test('edifici: si sceglie se colpire l’edificio o le truppe dentro; distrutto,
   G.shots = 0; G.round = 21;
   const army = [DM.addUnit(G, 'S', 0, 39.5, 30), DM.addUnit(G, 'S', 0, 39.5, 30)];
   DM.formArmy(G, army);
-  assert.match(DM.shootAt(G, army[0], DM.shootTargets(G, 40, 30)[0]), /2 truppe hanno sparato: 140 danni\. Distrutte: 1/);
+  DM.rand = () => 0;
+  assert.match(DM.shootAt(G, army[0], DM.shootTargets(G, 40, 30)[0]), /2 truppe hanno sparato: 140 danni\. Colpi: 2 su Soldato\. Distrutte: 1/);
+  DM.rand = Math.random;
   assert.ok(G.sites.includes(acc2) && (a1.hp <= 0 || a2.hp < 100));
   // le truppe non sparano alle cose proprie
   const mine = DM.addSite(G, 0, 'acc', 20, 30);
