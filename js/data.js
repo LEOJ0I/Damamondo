@@ -129,6 +129,8 @@
     min: [{ m: 5e3, r: {} }],
     bomba: [{ m: 2e5, r: { uranio: 30 } }],
     superbomba: [{ m: 5e5, r: { uranio: 50 } }],
+    ponte1: [{ m: 5e3, r: { ferro: 100 } }],   // un pezzo di ponte = 1 cm
+    ponte2: [{ m: 1e4, r: { ferro: 200 } }],
     poz_stipendio: [{ m: 5e4, r: { oro: 20 } }],
     poz_velocita: [{ m: 1e4, r: { argento: 100 } }],
     poz_curacitta: [{ m: 5e3, r: { platino: 50 } }, { m: 5e3, r: { argento: 100 } }],
@@ -151,7 +153,7 @@
 
   DM.NAMES = Object.assign({
     cap: 'Capitale', citta: 'Città', acc: 'Accampamento', porto: 'Porto', aer: 'Aeroporto',
-    col: 'Coltivazione', min: 'Miniera', ponte1: 'Ponte liv. 1 (gratis)', bomba: 'Bomba', superbomba: 'Superbomba'
+    col: 'Coltivazione', min: 'Miniera', ponte1: 'Pezzo di ponte liv. 1', ponte2: 'Pezzo di ponte liv. 2', bomba: 'Bomba', superbomba: 'Superbomba'
   }, DM.POTIONS);
   DM.nameOf = k => DM.TROOPS[k] ? DM.TROOPS[k].name : (DM.NAMES[k] || (k.startsWith('bacca_') ? 'Bacca ' + k.slice(6) : k));
 

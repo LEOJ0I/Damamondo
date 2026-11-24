@@ -54,6 +54,8 @@
     if (u.g) return 'La truppa è in un esercito: falla uscire prima.';
     if (Math.hypot(u.x - v.x, u.y - v.y) > 1) return 'La truppa deve essere entro 1 cm dal veicolo.';
     if (v.t === 'A' && !atAirport(G, v)) return 'L’Aereo Carro carica solo in un Aeroporto.';
+    // per salire su una nave serve che la nave sia in un tuo Porto (vale per le truppe di terra e d'aria)
+    if (T[v.t].kind === 'sea' && T[u.t].kind !== 'sea' && !DM.portAt(G, v.o, v.x, v.y)) return 'Si sale sulle navi solo in un tuo Porto: porta la nave nel Porto.';
     const free = DM.TROOP_CAP[v.t] - DM.aboardPts(G, v);
     if (DM.TROOP_VALUE[u.t] > free) return 'Non c’è posto: ' + T[u.t].name + ' vale ' + DM.TROOP_VALUE[u.t] + ' punti, liberi ' + free + ' su ' + DM.TROOP_CAP[v.t] + '.';
     return '';

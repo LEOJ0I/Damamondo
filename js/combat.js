@@ -5,27 +5,55 @@
   const isAir = u => T[u.t].kind === 'air';
   DM.canHit = (shooter, target) => DM.CAN_HIT_AIR.includes(shooter.t) || !isAir(target);
 
-  // Bersagli "edificio" vicino al punto: edifici, miniere e ponti (filter sul proprietario)
-  function structuresNear(G, x, y, r, ownerOk) {
-    const out = [];
-    G.sites.forEach(s => { if (ownerOk(s.o)) out.push({ s, br: false, d: Math.hypot(s.x - x, s.y - y) }); });
-    G.bridges.forEach(b => { if (ownerOk(b.o)) out.push({ s: b, br: true, d: DM.segD(x, y, b) }); });
-    return out.filter(z => z.d < r).sort((a, b) => (a.d - b.d) || ((a.s.par ? 1 : 0) - (b.s.par ? 1 : 0)));
-  }
+  const owner = (G, o) => o >= 0 && G.names[o] ? G.names[o] : 'nessuno';
+  // l'edificio (non interno) in cui si trova la truppa, se c'è
+  const siteOf = (G, u) => G.sites.filter(s => !s.par && Math.hypot(s.x - u.x, s.y - u.y) <= .3)
+    .sort((a, b) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(b.x - u.x, b.y - u.y))[0];
+
+  // Tutti i bersagli vicino al punto toccato, divisi in gruppi che si possono scegliere:
+  // - truppe: un esercito, una truppa da sola, oppure le truppe dentro un edificio (valgono come un esercito)
+  // - edifici e miniere, ponti.
+  // unitOk / structOk: quali proprietari si possono colpire. Prima le truppe, poi edifici e ponti, dal più vicino.
+  DM.targetsAt = function (G, x, y, unitOk, structOk) {
+    const out = [], seen = new Set();
+    G.units.filter(u => !u.carried && unitOk(u.o) && Math.hypot(u.x - x, u.y - y) < G.tapR)
+      .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y)).forEach(u => {
+        const s = siteOf(G, u);
+        let key, units, label;
+        if (s) {
+          key = 'in' + s.id + ':' + u.o;
+          units = G.units.filter(v => !v.carried && v.o === u.o && Math.hypot(v.x - s.x, v.y - s.y) <= .3);
+          units = [...new Set(units.flatMap(v => DM.armyOf(G, v)))];
+          label = 'Truppe dentro ' + DM.nameOf(s.k) + ' di ' + owner(G, u.o) + ': ' + DM.composition(units);
+        } else if (u.g) {
+          key = 'g' + u.g; units = DM.armyOf(G, u);
+          label = 'Esercito ' + u.an + ' di ' + owner(G, u.o) + ': ' + DM.composition(units);
+        } else { key = 'u' + u.id; units = [u]; label = T[u.t].name + ' di ' + owner(G, u.o) + ' (vita ' + u.hp + ')'; }
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ type: 'units', units, lead: u, x: u.x, y: u.y, label });
+      });
+    const st = [];
+    G.sites.forEach(s => { const d = Math.hypot(s.x - x, s.y - y); if (structOk(s.o) && d < G.tapR) st.push({ type: 'site', s, x: s.x, y: s.y, d, label: DM.nameOf(s.k) + (s.par ? ' (dentro la città)' : '') + ' di ' + owner(G, s.o) + ' (vita ' + s.hp + ')' }); });
+    G.bridges.forEach(b => { const d = DM.segD(x, y, b); if (structOk(b.o) && d < G.tapR) st.push({ type: 'bridge', b, x: b.x, y: b.y, d, label: 'Ponte liv. ' + b.lv + ' di ' + owner(G, b.o) + ' (vita ' + b.hp + ')' }); });
+    st.sort((a, b) => (a.d - b.d) || ((a.s && a.s.par ? 1 : 0) - (b.s && b.s.par ? 1 : 0)));
+    return out.concat(st);
+  };
 
   // Danno a un edificio o ponte. Restituisce il testo del risultato.
   function hitStructure(G, z, dmg, bomb) {
-    if (z.br) {
-      const b = z.s;
+    if (z.type === 'bridge') {
+      const b = z.b;
       if (bomb && b.lv === 2) { b.lv = 1; b.hp = DM.BRIDGE_HP[1]; return ' Il ponte torna di livello 1.'; }
       b.hp -= dmg;
-      if (b.hp <= 0) { G.bridges = G.bridges.filter(q => q !== b); return ' Ponte distrutto!'; }
+      if (b.hp <= 0) { DM.removeBridge(G, b); return ' Ponte distrutto!'; }
       return ' Vita del ponte: ' + b.hp + '.';
     }
     const s = z.s;
+    if (!G.sites.includes(s)) return '';
     s.hp -= dmg;
     if (s.hp <= 0) return ' ' + DM.nameOf(s.k) + ' distrutto!' + DM.destroySite(G, s);
-    return ' Vita rimasta: ' + s.hp + '.';
+    return ' ' + DM.nameOf(s.k) + ': vita rimasta ' + s.hp + '.';
   }
 
   // Si può sparare con questa truppa/esercito?
@@ -39,22 +67,25 @@
     return '';
   };
 
-  // Sparo verso il punto (x, y): truppa nemica, oppure edificio/ponte nemico.
-  // Un esercito conta 1 sparo ma fa sparare fino a 2 × limite truppe (5).
-  DM.shoot = function (G, u, x, y) {
+  // Le truppe sparano solo agli avversari (truppe, edifici, ponti), mai alle proprie cose.
+  DM.shootTargets = (G, x, y) => DM.targetsAt(G, x, y, o => o !== G.p, o => o !== G.p);
+
+  // Sparo a un bersaglio scelto. Un esercito conta 1 sparo ma fa sparare fino a 2 × limite truppe (5).
+  DM.shootAt = function (G, u, tg) {
     const err = DM.shootError(G, u);
     if (err) return err;
+    if (!tg) return 'Tocca un bersaglio avversario (truppa, edificio o ponte).';
     const A = DM.armyOf(G, u), lim = DM.shotLimit(G.round), maxShooters = A.length > 1 ? 2 * lim : 1;
-    const tg = DM.unitNear(G, x, y, v => v.o !== G.p);
-    if (tg) {
-      const TG = DM.armyOf(G, tg);
+    const inRange = (q, d) => d <= q.st[1] + 1e-9;
+    if (tg.type === 'units') {
+      const TG = tg.units, lead = tg.lead;
       const able = A.map(v => ({ v, st: DM.stat(G, v) }))
-        .filter(q => q.st[0] > 0 && Math.hypot(q.v.x - tg.x, q.v.y - tg.y) <= q.st[1] + 1e-9 && TG.some(t => DM.canHit(q.v, t)))
+        .filter(q => q.st[0] > 0 && inRange(q, Math.hypot(q.v.x - lead.x, q.v.y - lead.y)) && TG.some(t => DM.canHit(q.v, t)))
         .sort((a, b) => b.st[0] - a.st[0]).slice(0, maxShooters);
       if (!able.length) return 'Bersaglio fuori portata o non colpibile da queste truppe.';
       let hit = 0, dmg = 0;
       for (const q of able) {
-        const order = [tg].concat(TG.filter(t => t !== tg));
+        const order = [lead].concat(TG.filter(t => t !== lead));
         const t = order.find(t => t.hp > 0 && DM.canHit(q.v, t));
         if (!t) break;
         t.hp -= q.st[0]; dmg += q.st[0]; hit++;
@@ -63,18 +94,23 @@
       G.shots++;
       const dead = DM.cleanupDead(G);
       return hit + (hit > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni.' +
-        (dead.length ? ' Distrutte: ' + dead.length + '.' : '') + (tg.hp > 0 ? ' Il bersaglio ha ' + tg.hp + ' di vita.' : '') + DM.vehicleNote(dead);
+        (dead.length ? ' Distrutte: ' + dead.length + '.' : '') + (lead.hp > 0 ? ' Il bersaglio ha ' + lead.hp + ' di vita.' : '') + DM.vehicleNote(dead);
     }
-    const z = structuresNear(G, x, y, G.tapR, o => o !== G.p)[0];
-    if (!z) return 'Tocca un bersaglio nemico (truppa, edificio o ponte).';
+    const br = tg.type === 'bridge';
     const able = A.map(v => ({ v, st: DM.stat(G, v) }))
-      .filter(q => q.st[0] > 0 && (z.br ? DM.segD(q.v.x, q.v.y, z.s) : Math.hypot(q.v.x - z.s.x, q.v.y - z.s.y)) <= q.st[1] + 1e-9 && (!z.br || q.v.t === 'N'))
+      .filter(q => q.st[0] > 0 && inRange(q, br ? DM.segD(q.v.x, q.v.y, tg.b) : Math.hypot(q.v.x - tg.x, q.v.y - tg.y)) && (!br || q.v.t === 'N'))
       .sort((a, b) => b.st[0] - a.st[0]).slice(0, maxShooters);
-    if (!able.length) return z.br ? 'I ponti si colpiscono solo con Navi, Bombe e Superbombe (o il ponte è fuori portata).' : 'Edificio fuori portata.';
+    if (!able.length) return br ? 'I ponti si colpiscono solo con Navi, Bombe e Superbombe (o il ponte è fuori portata).' : 'Edificio fuori portata.';
     const dmg = able.reduce((t, q) => t + q.st[0], 0);
     A.forEach(v => { v.s = true; });
     G.shots++;
-    return able.length + (able.length > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni a ' + (z.br ? 'un ponte' : DM.nameOf(z.s.k)) + '.' + hitStructure(G, z, dmg, false);
+    return able.length + (able.length > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni a ' + (br ? 'un ponte' : DM.nameOf(tg.s.k)) + '.' + hitStructure(G, tg, dmg, false);
+  };
+  // Sparo verso un punto: se ci sono più bersagli, "pick" dice quale (0 = il primo: truppe prima degli edifici)
+  DM.shoot = (G, u, x, y, pick) => {
+    const err = DM.shootError(G, u);
+    if (err) return err;
+    return DM.shootAt(G, u, DM.shootTargets(G, x, y)[pick || 0]);
   };
   DM.vehicleNote = dead => dead.note || '';
 
@@ -91,51 +127,59 @@
   };
   DM.bombRange = (site, k) => site.k === 'acc' ? DM.BOMB[k].rangeAcc : DM.BOMB[k].range;
 
-  DM.launchBomb = function (G, site, k, x, y) {
+  // Bombe e bacche possono colpire qualsiasi cosa, anche le proprie: decide il giocatore.
+  DM.anyTargets = (G, x, y) => DM.targetsAt(G, x, y, () => true, () => true);
+
+  // tg: bersaglio scelto (da DM.anyTargets); per la Superbomba può mancare: allora cade nel punto (x, y)
+  DM.launchBombAt = function (G, site, k, tg, x, y) {
     const err = DM.bombError(G, site, k);
     if (err) return err;
     const B = DM.BOMB[k], sb = k === 'superbomba', R = DM.bombRange(site, k);
-    // Bersaglio: prima truppe nemiche, poi edifici/ponti nemici, poi i propri edifici (per distruggerli prima della conquista)
-    const u = DM.unitNear(G, x, y, v => v.o !== G.p);
-    const z = u ? null : (structuresNear(G, x, y, G.tapR, o => o !== G.p)[0] || structuresNear(G, x, y, G.tapR, o => o === G.p)[0]);
-    let tx, ty;
-    if (u) { tx = u.x; ty = u.y; } else if (z) { tx = z.br ? z.s.x : z.s.x; ty = z.s.y; } else if (sb) { tx = x; ty = y; } else return 'Tocca un bersaglio (truppa, edificio o ponte).';
+    if (!tg && !sb) return 'Tocca un bersaglio (truppa, edificio o ponte).';
+    const tx = tg ? tg.x : x, ty = tg ? tg.y : y;
     if (Math.hypot(tx - site.x, ty - site.y) > R) return 'Fuori portata: massimo ' + R + ' cm da questo edificio.';
     site.inv.mat[k]--;
     G.shots += B.shots;
     let us, zs;
     if (sb) {
       us = G.units.filter(v => !v.carried && Math.hypot(v.x - tx, v.y - ty) <= B.radius);
-      zs = structuresNear(G, tx, ty, B.radius + 1e-9, () => true);
-    } else {
-      us = u ? DM.armyOf(G, u) : [];   // danno ad area: tutto l'esercito
-      zs = z ? [z] : [];
-    }
+      zs = DM.targetsAt({ ...G, tapR: B.radius + 1e-9 }, tx, ty, () => false, () => true);
+    } else if (tg.type === 'units') {
+      us = tg.units; zs = [];   // danno ad area: tutto l'esercito (o tutte le truppe dentro l'edificio)
+    } else if (tg.type === 'site') {
+      // la Bomba su un edificio colpisce tutto quello che c'è dentro: truppe ed edifici interni
+      us = G.units.filter(v => !v.carried && Math.hypot(v.x - tg.s.x, v.y - tg.s.y) <= .3);
+      const main = tg.s.par ? DM.siteById(G, tg.s.par) || tg.s : tg.s;
+      zs = [tg].concat(G.sites.filter(z => z !== tg.s && (z.par === main.id || z === main) && Math.hypot(z.x - tg.s.x, z.y - tg.s.y) <= .3)
+        .map(z => ({ type: 'site', s: z, x: z.x, y: z.y })));
+    } else { us = []; zs = [tg]; }
     us.forEach(v => { v.hp -= B.dmg; });
     const dead = DM.cleanupDead(G);
     let r = DM.nameOf(k) + ': ' + DM.fmtN(B.dmg) + ' danni a ' + us.length + (us.length === 1 ? ' truppa' : ' truppe') +
       (dead.length ? ' (' + dead.length + (dead.length === 1 ? ' distrutta)' : ' distrutte)') : '') + ' e ' + zs.length + (zs.length === 1 ? ' edificio/ponte.' : ' edifici/ponti.');
-    zs.forEach(q => { r += hitStructure(G, q, B.dmg, true); });
+    // prima gli edifici interni, poi quello principale (che distrutto porta via gli interni)
+    zs.sort((a, b) => (b.s && b.s.par ? 1 : 0) - (a.s && a.s.par ? 1 : 0)).forEach(q => { r += hitStructure(G, q, B.dmg, true); });
     if (sb) { G.rad.push({ x: tx, y: ty, r: B.radius, until: G.round + 3 }); r += ' Area radioattiva per 3 giri.'; }
     return r + DM.vehicleNote(dead);
   };
+  DM.launchBomb = (G, site, k, x, y, pick) => DM.launchBombAt(G, site, k, DM.anyTargets(G, x, y)[pick || 0], x, y);
 
-  // ---- Bacche ----
-  DM.throwBerry = function (G, site, kind, x, y) {
+  // ---- Bacche: su qualsiasi truppa (tutto il gruppo scelto) ----
+  DM.berryTargets = (G, x, y) => DM.targetsAt(G, x, y, () => true, () => false);
+  DM.throwBerryAt = function (G, site, kind, tg) {
     if (G.berried) return 'Puoi lanciare una sola bacca per turno.';
     if (!site || site.o !== G.p || !DM.BERRY_RANGE[site.k]) return 'Le bacche si lanciano da Capitale, Città o Accampamenti.';
     const key = 'bacca_' + kind;
     if (!(site.inv.mat[key] > 0)) return 'Qui non ci sono bacche ' + kind + '.';
-    const u = DM.unitNear(G, x, y);
-    if (!u) return 'Tocca una truppa (tua o nemica).';
+    if (!tg) return 'Tocca una truppa (tua o di un altro giocatore).';
     const R = DM.BERRY_RANGE[site.k];
-    if (Math.hypot(u.x - site.x, u.y - site.y) > R) return 'Fuori portata: massimo ' + R + ' cm.';
+    if (Math.hypot(tg.x - site.x, tg.y - site.y) > R) return 'Fuori portata: massimo ' + R + ' cm.';
     site.inv.mat[key]--;
     G.berried = true;
-    const A = DM.armyOf(G, u);
-    A.forEach(v => { v.bf = { k: DM.BERRIES[kind], until: G.round + 3 }; });
-    return 'Bacca ' + kind + ' lanciata su ' + A.length + (A.length > 1 ? ' truppe' : ' truppa') + ' per 3 giri.';
+    tg.units.forEach(v => { v.bf = { k: DM.BERRIES[kind], until: G.round + 3 }; });
+    return 'Bacca ' + kind + ' lanciata su ' + tg.units.length + (tg.units.length > 1 ? ' truppe' : ' truppa') + ' per 3 giri.';
   };
+  DM.throwBerry = (G, site, kind, x, y, pick) => DM.throwBerryAt(G, site, kind, DM.berryTargets(G, x, y)[pick || 0]);
 
   // ---- Pozioni ----
   // Pozioni che agiscono sull'edificio selezionato. Restituisce {msg} oppure {need:'unit'} se serve toccare truppe.

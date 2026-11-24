@@ -93,14 +93,15 @@ test('pozione Velocità e bacca Palude sulla velocità', () => {
   near(DM.speedAt(G, q, 15, 26), .2);       // 1 : 5
 });
 
-test('ponti: liv.1 per Soldati, non Carrarmati né Navi sotto; liv.2 per tutti; costo per cm d’acqua', () => {
+test('ponti a pezzi da 1 cm: si comprano, si posano tra due rive; liv.1 per Soldati, non Carrarmati né Navi sotto; liv.2 per tutti', () => {
   const G = testGame();
-  const city = DM.addSite(G, 0, 'acc', 29, 25);
-  city.inv.mon = 100000; city.inv.mat.ferro = 1000;
-  assert.match(DM.buildBridge(G, city, 29.4, 25, 1), /attraversare/);
-  assert.match(DM.buildBridge(G, city, 31, 25, 1), /kit/);       // il ponte gratis della Tribù
+  DM.addUnit(G, 'S', 0, 28.5, 25); DM.claim(G, 0, 28.5, 25);
+  assert.match(DM.buildBridge(G, 28.8, 25, 29.3, 25, 1), /non c’è acqua/);
+  assert.match(DM.buildBridge(G, 29, 25, 30, 25, 1), /Tocca la terra/);
+  assert.match(DM.buildBridge(G, 29, 25, 31, 25, 1), /1,0 cm, 1 pezzo usato/);   // il pezzo del kit Tribù
   assert.equal(G.players[0].res.ponte1, 0);
-  assert.equal(city.inv.mon, 100000);
+  const br = G.bridges[0];
+  near(br.x1, 29.5, .03); near(br.x2, 30.5, .03);   // il ponte copre solo l'acqua
   const s = DM.addUnit(G, 'S', 0, 29, 25), t = DM.addUnit(G, 'T', 0, 29, 25.05);
   DM.moveUnit(G, s, 31, 25);
   near(s.x, 30, .051);                   // sul ponte va a 1 cm per turno
@@ -111,26 +112,30 @@ test('ponti: liv.1 per Soldati, non Carrarmati né Navi sotto; liv.2 per tutti; 
   assert.ok(t.x < 29.5, 'il carrarmato non passa sul liv.1: ' + t.x);
   assert.equal(DM.baseSpeed(G, 'N', 30, 25), 0, 'nave non passa sotto il liv.1');
   assert.equal(DM.baseSpeed(G, 'N', 30, 22), 4, 'nave sul fiume altrove');
-  assert.match(DM.buildBridge(G, city, 31, 24, 2), /Ponte liv. 2 costruito \(2 cm\)/);   // in diagonale 1,12 cm d'acqua → 2
-  assert.equal(city.inv.mon, 80000);
-  assert.equal(city.inv.mat.ferro, 600);
+  // in diagonale l'acqua è 1,12 cm → servono 2 pezzi
+  assert.match(DM.buildBridge(G, 29, 25, 31, 24, 2), /servono 2 pezzi di ponte liv. 2, ne hai 0/);
+  const cap = DM.capitalOf(G, 0);
+  cap.inv.mat.ferro = 1000;
+  assert.match(DM.buy(G, cap, 'ponte2'), /riserva/);
+  DM.buy(G, cap, 'ponte2');
+  assert.deepEqual([G.players[0].res.ponte2, cap.inv.mon, cap.inv.mat.ferro], [2, 230000, 600]);
+  assert.match(DM.buildBridge(G, 29, 25, 31, 24, 2), /1,1 cm, 2 pezzi usati/);
+  assert.equal(G.players[0].res.ponte2, 0);
   assert.equal(DM.baseSpeed(G, 'T', 30, 24.5), 1);
-  // liv.1 sul mare vietato, liv.2 sul mare solo < 2 cm
-  const port = DM.addSite(G, 0, 'acc', 52.5, 20);
-  port.inv.mon = 1e6; port.inv.mat.ferro = 1e4;
-  assert.match(DM.buildBridge(G, port, 52.5, 23, 1), /attraversare/);
+  // serve una tua truppa vicino e una riva nel tuo territorio
+  G.players[0].res.ponte1 = 3;
+  assert.match(DM.buildBridge(G, 29, 10, 31, 10, 1), /territorio|truppa/);
 });
 
-test('ponte liv.1 sul mare vietato, liv.2 sul mare max 2 cm', () => {
-  // mappa: mare stretto tra due terre
-  const G = testGame({ biome: (x, y) => (x < 1 || y < 1 || x > 59 || y > 41) ? 'S' : (x > 30 && x < 31.5) || (x > 40 && x < 43) ? 'S' : 'P' });
-  const a = DM.addSite(G, 0, 'acc', 29.8, 25);
-  a.inv.mon = 1e6; a.inv.mat.ferro = 1e4;
-  assert.match(DM.buildBridge(G, a, 32, 25, 1), /non si piazza sul mare/);
-  assert.match(DM.buildBridge(G, a, 32, 25, 2), /costruito/);
-  const b = DM.addSite(G, 0, 'acc', 39.8, 25);
-  b.inv.mon = 1e6; b.inv.mat.ferro = 1e4;
-  assert.match(DM.buildBridge(G, b, 43.5, 25, 2), /più corto di 2 cm/);
+test('ponti sul mare: liv.1 vietato, liv.2 più corto di 2 cm; 0,7 cm usa 1 pezzo', () => {
+  const G = testGame({ biome: (x, y) => (x < 1 || y < 1 || x > 59 || y > 41) ? 'S' : (x > 30 && x < 31.5) || (x > 40 && x < 43) || (x > 50 && x < 50.7) ? 'S' : 'P' });
+  G.players[0].res.ponte1 = 5; G.players[0].res.ponte2 = 10;
+  for (const x of [29.5, 39.5, 49.5]) { DM.addUnit(G, 'S', 0, x, 25); DM.claim(G, 0, x, 25); }
+  assert.match(DM.buildBridge(G, 29.8, 25, 32, 25, 1), /non si piazza sul mare/);
+  assert.match(DM.buildBridge(G, 29.8, 25, 32, 25, 2), /1,5 cm, 2 pezzi usati/);
+  assert.match(DM.buildBridge(G, 39.8, 25, 43.5, 25, 2), /più corto di 2 cm/);
+  assert.match(DM.buildBridge(G, 49.8, 25, 51, 25, 2), /0,7 cm, 1 pezzo usato/);
+  assert.equal(G.players[0].res.ponte2, 7);
 });
 
 test('strade: costo per pezzo, doppio nei biomi difficili, acqua solo con ponte, viaggio tra edifici a velocità doppia', () => {
@@ -168,9 +173,11 @@ test('strade: costo per pezzo, doppio nei biomi difficili, acqua solo con ponte,
   // strada sull'acqua senza ponte
   const e = DM.addSite(G, 0, 'acc', 28, 30), f = DM.addSite(G, 0, 'acc', 32, 30);
   e.inv.mon = 1e6; e.inv.mat.ferro = 1e5; e.inv.mat.oro = 1e4;
-  assert.match(DM.buildRoad(G, e, f), /serve un ponte/);
-  assert.match(DM.buildBridge(G, e, 32, 30, 2), /costruito/);
-  assert.match(DM.buildRoad(G, e, f), /costruita/);
+  assert.match(DM.buildRoad(G, e, f), /si ferma all’acqua/);
+  G.players[0].res.ponte2 = 1;
+  DM.addUnit(G, 'S', 0, 29, 30); DM.claim(G, 0, 29, 30);
+  assert.match(DM.buildBridge(G, 29.2, 30, 30.8, 30, 2), /1 pezzo usato/);
+  assert.match(DM.buildRoad(G, e, f), /costruita \(1 pezzo\)/);   // si paga solo la terra: 3 cm
   // costo doppio in Giungla
   const g1 = DM.addSite(G, 0, 'acc', 9, 5), g2 = DM.addSite(G, 0, 'acc', 12, 5);
   g1.inv.mon = 1e6; g1.inv.mat.ferro = 1e5; g1.inv.mat.oro = 1e4;
@@ -179,6 +186,27 @@ test('strade: costo per pezzo, doppio nei biomi difficili, acqua solo con ponte,
   // Lavico vietato
   const z1 = DM.addSite(G, 0, 'acc', 15, 36), z2 = DM.addSite(G, 0, 'acc', 21, 36);
   assert.match(DM.buildRoad(G, z1, z2), /Banchisa e Lava/);
+});
+
+test('strada collegata al ponte: si attacca all’estremità del ponte e il viaggio passa sopra il ponte', () => {
+  const G = testGame();
+  G.players[0].res.ponte2 = 1;
+  DM.addUnit(G, 'S', 0, 29, 15); DM.claim(G, 0, 29, 15);
+  assert.match(DM.buildBridge(G, 29.1, 15, 30.9, 15, 2), /costruito/);
+  const a = DM.addSite(G, 0, 'acc', 29.2, 15.1), b = DM.addSite(G, 0, 'acc', 30.8, 15.1);
+  [a, b].forEach(z => { z.inv.mon = 1e6; z.inv.mat.ferro = 1e5; z.inv.mat.oro = 1e4; });
+  const end1 = DM.nodeNear(G, 29.5, 15, a), end2 = DM.nodeNear(G, 30.5, 15, b);   // come nel gioco: si esclude l'edificio di partenza
+  assert.ok(end1 && end1.bridge && end2 && end2.bridge, 'si toccano le estremità del ponte');
+  assert.match(DM.buildRoad(G, a, end1), /collegata al ponte/);
+  assert.match(DM.buildRoad(G, b, end2), /collegata al ponte/);
+  // con la pozione Velocità il soldato fa strada (0,3 cm) + ponte (1 cm) + strada (0,3 cm) in un turno
+  const s = DM.addUnit(G, 'S', 0, 29.2, 15.1);
+  s.vp = G.round;
+  assert.match(DM.moveUnit(G, s, 30.8, 15.1), /3 tratti/);
+  assert.equal(s.x, 30.8);
+  // distrutto il ponte, le strade collegate spariscono
+  DM.removeBridge(G, G.bridges[0]);
+  assert.equal(G.roads.length, 0);
 });
 
 test('strade a più tratti: il viaggio passa dagli edifici collegati', () => {

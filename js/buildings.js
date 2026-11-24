@@ -46,63 +46,109 @@
     return DM.nameOf(k) + ' costruito dentro la ' + DM.nameOf(site.k) + '.';
   };
 
-  // ---- Strade (8.4): tra due edifici propri, pezzi da 5 cm, pagate dai due edifici ----
+  // ---- Nodi della rete stradale: edifici (id numerico) ed estremità dei ponti ('b<id>:1' / 'b<id>:2') ----
+  DM.bridgeId = (G, b) => b.id || (b.id = G.bid = (G.bid || 0) + 1);
+  DM.nodePos = function (G, id) {
+    if (typeof id === 'string' && id[0] === 'b') {
+      const [bid, end] = id.slice(1).split(':'), b = G.bridges.find(z => String(z.id) === bid);
+      return b ? { x: end === '1' ? b.x1 : b.x2, y: end === '1' ? b.y1 : b.y2, bridge: b } : null;
+    }
+    const s = DM.siteById(G, id);
+    return s ? { x: s.x, y: s.y, site: s } : null;
+  };
+  // nodo proprio vicino al punto toccato: prima gli edifici, poi le estremità dei ponti
+  DM.nodeNear = function (G, x, y, exclude, r) {
+    const R = r || G.tapR;
+    const s = G.sites.filter(z => z.o === G.p && z !== exclude && Math.hypot(z.x - x, z.y - y) < R)
+      .sort((a, b) => (Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y)) || ((a.par ? 1 : 0) - (b.par ? 1 : 0)))[0];
+    if (s) return { id: s.id, x: s.x, y: s.y, site: s };
+    const ends = [];
+    G.bridges.filter(b => b.o === G.p).forEach(b => {
+      const id = DM.bridgeId(G, b);
+      ends.push({ id: 'b' + id + ':1', x: b.x1, y: b.y1, bridge: b }, { id: 'b' + id + ':2', x: b.x2, y: b.y2, bridge: b });
+    });
+    return ends.filter(e => Math.hypot(e.x - x, e.y - y) < R).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0] || null;
+  };
+
+  // ---- Strade (8.4): pezzi da 5 cm. Sull'acqua la strada si interrompe: dall'altra parte la collega un ponte ----
   DM.roadPlan = function (G, a, b) {
-    const L = Math.hypot(b.x - a.x, b.y - a.y), pieces = Math.max(1, Math.ceil(L / DM.ROAD_PIECE));
-    let hard = false;
-    for (let i = 0; i <= Math.ceil(L / .1); i++) {
-      const f = Math.min(1, i * .1 / L || 0), x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f, k = DM.bAt(G, x, y);
+    const L = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(L / .05));
+    let hard = false, land = 0;
+    const port = e => e.site && e.site.k === 'porto';
+    for (let i = 0; i < n; i++) {
+      const f = (i + .5) / n, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f, k = DM.bAt(G, x, y);
       if (!k) return { err: 'La strada esce dalla mappa.' };
       if (k === 'Z' || k === 'I') return { err: 'Niente strade su Banchisa e Lava.' };
       if (DM.WATER.includes(k)) {
-        // sull'acqua la strada si interrompe: serve un ponte (o è il tratto che entra in un Porto)
-        const nearEnd = Math.min(Math.hypot(x - a.x, y - a.y), Math.hypot(x - b.x, y - b.y)) <= 1.1;
-        if (!nearEnd && !G.bridges.some(r => r.o === G.p && DM.segD(x, y, r) < .35)) return { err: 'La strada non può passare sull’acqua: serve un ponte.' };
-      } else if (DM.HARD_ROAD.includes(k)) hard = true;
+        // ammessa solo dove l'acqua la attraversa un tuo ponte, o vicino a un Porto o all'estremità di un ponte collegato
+        const da = Math.hypot(x - a.x, y - a.y), db = Math.hypot(x - b.x, y - b.y);
+        const ok = G.bridges.some(r => r.o === G.p && DM.segD(x, y, r) < .35) ||
+          (port(a) && da <= 1.1) || (port(b) && db <= 1.1) || (a.bridge && da <= .3) || (b.bridge && db <= .3);
+        if (!ok) return { err: 'La strada si ferma all’acqua: costruisci un ponte e collega la strada al ponte.' };
+      } else {
+        land += L / n;
+        if (DM.HARD_ROAD.includes(k)) hard = true;
+      }
     }
-    const cost = DM.mulCost(DM.ROAD_COST, pieces * (hard ? 2 : 1));
-    return { pieces, hard, cost, L };
+    const pieces = Math.max(1, Math.ceil(land / DM.ROAD_PIECE - 1e-9));
+    return { pieces, hard, cost: DM.mulCost(DM.ROAD_COST, pieces * (hard ? 2 : 1)), L, land };
   };
+  // a: edificio da cui parte (paga lui, insieme a b se è un edificio); b: edificio o estremità di un ponte (da DM.nodeNear)
   DM.buildRoad = function (G, a, b) {
-    if (!a || !b || a === b || a.o !== G.p || b.o !== G.p) return 'Tocca un altro tuo edificio.';
+    if (!a || a.o !== G.p) return 'Seleziona un tuo edificio da cui parte la strada.';
+    if (!b || b.site === a || (b.site && b.site.o !== G.p)) return 'Tocca un altro tuo edificio, oppure l’estremità di un tuo ponte.';
     if (G.roads.some(r => (r.a === a.id && r.b === b.id) || (r.a === b.id && r.b === a.id))) return 'Sono già collegati.';
-    if (Math.hypot(a.x - b.x, a.y - b.y) < .3) return 'Gli edifici sono nello stesso punto.';
-    const pl = DM.roadPlan(G, a, b);
+    if (Math.hypot(a.x - b.x, a.y - b.y) < .3) return 'Sono nello stesso punto.';
+    const pl = DM.roadPlan(G, { id: a.id, x: a.x, y: a.y, site: a }, b);
     if (pl.err) return pl.err;
-    if (!DM.pay([a.inv, b.inv], [pl.cost])) return 'Servono (in totale nei due edifici) ' + DM.costText(pl.cost) + ' per ' + pl.pieces + (pl.pieces > 1 ? ' pezzi' : ' pezzo') + (pl.hard ? ' (costo doppio)' : '') + '.';
+    const invs = [a.inv].concat(b.site ? [b.site.inv] : []);
+    if (!DM.pay(invs, [pl.cost])) return 'Servono ' + (b.site ? '(in totale nei due edifici) ' : 'in questo edificio ') + DM.costText(pl.cost) + ' per ' + pl.pieces + (pl.pieces > 1 ? ' pezzi' : ' pezzo') + (pl.hard ? ' (costo doppio)' : '') + '.';
     G.roads.push({ o: G.p, a: a.id, b: b.id, x1: a.x, y1: a.y, x2: b.x, y2: b.y });
-    return 'Strada costruita (' + pl.pieces + (pl.pieces > 1 ? ' pezzi' : ' pezzo') + (pl.hard ? ', costo doppio' : '') + ').';
+    return 'Strada costruita (' + pl.pieces + (pl.pieces > 1 ? ' pezzi' : ' pezzo') + (pl.hard ? ', costo doppio' : '') + (b.bridge ? ', collegata al ponte' : '') + ').';
   };
 
-  // ---- Ponti (8.3): dall'edificio selezionato al punto toccato, sopra l'acqua ----
-  DM.bridgePlan = function (G, a, x, y, lv) {
-    const L = Math.hypot(x - a.x, y - a.y), e = DM.bAt(G, x, y);
-    if (!e || DM.WATER.includes(e) || L < .2) return { err: 'Il ponte deve attraversare l’acqua e finire sulla terra.' };
-    // tratti da 0,05 cm, misurati al centro di ogni tratto
-    let f = 0, s = 0;
-    const n = Math.ceil(L / .05);
-    for (let i = 0; i < n; i++) {
-      const t = (i + .5) / n, k = DM.bAt(G, a.x + (x - a.x) * t, a.y + (y - a.y) * t);
+  // ---- Ponti (8.3): si comprano a pezzi da 1 cm e si posano toccando le due rive ----
+  // (x1, y1) e (x2, y2): due punti sulla terra ai lati dell'acqua. Il ponte copre solo l'acqua.
+  DM.bridgePlan = function (G, x1, y1, x2, y2, lv) {
+    const L = Math.hypot(x2 - x1, y2 - y1), land = (x, y) => { const k = DM.bAt(G, x, y); return k && !DM.WATER.includes(k); };
+    if (!land(x1, y1) || !land(x2, y2)) return { err: 'Tocca la terra da una parte e dall’altra dell’acqua.' };
+    const n = Math.max(1, Math.ceil(L / .02));
+    let first = -1, last = -1, sea = false, gap = false;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, k = DM.bAt(G, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t);
       if (!k) return { err: 'Il ponte esce dalla mappa.' };
-      if (k === 'F') f++; else if (k === 'S') s++;
+      if (DM.WATER.includes(k)) { if (last >= 0 && last < i - 1) gap = true; if (first < 0) first = i; last = i; if (k === 'S') sea = true; }
     }
-    if (f + s === 0) return { err: 'Il ponte deve attraversare l’acqua e finire sulla terra.' };
-    const water = (f + s) * L / n;
-    if (lv === 1 && s > 0) return { err: 'Il ponte liv. 1 non si piazza sul mare.' };
-    if (lv === 2 && s > 0 && water >= 2) return { err: 'Sul mare il ponte liv. 2 deve essere più corto di 2 cm.' };
-    const cm = Math.max(1, Math.ceil(water - 1e-9));
-    return { cm, cost: DM.mulCost(DM.BRIDGE_COST[lv], cm) };
+    if (first < 0) return { err: 'Tra i due punti non c’è acqua: il ponte serve ad attraversarla.' };
+    if (gap) return { err: 'Un ponte alla volta: tra i due punti c’è acqua, poi terra, poi di nuovo acqua.' };
+    // le estremità sono sulle due rive
+    const t1 = Math.max(0, (first - .5) / n), t2 = Math.min(1, (last + .5) / n);
+    const a = [x1 + (x2 - x1) * t1, y1 + (y2 - y1) * t1], b = [x1 + (x2 - x1) * t2, y1 + (y2 - y1) * t2];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (lv === 1 && sea) return { err: 'Il ponte liv. 1 non si piazza sul mare (solo fiumi e laghi).' };
+    if (lv === 2 && sea && len >= 2) return { err: 'Sul mare il ponte liv. 2 deve essere più corto di 2 cm.' };
+    // punti di terra subito prima e subito dopo l'acqua (per controllare territorio e truppe)
+    const pt = i => [x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n];
+    return { a, b, len, pieces: Math.max(1, Math.ceil(len - 1e-9)), landA: pt(Math.max(0, first - 1)), landB: pt(Math.min(n, last + 1)) };
   };
-  DM.buildBridge = function (G, a, x, y, lv) {
-    if (!a || a.o !== G.p) return 'Seleziona un tuo edificio da cui parte il ponte.';
-    const pl = DM.bridgePlan(G, a, x, y, lv);
+  DM.buildBridge = function (G, x1, y1, x2, y2, lv) {
+    const q = DM.cur(G), key = 'ponte' + lv;
+    const pl = DM.bridgePlan(G, x1, y1, x2, y2, lv);
     if (pl.err) return pl.err;
-    const q = DM.cur(G);
-    let free = false;
-    if (lv === 1 && q.res.ponte1 > 0) { q.res.ponte1--; free = true; }
-    else if (!DM.pay([a.inv], [pl.cost])) return 'Servono in questo edificio ' + DM.costText(pl.cost) + ' (' + pl.cm + ' cm di ponte).';
-    G.bridges.push({ o: G.p, x: (a.x + x) / 2, y: (a.y + y) / 2, x1: a.x, y1: a.y, x2: x, y2: y, lv, hp: DM.BRIDGE_HP[lv] });
-    return 'Ponte liv. ' + lv + ' costruito (' + pl.cm + ' cm' + (free ? ', quello del kit' : '') + ').';
+    const [a, b] = [pl.a, pl.b], [la, lb] = [pl.landA, pl.landB];
+    if (DM.terrAt(G, la[0], la[1]) !== G.p && DM.terrAt(G, lb[0], lb[1]) !== G.p) return 'Almeno una riva deve essere nel tuo territorio.';
+    if (!DM.troopNear(G, G.p, la[0], la[1], 2) && !DM.troopNear(G, G.p, lb[0], lb[1], 2)) return 'Serve una tua truppa entro 2 cm da una riva.';
+    const have = q.res[key] || 0;
+    if (have < pl.pieces) return 'Il ponte è lungo ' + pl.len.toFixed(1).replace('.', ',') + ' cm: servono ' + pl.pieces + (pl.pieces > 1 ? ' pezzi' : ' pezzo') + ' di ponte liv. ' + lv + ', ne hai ' + have + ' (si comprano negli acquisti).';
+    q.res[key] -= pl.pieces;
+    const br = { o: G.p, x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, x1: a[0], y1: a[1], x2: b[0], y2: b[1], lv, hp: DM.BRIDGE_HP[lv] };
+    DM.bridgeId(G, br);
+    G.bridges.push(br);
+    return 'Ponte liv. ' + lv + ' costruito: ' + pl.len.toFixed(1).replace('.', ',') + ' cm, ' + pl.pieces + (pl.pieces > 1 ? ' pezzi usati.' : ' pezzo usato.');
+  };
+  DM.removeBridge = function (G, b) {
+    G.bridges = G.bridges.filter(z => z !== b);
+    if (b.id) G.roads = G.roads.filter(r => r.a !== 'b' + b.id + ':1' && r.a !== 'b' + b.id + ':2' && r.b !== 'b' + b.id + ':1' && r.b !== 'b' + b.id + ':2');
   };
 
   // Cede un edificio (con quello che contiene e gli edifici interni) a un altro giocatore

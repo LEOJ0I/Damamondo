@@ -9,7 +9,7 @@
   let G = null;
   const ui = DM.ui = {
     sel: null, selB: null, mode: '', pick: [], spawn: '', msg: '', cede: null, keep: false,
-    bombKind: '', berryKind: '', pz: null, bridgeLv: 1, cargoQty: 0, cedeBTo: false, mineAt: null, rolling: false, Z: 10
+    bombKind: '', berryKind: '', pz: null, choice: null, bridgeA: null, cargoQty: 0, cedeBTo: false, mineAt: null, rolling: false, Z: 10
   };
   const view = () => ({ sheets: $('oS').checked, biomes: $('oB').checked, terr: $('oR').checked, units: $('oU').checked, grid: $('oG').checked, detail: $('oD').checked });
   const tapR = () => Math.max(.5, Math.min(1.5, 16 / ui.Z));   // circa 16 pixel, tra 0,5 e 1,5 cm
@@ -18,7 +18,7 @@
   const row = html => html ? `<div class="r">${html}</div>` : '';
 
   function resetModes() {
-    ui.mode = ''; ui.pick = []; ui.cede = null; ui.pz = null; ui.cedeBTo = false; ui.mineAt = null; ui.spawn = '';
+    ui.mode = ''; ui.pick = []; ui.cede = null; ui.pz = null; ui.cedeBTo = false; ui.mineAt = null; ui.spawn = ''; ui.choice = null; ui.bridgeA = null;
     $('sp').value = '';
   }
 
@@ -70,11 +70,15 @@
       f.innerHTML = '<p class="msg">Aprire il file al posto di questa partita? Questa viene sostituita (scaricala prima se vuoi tenerla).</p>' + row(btn('fileyes', 'Sì, apri il file', '', 'go') + btn('fileno', 'No'));
       return;
     }
+    if (ui.choice) {   // più bersagli nello stesso punto: sceglie il giocatore
+      f.innerHTML = '<p class="msg">' + ui.choice.title + '</p>' + ui.choice.list.map((t, i) => row(btn('choose', t.label, i))).join('') + row(btn('cancel', 'Annulla'));
+      return;
+    }
     if (ui.mode === 'cedeto') s = cedeUI();
     else if (ui.mineAt) s = '<b>Miniera</b>: scegli il risultato del dado (kit Maghi, ancora ' + DM.cur(G).dice + ')' + row([1, 2, 3, 4, 5, 6].map(d => btn('minedie', DICE[d - 1] + ' ' + d, d)).join('') + btn('minedie', 'Tira il dado', 0) + btn('cancel', 'Annulla'));
     else if (ui.sel) s = unitInfo(ui.sel);
     else if (ui.selB) s = siteInfo(ui.selB);
-    if (['road', 'bridge', 'bomb', 'berry', 'pz', 'shoot', 'army'].includes(ui.mode) || ui.spawn) s = row(btn('cancel', ui.mode === 'pz' && !ui.pz.first ? 'Fatto' : 'Annulla')) + s;
+    if (['road', 'bomb', 'berry', 'pz', 'shoot', 'army'].includes(ui.mode) || ui.spawn) s = row(btn('cancel', ui.mode === 'pz' && !ui.pz.first ? 'Fatto' : 'Annulla')) + s;
     f.innerHTML = (ui.msg ? `<p class="msg">${ui.msg}</p>` : '') + (s || (!ui.msg ? '<small>Tocca una tua truppa o un tuo edificio.</small>' : ''));
   }
 
@@ -132,7 +136,7 @@
     if (s.k === 'citta' && q.noCap) b.push(btn('makecap', 'Fai diventare Capitale', '', 'go'));
     if ((s.k === 'cap' || s.k === 'citta') && q.res.aer > 0) b.push(btn('inside', 'Aeroporto dentro (' + q.res.aer + ')', 'aer'));
     if ((s.k === 'cap' || s.k === 'citta') && q.res.porto > 0) b.push(btn('inside', 'Porto dentro (' + q.res.porto + ')', 'porto'));
-    b.push(btn('roadmode', 'Collega con strada'), btn('bridgemode', 'Ponte liv.1' + (q.res.ponte1 ? ' (gratis)' : ''), 1), btn('bridgemode', 'Ponte liv.2', 2));
+    b.push(btn('roadmode', 'Collega con strada'));
     if (I.mat.bomba > 0 && DM.BOMB.bomba.from.includes(s.k)) b.push(btn('bombmode', 'Lancia Bomba (' + I.mat.bomba + ')', 'bomba'));
     if (I.mat.superbomba > 0 && DM.BOMB.superbomba.from.includes(s.k)) b.push(btn('bombmode', 'Lancia Superbomba (' + I.mat.superbomba + ')', 'superbomba'));
     if (DM.BERRY_RANGE[s.k]) Object.keys(DM.BERRIES).filter(k => I.mat['bacca_' + k] > 0).forEach(k => b.push(btn('berrymode', 'Bacca ' + k + ' (' + I.mat['bacca_' + k] + ')', k)));
@@ -176,12 +180,13 @@
 
   function reserveMenu() {
     const sp = $('sp'), r = G.phase === 'play' ? DM.cur(G).res : {};
-    const keys = Object.keys(r).filter(k => r[k] > 0 && k !== 'ponte1');
+    const keys = Object.keys(r).filter(k => r[k] > 0);
     const want = keys.map(k => k + r[k]).join(',');
     if (sp.dataset.k !== want) {
       sp.dataset.k = want;
       sp.length = 1;
-      keys.forEach(k => sp.add(new Option((T[k] ? 'Schiera ' : 'Costruisci ') + DM.nameOf(k) + ' (' + r[k] + ')', k)));
+      keys.forEach(k => sp.add(new Option(T[k] ? 'Schiera ' + DM.nameOf(k) + ' (' + r[k] + ')' :
+        k.startsWith('ponte') ? 'Costruisci ponte liv. ' + k.slice(5) + ' (' + r[k] + (r[k] > 1 ? ' pezzi)' : ' pezzo)') : 'Costruisci ' + DM.nameOf(k) + ' (' + r[k] + ')', k)));
     }
     sp.value = ui.spawn;
   }
@@ -213,13 +218,20 @@
       draw(); return;
     }
     if (m === 'cedeto' || ui.mineAt) return;
-    if (m === 'bridge') { ui.msg = DM.buildBridge(G, ui.selB, x, y, ui.bridgeLv); ui.mode = ''; draw(); return; }
+    if (ui.choice) return;
     if (m === 'road') {
-      const b = DM.siteNear(G, x, y, s => s.o === G.p && s !== ui.selB)[0];
-      ui.msg = DM.buildRoad(G, ui.selB, b); ui.mode = ''; draw(); return;
+      ui.msg = DM.buildRoad(G, ui.selB, DM.nodeNear(G, x, y, ui.selB)); ui.mode = ''; draw(); return;
     }
-    if (m === 'bomb') { ui.msg = DM.launchBomb(G, ui.selB, ui.bombKind, x, y); ui.mode = ''; draw(); return; }
-    if (m === 'berry') { ui.msg = DM.throwBerry(G, ui.selB, ui.berryKind, x, y); ui.mode = ''; draw(); return; }
+    if (m === 'bomb') {
+      const site = ui.selB, k = ui.bombKind;
+      choose(DM.anyTargets(G, x, y), 'Cosa vuoi colpire con la ' + DM.nameOf(k) + '?', t => DM.launchBombAt(G, site, k, t, x, y), k === 'superbomba');
+      return;
+    }
+    if (m === 'berry') {
+      const site = ui.selB, k = ui.berryKind;
+      choose(DM.berryTargets(G, x, y), 'Su chi lanci la bacca ' + k + '?', t => DM.throwBerryAt(G, site, k, t));
+      return;
+    }
     if (m === 'pz') {
       const r = DM.potionOnUnit(G, ui.selB, ui.pz.k, x, y, ui.pz.first);
       if (r.err) ui.msg = r.err;
@@ -235,7 +247,7 @@
       if (err) ui.msg = err; else { ui.pick.push(u); ui.msg = ui.pick.length + ' scelte (' + DM.armyPts(ui.pick) + '/100 punti). Tocca altre truppe o premi "Conferma esercito".'; }
       draw(); return;
     }
-    if (m === 'shoot') { ui.msg = DM.shoot(G, ui.sel, x, y); ui.mode = ''; draw(); return; }
+    if (m === 'shoot') { const u = ui.sel; choose(DM.shootTargets(G, x, y), 'A cosa spari?', t => DM.shootAt(G, u, t)); return; }
     if (ui.spawn) { spawnTap(x, y); return; }
 
     const own = v => v.o === G.p;
@@ -256,8 +268,21 @@
     draw();
   }
 
+  // Un solo bersaglio: si colpisce subito. Più bersagli: il giocatore sceglie dall'elenco.
+  // emptyOk: si può anche colpire il punto vuoto (Superbomba)
+  function choose(list, title, run, emptyOk) {
+    if (list.length > 1) { ui.choice = { list, title, run }; draw(); return; }
+    if (!list.length && !emptyOk) { ui.msg = run(null); ui.mode = ''; draw(); return; }
+    ui.msg = run(list[0] || null); ui.mode = ''; draw();
+  }
+
   function spawnTap(x, y) {
     const k = ui.spawn;
+    if (k.startsWith('ponte')) {   // il ponte si posa con due tocchi: una riva e poi l'altra
+      if (!ui.bridgeA) { ui.bridgeA = [x, y]; ui.msg = 'Ora tocca la terra dall’altra parte dell’acqua.'; draw(); return; }
+      ui.msg = DM.buildBridge(G, ui.bridgeA[0], ui.bridgeA[1], x, y, +k.slice(5));
+      ui.bridgeA = null; ui.spawn = ''; draw(); return;
+    }
     if (T[k]) ui.msg = DM.deploy(G, k, x, y);
     else if (k === 'min') {
       const err = DM.mineError(G, x, y);
@@ -294,8 +319,8 @@
     upgrade: () => { ui.msg = DM.upgradeCamp(G, ui.selB); },
     makecap: () => { ui.msg = DM.chooseCapital(G, ui.selB); },
     inside: k => { ui.msg = DM.buildInside(G, ui.selB, k); },
-    roadmode: () => { resetModes(); ui.mode = 'road'; ui.msg = 'Tocca l’altro tuo edificio da collegare (la strada passa in linea retta).'; },
-    bridgemode: lv => { resetModes(); ui.mode = 'bridge'; ui.bridgeLv = +lv; ui.msg = 'Tocca la terra dall’altra parte dell’acqua (il ponte parte dall’edificio selezionato).'; },
+    roadmode: () => { resetModes(); ui.mode = 'road'; ui.msg = 'Tocca l’altro tuo edificio da collegare, oppure l’estremità di un tuo ponte (la strada va in linea retta e si ferma all’acqua).'; },
+    choose: i => { const c = ui.choice; ui.choice = null; ui.msg = c.run(c.list[+i]); ui.mode = ''; },
     bombmode: k => {
       const err = DM.bombError(G, ui.selB, k);
       if (err) { ui.msg = err; return; }
@@ -451,6 +476,7 @@
       ui.spawn = k;
       ui.sel = null;
       ui.msg = ui.spawn ? (T[ui.spawn] ? 'Tocca la mappa per schierare ' + T[ui.spawn].name + (T[ui.spawn].kind === 'sea' ? ' (dentro un tuo Porto).' : ui.spawn === 'A' ? ' (dentro un tuo Aeroporto).' : ' (entro 2 cm da Capitale, Città o Accampamento).') :
+        ui.spawn.startsWith('ponte') ? 'Tocca la terra da una parte dell’acqua, poi dall’altra. Ogni cm di ponte usa un pezzo (anche 0,7 cm usa 1 pezzo, 1,3 cm ne usa 2).' :
         'Tocca la mappa per costruire ' + DM.nameOf(ui.spawn) + (ui.spawn === 'porto' ? ' (in acqua, vicino alla tua costa).' : ' (nel tuo territorio, con una tua truppa entro 2 cm).')) : '';
       draw();
     };

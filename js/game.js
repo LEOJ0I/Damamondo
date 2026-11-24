@@ -73,12 +73,12 @@
     .sort((a, b) => (Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y)) || ((a.par ? 1 : 0) - (b.par ? 1 : 0)));
   DM.moneyOf = (G, o) => DM.sitesOf(G, o).reduce((t, s) => t + s.inv.mon, 0);
 
-  // Distrugge un edificio: si perde tutto ciò che conteneva, le truppe dentro, gli edifici interni e le strade.
+  // Distrugge un edificio: si perde tutto ciò che conteneva (soldi, materiali, bombe…), gli edifici interni e le strade.
+  // Le truppe dentro NON muoiono (decisione dell'utente): si fanno male solo se le colpisce una Bomba.
   DM.destroySite = function (G, s) {
     if (!G.sites.includes(s)) return '';
     const inner = G.sites.filter(z => z.par === s.id);
     G.sites = G.sites.filter(z => z !== s && z.par !== s.id);
-    G.units = G.units.filter(u => Math.hypot(u.x - s.x, u.y - s.y) > .3 || u.o !== s.o);
     G.roads = G.roads.filter(r => r.a !== s.id && r.b !== s.id && !inner.some(z => z.id === r.a || z.id === r.b));
     let msg = '';
     if (s.k === 'cap') msg += DM.capitalLost(G, s.o);
@@ -154,7 +154,7 @@
     const k = DM.KITS[kitIdx];
     G.players[o] = {
       kit: kitIdx, sold: '', out: false, noCap: false, dice: k.diceChoice || 0,
-      res: { S: k.S, C: 1, N: k.N, E: k.E, acc: k.acc, citta: k.citta, min: k.min, porto: k.porto, aer: k.aer, col: 0, ponte1: k.ponte1 || 0 }
+      res: { S: k.S, C: 1, N: k.N, E: k.E, acc: k.acc, citta: k.citta, min: k.min, porto: k.porto, aer: k.aer, col: 0, ponte1: k.ponte1 || 0, ponte2: 0 }
     };
     const cap = DM.addSite(G, o, 'cap', x, y);
     cap.inv.mon = k.money;
