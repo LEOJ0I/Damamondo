@@ -26,13 +26,16 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/menu.js` | menu iniziale (Gioca → Locale / Multiplayer, Regole) e le 3 partite salvate |
 | `js/rules.js` | il regolamento completo, con le tabelle prese dai dati del gioco |
 | `js/main.js` | avvio |
+| `tools/build-pages.js` | crea `regole.html`, `llms.txt` e `llms-full.txt` dalle regole del gioco (`npm run pagine`) |
+| `regole.html` | il regolamento come pagina normale: da leggere, stampare, e per Google e le AI |
+| `llms.txt`, `llms-full.txt` | cos'è Damamondo e le regole in testo, per le AI |
 
 Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e riusare per un'app.
 
 ## Prove
 
 ```
-npm test               # 54 prove delle regole (serve Node 18+)
+npm test               # 56 prove delle regole (anche che le pagine statiche siano aggiornate) (serve Node 18+)
 npm run test:browser   # 34 passi giocati in un browser che finge un iPhone (serve Playwright)
 ```
 
