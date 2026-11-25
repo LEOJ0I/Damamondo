@@ -52,8 +52,10 @@
       const v = map.volc[i], d = Math.hypot(x - v[0], y - v[1]);
       const active = map.erupt.some(z => z.v === i && z.until > round);
       if (comp > 1 && (d < .4 || (active && d < 2.1))) return 'Z';
-      if (d < 1.1) return comp > 1 && v[2] && nz(x + 800, y + 800, .9) > v[3] ? 'Z' : 'V';
-      if (comp > 1 && v[2] && d < 1.7 && nz(x + 800, y + 800, .7) > v[3] + .05) return 'Z';
+      // gen 4: con varietà estrema ed estremissima la lava è più estesa e le colate arrivano più lontano
+      const more = gen >= 4 ? comp - 2 : 0, flow = 1.7 + more * .45, thr = v[3] - more * .07;
+      if (d < 1.1) return comp > 1 && v[2] && nz(x + 800, y + 800, .9) > thr ? 'Z' : 'V';
+      if (comp > 1 && v[2] && d < flow && nz(x + 800, y + 800, .7) > thr + .05) return 'Z';
     }
     if (e > .78) return 'A';
     if (e > .7) return 'M';
@@ -66,7 +68,8 @@
   DM.makeMap = function (opts, seed) {
     // gen: versione del generatore. Le partite salvate prima del 25/11/2026 non ce l'hanno (= 1) e tengono la loro mappa.
     // gen 2 (25/11/2026): più vulcani nelle mappe calde. gen 3: Banchisa lontana dai bordi, nessun minimo nelle mappe fredde.
-    const map = { opts: Object.assign({ isl: 1, hum: 2, temp: 2, comp: 2, gen: 3 }, opts), seed, n: noise(seed),
+    // gen 4: niente vulcani con varietà semplice; minimo 1/2/3 con media/estrema/estremissima; lava più estesa.
+    const map = { opts: Object.assign({ isl: 1, hum: 2, temp: 2, comp: 2, gen: 4 }, opts), seed, n: noise(seed),
       volc: [], erupt: [], cells: new Uint8Array(W * MR * H * MR), version: 0 };
     const { h } = map.n, { comp, temp, gen } = map.opts;
     const ok = (x, y) => !'SFIAM'.includes(biome(map, x, y, 1)) && map.volc.every(v => Math.hypot(v[0] - x, v[1] - y) >= 8);
@@ -74,7 +77,7 @@
     // Vulcani: al massimo uno per riquadro di 14 cm
     for (let gx = 0; gx < W - 8; gx += 14) {
       for (let gy = 0; gy < H - 8; gy += 14) {
-        if (comp > 0 && h(gx * 3.1 + 9, gy * 2.7 + 4) > [1.1, .7, .55, .5, .35][comp] + (temp - 2) * .06) {
+        if ((gen >= 4 ? comp > 1 : comp > 0) && h(gx * 3.1 + 9, gy * 2.7 + 4) > [1.1, .7, .55, .5, .35][comp] + (temp - 2) * .06) {
           // gen 2, mappe calde: se il primo punto è mare o montagna si provano altri punti del riquadro
           for (let t = 0; t < (gen >= 2 && temp <= 1 ? 3 : 1); t++) {
             const x = gx + 3 + h(gx + t * 17, gy + 1) * 8, y = gy + 3 + h(gx + 5, gy + t * 13) * 8;
@@ -85,7 +88,9 @@
     }
     // gen 2: con varietà da media in su almeno 1 vulcano; nelle mappe calde con varietà estrema o estremissima almeno 2
     if (gen >= 2 && comp > 1) {
-      const min = temp <= 1 && comp >= 3 ? 2 : (gen >= 3 && temp >= 3 ? 0 : 1);   // gen 3: nelle mappe fredde nessun minimo
+      const min = gen >= 3 && temp >= 3 ? 0                    // gen 3: nelle mappe fredde nessun minimo
+        : gen >= 4 ? comp - 1                                   // gen 4: 1 media, 2 estrema, 3 estremissima
+          : temp <= 1 && comp >= 3 ? 2 : 1;
       for (let k = 0; k < 400 && map.volc.length < min; k++) {
         const x = 4 + h(k * 3.7, 11) * (W - 8), y = 4 + h(13, k * 5.3) * (H - 8);
         if (ok(x, y)) add(x, y, k, k * 2);

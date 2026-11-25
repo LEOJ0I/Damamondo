@@ -97,7 +97,7 @@ test('le partite salvate prima del cambio dei vulcani tengono la loro mappa', ()
   const H = DM.deserialize(text);
   assert.equal(H.map.opts.gen, 1);
   assert.ok(H.map.cells.every((c, i) => c === G.map.cells[i]), 'stessa mappa di prima');
-  assert.equal(DM.newGame({ temp: 0, comp: 4 }, 11).map.opts.gen, 3, 'le partite nuove usano il generatore nuovo');
+  assert.equal(DM.newGame({ temp: 0, comp: 4 }, 11).map.opts.gen, 4, 'le partite nuove usano il generatore nuovo');
 });
 
 test('Banchisa: il bordo della mappa è sempre mare aperto, niente briciole di ghiaccio', () => {
@@ -119,4 +119,21 @@ test('Banchisa: il bordo della mappa è sempre mare aperto, niente briciole di g
   let near = false;
   for (let i = 0; i < w && !near; i++) for (const j of [3, h - 4]) if (old.cells[j * w + i] === I) near = true;
   assert.ok(near, 'gen 2 invariato');
+});
+
+test('vulcani secondo la varietà: nessuno con semplice, minimo 1 / 2 / 3 con media / estrema / estremissima, lava più estesa', () => {
+  const Z = DM.BIOMES.indexOf('Z');
+  const lava = [0, 0, 0, 0, 0];
+  for (let seed = 1; seed <= 15; seed++) {
+    assert.equal(DM.makeMap({ comp: 1, temp: 0 }, seed).volc.length, 0, 'semplice: niente vulcani');
+    for (const temp of [0, 1, 2]) for (const comp of [2, 3, 4]) assert.ok(DM.makeMap({ temp, comp }, seed).volc.length >= comp - 1, 'varietà ' + comp + ' temp ' + temp + ' seme ' + seed);
+    for (const comp of [2, 3, 4]) {
+      const m = DM.makeMap({ temp: 2, comp }, seed); DM.rebuildMap(m, 1);
+      let c = 0; for (const k of m.cells) if (k === Z) c++;
+      lava[comp] += c / m.volc.length;
+    }
+  }
+  assert.ok(lava[3] > lava[2] * 1.3 && lava[4] > lava[3] * 1.3, 'più varietà, più lava per vulcano: ' + lava.slice(2).map(Math.round));
+  // le mappe della versione 3 restano uguali (con semplice c'erano vulcani)
+  assert.ok([1, 2, 3, 4, 5, 6].some(seed => DM.makeMap({ comp: 1, temp: 0, gen: 3 }, seed).volc.length > 0));
 });
