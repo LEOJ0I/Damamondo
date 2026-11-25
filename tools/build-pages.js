@@ -102,7 +102,45 @@ Per vincere bisogna sconfiggere gli avversari: chi resta senza Capitale e senza 
 - Armi e oggetti: Bombe, Superbombe, bacche e pozioni.
 `;
   const full = `# Regole di Damamondo Classico\n\n${INTRO}\n\n${NOT}\n\nFonte: ${SITE}regole.html\n\n${htmlToText(rules)}\n`;
-  return { 'regole.html': regole, 'llms.txt': llms, 'llms-full.txt': full };
+  const pages = { 'regole.html': regole, 'llms.txt': llms, 'llms-full.txt': full };
+  pages['sw.js'] = serviceWorker(pages);
+  return pages;
+}
+
+// File che il telefono tiene in memoria per giocare senza internet
+const OFFLINE = ['./', 'index.html', 'regole.html', 'manifest.webmanifest', 'css/style.css',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
+function offlineFiles() {
+  const js = fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).sort().map(f => 'js/' + f);
+  return OFFLINE.concat(js);
+}
+// Il service worker: prima prova internet (così gli aggiornamenti arrivano subito), senza internet usa la copia salvata.
+// La versione è un'impronta dei file: cambia da sola quando cambia il gioco.
+function serviceWorker(pages) {
+  const files = offlineFiles();
+  const hash = require('crypto').createHash('sha256');
+  files.filter(f => f !== './').forEach(f => hash.update(f + '\n' + (pages[f] !== undefined ? pages[f] : fs.readFileSync(path.join(ROOT, f)))));
+  const version = hash.digest('hex').slice(0, 12);
+  return `// Damamondo – funzionamento senza internet. File creato da tools/build-pages.js: non modificarlo a mano.
+const CACHE = 'damamondo-${version}';
+const FILES = ${JSON.stringify(files)};
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('damamondo-') && k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  e.respondWith(fetch(req).then(res => {
+    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+    return res;
+  }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || (req.mode === 'navigate' ? caches.match('index.html') : undefined))));
+});
+`;
 }
 
 module.exports = { build, ROOT };

@@ -29,6 +29,7 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `tools/build-pages.js` | crea `regole.html`, `llms.txt` e `llms-full.txt` dalle regole del gioco (`npm run pagine`) |
 | `regole.html` | il regolamento come pagina normale: da leggere, stampare, e per Google e le AI |
 | `llms.txt`, `llms-full.txt` | cos'è Damamondo e le regole in testo, per le AI |
+| `manifest.webmanifest`, `icons/`, `sw.js` | app installabile (PWA): nome, icona con la stella, a tutto schermo, funziona senza internet. `sw.js` lo crea `npm run pagine`; le icone `node tools/make-icons.js` |
 
 Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e riusare per un'app.
 
@@ -36,7 +37,7 @@ Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e 
 
 ```
 npm test               # 56 prove delle regole (anche che le pagine statiche siano aggiornate) (serve Node 18+)
-npm run test:browser   # 34 passi giocati in un browser che finge un iPhone (serve Playwright)
+npm run test:browser   # 34 passi giocati + prova dell'app senza internet in un browser che finge un iPhone (serve Playwright)
 ```
 
 ## Regole decise insieme (oltre al PDF)
@@ -52,6 +53,10 @@ Le correzioni del documento di passaggio e le decisioni prese con l'utente sono 
 - **Navi e Porti**: le Navi partono da un Porto o da un fiume entro 1 cm da una propria Città; sulle navi si sale e si scende solo in un proprio Porto.
 - **Bomba con limite sotto 3**: una sola, se non si è ancora sparato. **Superbomba**: 5 spari, quindi dal giro 16.
 - **Città con meno di 5.000 soldi**: niente rendita. **Coltivazione**: solo nei biomi che danno bacche.
+
+## App sul telefono
+
+Dal sito: Safari → tasto condividi → **Aggiungi alla schermata Home** (Android/Chrome: menu → **Installa app**). Si apre a tutto schermo con l'icona della stella e funziona anche senza internet; quando il sito si aggiorna, l'app si aggiorna da sola.
 
 ## Menu e salvataggi
 
