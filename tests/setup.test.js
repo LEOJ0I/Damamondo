@@ -73,3 +73,67 @@ test('generazione: tutte le opzioni, bordo sempre mare, Alta montagna solo vicin
   }
   assert.equal(bad, 0);
 });
+
+test('vulcani: almeno 1 con varietà media o più (non garantiti nelle mappe fredde), almeno 2 nelle mappe calde con varietà estrema', () => {
+  for (let seed = 1; seed <= 25; seed++) {
+    for (const temp of [0, 1]) for (const comp of [3, 4]) assert.ok(DM.makeMap({ temp, comp }, seed).volc.length >= 2, 'calda ' + temp + '/' + comp + ' seme ' + seed);
+    for (const temp of [0, 1, 2]) for (const comp of [2, 3, 4]) assert.ok(DM.makeMap({ temp, comp }, seed).volc.length >= 1, 'temp ' + temp + '/' + comp + ' seme ' + seed);
+    // gen 2 (partite salvate il 25/11 prima delle 11): il minimo valeva anche per le mappe fredde
+    for (const comp of [2, 4]) assert.ok(DM.makeMap({ temp: 4, comp, gen: 2 }, seed).volc.length >= 1);
+    assert.equal(DM.makeMap({ comp: 0 }, seed).volc.length, 0, 'semplicissima: niente vulcani');
+  }
+  // i vulcani sono sulla terra adatta e lontani tra loro
+  const m = DM.makeMap({ temp: 0, comp: 4 }, 3); DM.rebuildMap(m, 1);
+  m.volc.forEach((v, i) => {
+    assert.ok('VZ'.includes(DM.mapAt(m, v[0], v[1])), 'al centro del vulcano c’è il Vulcanico o il Lavico');
+    m.volc.slice(i + 1).forEach(w => assert.ok(Math.hypot(v[0] - w[0], v[1] - w[1]) >= 8));
+  });
+});
+
+test('le partite salvate prima del cambio dei vulcani tengono la loro mappa', () => {
+  const G = DM.newGame({ temp: 0, comp: 4, gen: 1 }, 11);   // come era fatta una mappa vecchia
+  const text = DM.serialize(G).replace(/,"gen":1/, '');     // i salvataggi vecchi non avevano "gen"
+  assert.doesNotMatch(text, /"gen"/);
+  const H = DM.deserialize(text);
+  assert.equal(H.map.opts.gen, 1);
+  assert.ok(H.map.cells.every((c, i) => c === G.map.cells[i]), 'stessa mappa di prima');
+  assert.equal(DM.newGame({ temp: 0, comp: 4 }, 11).map.opts.gen, 4, 'le partite nuove usano il generatore nuovo');
+});
+
+test('Banchisa: il bordo della mappa è sempre mare aperto, niente briciole di ghiaccio', () => {
+  const I = DM.BIOMES.indexOf('I'), w = DM.W * DM.MR, h = DM.H * DM.MR;
+  let maps = 0;
+  for (let seed = 1; seed <= 12; seed++) for (const temp of [3, 4]) for (const comp of [3, 4]) {
+    const m = DM.makeMap({ temp, comp }, seed); DM.rebuildMap(m, 1);
+    let ice = 0;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      if (m.cells[j * w + i] !== I) continue;
+      ice++;
+      assert.ok(Math.min(i, j, w - 1 - i, h - 1 - j) >= 20, 'ghiaccio a meno di 2 cm dal bordo (seme ' + seed + ')');
+    }
+    if (ice) maps++;
+  }
+  assert.ok(maps >= 40, 'la Banchisa c’è ancora nelle mappe fredde: ' + maps + '/48');
+  // le mappe con la versione di prima restano identiche (ghiaccio fino al bordo)
+  const old = DM.makeMap({ temp: 4, comp: 4, gen: 2 }, 3); DM.rebuildMap(old, 1);
+  let near = false;
+  for (let i = 0; i < w && !near; i++) for (const j of [3, h - 4]) if (old.cells[j * w + i] === I) near = true;
+  assert.ok(near, 'gen 2 invariato');
+});
+
+test('vulcani secondo la varietà: nessuno con semplice, minimo 1 / 2 / 3 con media / estrema / estremissima, lava più estesa', () => {
+  const Z = DM.BIOMES.indexOf('Z');
+  const lava = [0, 0, 0, 0, 0];
+  for (let seed = 1; seed <= 15; seed++) {
+    assert.equal(DM.makeMap({ comp: 1, temp: 0 }, seed).volc.length, 0, 'semplice: niente vulcani');
+    for (const temp of [0, 1, 2]) for (const comp of [2, 3, 4]) assert.ok(DM.makeMap({ temp, comp }, seed).volc.length >= comp - 1, 'varietà ' + comp + ' temp ' + temp + ' seme ' + seed);
+    for (const comp of [2, 3, 4]) {
+      const m = DM.makeMap({ temp: 2, comp }, seed); DM.rebuildMap(m, 1);
+      let c = 0; for (const k of m.cells) if (k === Z) c++;
+      lava[comp] += c / m.volc.length;
+    }
+  }
+  assert.ok(lava[3] > lava[2] * 1.3 && lava[4] > lava[3] * 1.3, 'più varietà, più lava per vulcano: ' + lava.slice(2).map(Math.round));
+  // le mappe della versione 3 restano uguali (con semplice c'erano vulcani)
+  assert.ok([1, 2, 3, 4, 5, 6].some(seed => DM.makeMap({ comp: 1, temp: 0, gen: 3 }, seed).volc.length > 0));
+});

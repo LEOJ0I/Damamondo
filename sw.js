@@ -1,5 +1,5 @@
 // Damamondo – funzionamento senza internet. File creato da tools/build-pages.js: non modificarlo a mano.
-const CACHE = 'damamondo-c336d194d6e8';
+const CACHE = 'damamondo-48c87407a7f4';
 const FILES = ["./","index.html","regole.html","manifest.webmanifest","css/style.css","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png","icons/favicon-32.png","js/buildings.js","js/combat.js","js/data.js","js/decor.js","js/economy.js","js/game.js","js/main.js","js/map.js","js/menu.js","js/render.js","js/rules.js","js/save.js","js/territory.js","js/transport.js","js/troops.js","js/turn.js","js/ui.js"];
 
 self.addEventListener('install', e => {

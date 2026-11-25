@@ -21,7 +21,7 @@
     const o = JSON.parse(text);
     if (!o || o.game !== 'damamondo' || !o.map || typeof o.terr !== 'string') throw new Error('Questo non è un salvataggio di Damamondo.');
     if (o.v > VERSION) throw new Error('Salvataggio di una versione più nuova del gioco.');
-    const G = DM.newGame(o.map.opts, o.seed);
+    const G = DM.newGame(Object.assign({ gen: 1 }, o.map.opts), o.seed);   // salvataggi vecchi: generatore 1
     KEYS.forEach(k => { if (o[k] !== undefined) G[k] = o[k]; });
     G.map.erupt = o.map.erupt || [];
     if (G.map.erupt.some(z => z.until > G.round)) DM.rebuildMap(G.map, G.round);

@@ -36,9 +36,10 @@
 
   function hud() {
     $('seedInfo').textContent = 'Mappa attuale: numero ' + G.seed + ' (stesse opzioni + stesso numero = stessa mappa).';
-    if (G.phase !== 'play') { $('hud').innerHTML = `<b>Preparazione</b><span>${G.phase === 'num' ? '' : G.names[G.p]}</span>`; return; }
+    const menu = '<button type="button" class="hudbtn" id="toMenu" data-act="tomenu" aria-label="Torna al menu">☰ Menu</button>';
+    if (G.phase !== 'play') { $('hud').innerHTML = menu + `<b>Preparazione</b><span>${G.phase === 'num' ? '' : G.names[G.p]}</span>`; return; }
     const q = DM.cur(G);
-    $('hud').innerHTML = `<b style="color:${pcol(G.p)}">${G.names[G.p]}</b><span>Giro <b>${G.round}</b></span>` +
+    $('hud').innerHTML = menu + `<b style="color:${pcol(G.p)}">${G.names[G.p]}</b><span>Giro <b>${G.round}</b></span>` +
       `<span>Mosse ${G.moved}/${DM.moveLimit(G.round)} · Spari ${G.shots}/${DM.shotLimit(G.round)}</span>` +
       (q.noCap ? '<span class="warn">Senza Capitale!</span>' : '');
   }
@@ -363,6 +364,7 @@
       ui.msg = 'File della partita scaricato.';
     },
     deselect: () => { ui.sel = null; ui.msg = ''; },
+    tomenu: () => { DM.leaveGame(); DM.showMenu('home'); return true; },
     fileyes: () => { const t = ui.pendingFile; ui.pendingFile = null; loadText(t, 'Partita aperta dal file.'); return true; },
     fileno: () => { ui.pendingFile = null; ui.msg = 'File non aperto.'; },
     opensite: id => { ui.selB = DM.siteById(G, id); ui.sel = null; ui.msg = ''; ui.cedeBTo = false; },
@@ -488,7 +490,6 @@
     document.addEventListener('input', e => { if (e.target.id === 'cq') ui.cargoQty = Math.max(0, Math.floor(+e.target.value) || 0); });
     $('end').onclick = endTurn; $('undo').onclick = undo; $('army').onclick = army; $('shoot').onclick = shoot; $('ced').onclick = cede;
     $('zi').onclick = () => zoom(1.25); $('zo').onclick = () => zoom(.8);
-    $('toMenu').onclick = () => { DM.leaveGame(); DM.showMenu('home'); };
     document.addEventListener('change', e => {
       if (e.target.id !== 'openfile' || !e.target.files[0]) return;
       if (!G) return;

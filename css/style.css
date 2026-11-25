@@ -61,9 +61,9 @@ label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 #menuBg { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .35; filter: blur(2px) saturate(1.1); z-index: 0; pointer-events: none; }
 .menu-body { position: relative; z-index: 1; width: 100%; max-width: 520px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .menu.long .menu-body { max-width: 760px; }
-.title { margin: 0 0 18px; text-align: center; font-size: clamp(34px, 12vw, 104px); line-height: 1; font-weight: 900; letter-spacing: .02em; max-width: 100%;
+.title { margin: 0 0 18px; text-align: center; font-size: clamp(30px, 11vw, 104px); line-height: 1; font-weight: 900; letter-spacing: .02em; white-space: nowrap; align-self: center;
   color: var(--fg); text-shadow: 0 3px 0 var(--ac), 0 6px 18px rgba(0, 0, 0, .25); }
-.title small { display: block; font-size: .26em; letter-spacing: .5em; font-weight: 700; margin-top: 10px; opacity: .8; text-shadow: none; }
+.title small { display: block; font-size: .26em; letter-spacing: .5em; padding-left: .5em; font-weight: 700; margin-top: 10px; opacity: .8; text-shadow: none; }
 .menu h2 { margin: 0; font-size: 26px; text-align: center; }
 .stack { display: flex; flex-direction: column; align-items: stretch; gap: 12px; width: min(100%, 300px); }
 button.big, label.big { font-size: 21px; font-weight: 700; padding: 14px 20px; min-height: 58px; border-radius: 14px; justify-content: center; text-align: center; }
@@ -102,3 +102,5 @@ button.danger { background: #b42318; border-color: #b42318; color: #fff; }
 .card.slot.ask p { margin: 0; }
 .menu p.center { text-align: center; margin: 0; }
 .menu p.center a { color: inherit; font-weight: 600; }
+#hud { align-items: center; }
+#hud .hudbtn { min-height: 40px; padding: 6px 12px; font-weight: 700; }
