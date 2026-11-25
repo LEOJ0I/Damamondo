@@ -64,7 +64,9 @@
         <label>Numero mappa <input type="number" id="seed" min="1" inputmode="numeric" placeholder="a caso"></label>
       </div><small>Stesse opzioni e stesso numero danno la stessa mappa.</small></div>` +
       '<div class="stack">' + b('inizia', 'Inizia', 'go') + b('locale', '← Indietro', 'back') + '</div>',
-    regole: () => '<div class="stack">' + b('home', '← Menu', 'back') + '</div><h2>Regolamento</h2><div class="rules">' + DM.rulesHTML() + '</div><div class="stack">' + b('home', '← Menu', 'back') + '</div>'
+    regole: () => '<div class="stack">' + b('home', '← Menu', 'back') + '</div><h2>Regolamento</h2>' +
+      '<p class="center"><a href="regole.html" target="_blank" rel="noopener">Apri le regole in una pagina a parte (da stampare o condividere)</a></p>' +
+      '<div class="rules">' + DM.rulesHTML() + '</div><div class="stack">' + b('home', '← Menu', 'back') + '</div>'
   };
 
   let cur = 'home';

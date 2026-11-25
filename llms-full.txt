@@ -1,0 +1,388 @@
+# Regole di Damamondo Classico
+
+Damamondo (Damamondo Classico) è un gioco di strategia da tavolo per 2 o più giocatori che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo. Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali al Banco, addestra Soldati, Navi, Elicotteri e Carrarmati e conquista territori su una mappa di 60 × 42 cm con biomi, fiumi e vulcani.
+
+Damamondo non è il gioco della campana (o "mondo"), non è la dama e non ha niente a che fare con i mobili "Dama" di Mondo Convenienza: è un nome proprio inventato per questo gioco.
+
+Fonte: https://leoj0i.github.io/Damamondo/regole.html
+
+## 1. Introduzione
+
+Damamondo è un gioco da tavolo di strategia. Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali, addestra truppe e si espande conquistando territori.
+
+Obiettivo. Sconfiggere gli avversari. In alternativa i giocatori possono decidere di simulare una realtà in cui pochi o nessuno vengono sconfitti e la partita dura all'infinito.
+
+Come si perde. Chi rimane senza Capitale e senza una Città in cui trasferirla perde (capitolo 7).
+
+Mappa. 60 × 42 cm, cioè 4 fogli A4 (Fogli 1 e 2 sopra, 3 e 4 sotto). Il bordo esterno è sempre mare. Le distanze si misurano in cm; le velocità sono in cm per turno.
+
+Notazione. «:» vuol dire diviso, «x» vuol dire per. I danni cambiati da biomi e bacche si arrotondano alla decina più vicina. Se un numero compare in due intervalli di una tabella, vale l'intervallo che viene prima (5–10 e 11–15, non 10–15).
+
+## 2. Preparazione e kit di partenza
+
+Si sceglie quanti giocano (da 2 a 6, poi possono nascerne altri con le cessioni). Ogni giocatore sceglie il suo kit e piazza la Capitale.
+ | Tribù | Minatori | Mercanti | Navigatori | Maghi
+Soldi | 250.000 | 5000 | 650.000 | 20.000 | 30.000
+Soldati | 5 | 5 | – | 15 | 5
+Navi | 1 | 1 | 1 | 4 | 1
+Elicotteri | – | – | – | 1 | –
+Accampamenti | 5 | – | – | 10 | 1
+Città | – | – | 1 | – | –
+Porti | 12 | 7 | 7 | 12 | 2
+Miniere | – | 5 | – | – | 2 (*)
+Aeroporti | – | – | – | 2 | –
+Pezzi di ponte liv. 1 | 1 | – | – | – | –
+Materiali | – | 1 punto di ogni materiale | – | – | –
+Pozioni | – | – | – | – | 2 di ogni tipo (1 di Stipendio+)
+
+(*) Il giocatore sceglie il risultato del dado per ciascuna delle due miniere. Tribù è il kit standard.
+- Ogni kit comprende la Capitale e 1 Carro.
+- La prima Città o Capitale ha un Aeroporto gratis dentro.
+- La Capitale non si può mettere in Mare, Giungla, Palude, Alta montagna, fiumi e laghi, Lavico e Banchisa.
+- Distanza minima tra Capitali: 15 cm con 2 giocatori, 10 cm con 3 o più.
+- Le truppe del kit restano in riserva: il giocatore le schiera dentro o vicino a un edificio adatto.
+
+## 3. Il turno
+
+Nel suo turno un giocatore muove e spara con le sue truppe, eserciti e flotte, nei limiti della tabella. Il limite dipende dal giro. Il turno finisce quando il giocatore lo decide (o ha finito mosse e spari). Un giro finisce quando tutti hanno giocato.
+Giro | Si può muovere | Si può sparare
+dal 1° al 4° | 1 truppa / esercito / flotta | 1
+dal 5° al 10° | 2 | 1
+dal 11° al 15° | 3 | 2
+dal 16° al 20° | 5 | 5
+dal 21° in poi | 8 | 8
+
+### Bombe, Superbombe e bacche
+
+- Lanciare una Bomba vale 3 spari. Si possono lanciare più Bombe nello stesso turno, rispettando il limite. Si può lanciare anche quando il limite è sotto 3: in quel caso se ne lancia una sola (e non si spara altro).
+- Lanciare una Superbomba vale 5 spari e non fa finire il turno.
+- Lanciare una bacca non conta come sparo. Al massimo 1 bacca per turno.
+
+## 4. Le truppe
+
+Le truppe nascono nelle Città, nella Capitale e negli Accampamenti (le navi nei Porti, l'Aereo Carro negli Aeroporti).
+Truppa | Gittata (cm) | Danno | Vita | Velocità (cm)
+Soldato | 1 | 70 | 100 | 1
+Nave | 3 | 500 | 3500 | 3 in mare, 4 sui fiumi
+Elicottero | 4 | 500 | 2000 | 4
+Carrarmato | 2 | 1500 | 5000 | 1
+Carro | – | 0 | 10.000 | 4
+Nave Carro | 3 | 100 | 20.000 | 8 in mare
+Aereo Carro | 6 | 100 | 20.000 | 12
+
+### Costi
+
+Truppa | Costo
+Soldato | 5000 soldi + 1 t rame + 1 t piombo
+Nave | 15.000 soldi + 500 l petrolio + 3 t rame + 2 t piombo
+oppure 15.000 soldi + 5 t carbone + 3 t rame + 2 t piombo
+Elicottero | 75.000 soldi + 1000 l petrolio + 2 t ferro + 4 t piombo
+Carrarmato | 125.000 soldi + 1 t titanio + 1500 l petrolio + 10 t piombo
+Carro | 100.000 soldi + 500 kg titanio
+oppure 100.000 soldi + 2 t ferro + 500 l petrolio
+Nave Carro | 200.000 soldi + 1 t titanio
+oppure 200.000 soldi + 5 t ferro + 1000 l petrolio
+Aereo Carro | 500.000 soldi + 2500 kg titanio
+oppure 500.000 soldi + 10 t ferro + 2500 l petrolio
+
+### Regole speciali
+
+- Chi spara sceglie il bersaglio: una truppa, un esercito, le truppe che stanno dentro un edificio (valgono come un esercito) oppure l'edificio. Le truppe sparano solo alle cose degli altri giocatori, mai alle proprie.
+- Truppe aeree (Elicottero, Aereo Carro): tutte le truppe le possono colpire.
+- Nave: si muove sul mare e sui fiumi. Parte da un Porto, oppure da un fiume se c'è una tua Città entro 1 cm.
+- Nave Carro: non naviga nei fiumi. Sulla Banchisa va a 6 cm (è una specie di rompighiaccio).
+- Elicottero: velocità 4; quando parte da un Aeroporto ha +2 cm (solo alla partenza).
+- Aereo Carro: parte e atterra solo negli Aeroporti, e solo lì carica e posa truppe e materiali.
+- Carro: porta materiali, soldi, bombe, pozioni e bacche. Non ha attacco. Le strade non raddoppiano la sua velocità.
+- Costruire una Nave Carro o un Aereo Carro dà in regalo un Carro, che parte già a bordo.
+
+## 5. Eserciti e flotte
+
+Un esercito è un gruppo di truppe che si muovono e attaccano insieme. Un esercito con almeno una Nave o una Nave Carro si chiama flotta. Le truppe si uniscono se sono entro 1 cm l'una dall'altra.
+- Movimento: l'esercito va alla velocità della sua truppa più lenta.
+- Subire i colpi: quando si spara a un esercito, o alle truppe dentro un edificio, ogni colpo va su una truppa a caso, scelta solo tra quelle ancora vive. Esempio: 10 Soldati sparano a un esercito di 2 Carrarmati, 1 Elicottero e 10 Soldati; ognuno dei 10 colpi da 70 cade a caso: magari 1 su un Carrarmato e 9 sui Soldati, e un Soldato può essere colpito due volte. Le Bombe invece colpiscono tutte le truppe.
+- Sparo: ogni truppa spara con le sue statistiche. Un esercito conta come 1 solo sparo del limite, ma possono sparare fino al doppio del limite di truppe. Esempio: al 16° giro il limite è 5, quindi un esercito fa sparare fino a 10 truppe contando 1 sparo.
+- Compatibilità: le Navi stanno solo con Navi, Elicotteri e Navi Carro. La Nave Carro sta con Navi, Elicotteri e Aerei Carro, mai con Soldati, Carrarmati e Carri. Un esercito di terra comprende Soldati, Carrarmati, Carri, Elicotteri e Aerei Carro.
+- Tetto: massimo 100 punti (tabella). Questi punti servono solo per il tetto.
+Truppa | Punti in una flotta | Punti in un esercito di terra
+Soldato | – | 1
+Nave | 20 | –
+Elicottero | 15 | 15
+Carrarmato | – | 20
+Carro | – | 10
+Nave Carro | 35 | –
+Aereo Carro | 60 | 60
+
+## 6. Trasporto
+
+Alcune truppe portano altre truppe e cose. Ogni cosa ha un valore in punti.
+Veicolo | Punti truppa | Punti cose
+Soldato | 0 | –
+Nave | 200 | –
+Elicottero | 4 | –
+Carrarmato | 3 | –
+Carro | 4 | 20
+Nave Carro | 500 | 50
+Aereo Carro | 500 | 100
+
+### Valore delle truppe
+
+Truppa | Punti truppa
+Soldato | 1
+Nave | 1000
+Elicottero | 15
+Carrarmato | 20
+Carro | 10
+
+### Valore delle cose (quanto vale 1 punto)
+
+Cosa | 1 punto
+Carbone | 5 t carbone
+Rame | 5 t rame
+Piombo | 10 t piombo
+Ferro | 1 t ferro
+Oro | 100 kg oro
+Argento | 500 kg argento
+Platino | 200 kg platino
+Diamanti | 50 kg diamanti
+Titanio | 500 kg titanio
+Uranio | 20 kg uranio
+Petrolio | 500 l petrolio
+Soldi | 30.000
+Bacca (qualsiasi) | 1 bacca
+Pozione | 2 punti ciascuna
+Bomba | 40 punti ciascuna
+Superbomba | 100 punti ciascuna
+- I punti sono sempre interi: ogni tipo di cosa si arrotonda per eccesso. Per esempio 20.000 soldi occupano 1 punto, 1,5 t di ferro occupano 2 punti. Conviene caricare a quantità piene (30.000 soldi, 1 t di ferro…).
+- Si sale su un veicolo entro 1 cm. Chi è a bordo non si muove e non spara finché non scende.
+- Sulle navi si sale e si scende solo dentro un proprio Porto; dal Porto si va a terra camminando sul molo.
+- Quando un veicolo viene distrutto, scendono le truppe che portava e in più 1 Soldato (l'autista). In mare aperto si perdono.
+- La Nave Carro e l'Aereo Carro non si possono trasportare.
+- Il Carro è il mezzo per spostare soldi e materiali tra le città: i soldi non si trasferiscono da soli. Soldi a multipli di 1.000, materiali a peso intero.
+
+## 7. Soldi, Città e Capitale
+
+Edificio | Rendita | Ogni
+Città | 20.000 | 10 giri
+Capitale | 40.000 | 10 giri
+- La rendita si conta dal giro di costruzione: una Città costruita all'8° giro paga al 18°.
+- Ogni Città deve avere dentro almeno 5.000 soldi, altrimenti conta come Accampamento (niente rendita).
+- L'Accampamento serve solo a far nascere truppe. Diventa Città pagando solo la differenza di costo.
+- Se una Città (o un altro edificio) viene distrutta si perde tutto quello che c'era dentro: soldi, bacche, minerali, pozioni e bombe. Le truppe dentro non muoiono, a meno che non le colpisca una Bomba.
+- Capitale distrutta: si sposta da sola in una Città che abbia almeno il 50% dei soldi del giocatore. Se nessuna Città li ha, il giocatore ha tutto il tempo che vuole per portarli (con il Carro) e scegliere la nuova Capitale, ma perde 10.000 soldi a ogni suo turno. Senza Capitale e senza Città, perde.
+
+## 8. Edifici e armi
+
+Edificio | Vita | Costo
+Capitale | 20.000 | nel kit
+Città | 10.000 | 50.000 soldi + 500 kg argento + 200 kg ferro
+oppure 50.000 soldi + 200 kg platino + 200 kg ferro
+Accampamento | 5000 | 5000 soldi
+Porto | 5000 | 5000 soldi + 200 l petrolio + 1 t rame + 2 t piombo
+Aeroporto | 5000 | 15.000 soldi + 1000 l petrolio + 500 kg titanio
+oppure 15.000 soldi + 1000 l petrolio + 2 t ferro
+Coltivazione | 5000 | 25.000 soldi + 200 kg ferro + 2 t carbone
+Miniera | 5000 | 5000 soldi
+Ponte liv. 1 | 5000 | 5000 soldi + 100 kg ferro per pezzo (1 cm)
+Ponte liv. 2 | 10.000 | 10.000 soldi + 200 kg ferro per pezzo (1 cm)
+Strada | 5.000 | 10.000 soldi + 2 t ferro + 100 kg oro per pezzo (max 5 cm)
+
+Gli edifici si costruiscono nel proprio territorio, con una propria truppa entro 2 cm, e mai su mare, fiumi, Banchisa e Lavico. Niente città in Giungla, Palude e Alta montagna. La Coltivazione si costruisce solo in Deserto, Giungla, Palude e Tundra (gli unici biomi che danno bacche).
+
+### Porti
+
+- Le Navi partono da un Porto. Sui fiumi il Porto non serve se c'è una propria Città entro 1 cm.
+- Il Porto si costruisce in acqua (mare, fiume o lago) con terra propria entro 1 cm, oppure dentro una Città che sia entro 0,2 cm dall'acqua.
+
+### Aeroporti
+
+Servono per far partire e atterrare l'Aereo Carro e danno agli Elicotteri +2 cm alla partenza. Si costruiscono anche dentro una Città.
+
+### Ponti
+
+- Si comprano a pezzi: ogni pezzo vale 1 cm di ponte. Per posarlo si tocca la terra sulle due rive: il ponte copre l'acqua tra le rive e usa un pezzo per ogni cm, arrotondato per eccesso (un ponte di 0,7 cm usa 1 pezzo, uno di 1,3 cm ne usa 2). Serve una propria truppa entro 2 cm e almeno una riva nel proprio territorio.
+- Liv. 1: attraversa fiumi e laghi (non il mare). I Carrarmati non ci passano sopra e le Navi non ci passano sotto.
+- Liv. 2: le Navi ci passano sotto e i Carrarmati sopra. Sul mare si può fare solo se è più corto di 2 cm. Se lo colpisce una Bomba torna di livello 1.
+- I ponti si attaccano solo con Bombe, Superbombe e Navi.
+
+### Strade
+
+- Collegano due edifici propri, oppure un edificio e l'estremità di un proprio ponte; ogni pezzo è lungo al massimo 5 cm e si paga solo la parte sulla terra.
+- Quando trova l'acqua la strada si interrompe; si collega al ponte e il viaggio continua sopra il ponte.
+- Chi viaggia sulla strada va a velocità doppia (non le Navi, le truppe volanti e il Carro). Il viaggio può passare da più edifici collegati.
+- Dove non si costruiscono città (Giungla, Palude, Alta montagna) costano il doppio. Mai su Banchisa e Lava.
+
+### Bombe e Superbombe
+
+Arma | Danno | Gittata | Costo
+Bomba | 5000 | 15 cm dalla Città (10 dall'Accampamento) | 200.000 soldi + 30 kg uranio
+Superbomba | 20.000 | 30 cm dalla Città | 500.000 soldi + 50 kg uranio
+- La gittata si conta dall'edificio in cui si trova la bomba. Le Superbombe partono solo da Capitale e Città.
+- Chi lancia sceglie il bersaglio, anche tra le cose proprie (per esempio la propria Città, per distruggerla prima che la conquistino).
+- Bomba: danno ad area. Se colpisce un esercito, colpisce tutte le sue truppe. Se colpisce un edificio, colpisce anche tutto quello che c'è dentro, truppe comprese.
+- Superbomba: colpisce tutto entro 0,5 cm dal punto d'impatto e lascia un'area radioattiva per 3 giri (12.7).
+
+## 9. Miniere
+
+- Si costruisce con una propria truppa entro 2 cm, ad almeno 2 cm dalle altre miniere. Costa 5.000 soldi e la costruzione è garantita.
+- Dopo la costruzione si tira un dado: il minerale dipende dal bioma (tabella).
+- Produce subito una prima quantità, poi la stessa ogni 5 giri, finché non viene distrutta o non è più nel territorio del proprietario.
+- Un nemico prende una miniera conquistando il territorio, oppure se gliela vendi.
+Bioma | 1 | 2 | 3 | 4 | 5 | 6
+Giungla | Diamanti | Diamanti | Ferro | Ferro | Oro | Oro
+Deserto | Diamanti | Diamanti | Oro | Oro | Petrolio | Petrolio
+Palude | Titanio | Titanio | Uranio | Uranio | Petrolio | Petrolio
+Tundra | Titanio | Titanio | Titanio | Titanio | Oro | Oro
+Montagna | Argento | Argento | Argento | Ferro | Ferro | Platino
+Alta montagna | Argento | Ferro | Ferro | Platino | Platino | Platino
+Pianura | Carbone | Carbone | Rame | Rame | Piombo | Piombo
+Glaciale | Ferro | Ferro | Diamanti | Diamanti | Diamanti | Petrolio
+Vulcanico | Oro | Ferro | Ferro | Ossidiana | Ossidiana | Ossidiana
+
+### Quanto produce
+
+Materiale | Quantità
+Carbone | 5 t carbone
+Rame | 5 t rame
+Piombo | 10 t piombo
+Ferro | 1 t ferro
+Oro | 100 kg oro
+Argento | 500 kg argento
+Platino | 200 kg platino
+Diamanti | 50 kg diamanti
+Titanio | 500 kg titanio
+Uranio | 20 kg uranio
+Petrolio | 500 l petrolio
+Ossidiana | 100 kg ossidiana
+
+## 10. Il Banco e gli scambi
+
+Il Banco compra i materiali, solo a multipli della quantità indicata. In un turno si vende un solo tipo di materiale. I soldi restano nell'edificio da cui vengono i minerali.
+Materiale | Quantità | Prezzo
+Carbone | 1 t carbone | 1000
+Rame | 1 t rame | 1000
+Piombo | 1 t piombo | 1000
+Ferro | 500 kg ferro | 3000
+Oro | 100 kg oro | 35.000
+Argento | 500 kg argento | 25.000
+Platino | 100 kg platino | 40.000
+Diamanti | 50 kg diamanti | 40.000
+Titanio | 500 kg titanio | 5000
+Uranio | 20 kg uranio | 30.000
+Petrolio | 500 l petrolio | 15.000
+Ossidiana | 100 kg ossidiana | 50.000
+- Gli scambi tra giocatori sono sempre possibili: ci si incontra in un porto o in una città, poi si posano materiali e soldi dove si preferisce.
+- Durante uno scambio l'eventuale tregua è decisa dai giocatori e si basa sulla fiducia.
+
+## 11. Territori e conquista
+
+- Terre mai conquistate: le truppe che si avvicinano prendono tutto il territorio entro 2 cm. Resta loro anche quando se ne vanno.
+- Territori nemici: le truppe devono restare 3 giri entro 2 cm, e solo se in quel raggio non ci sono truppe nemiche.
+- Città, Capitali, miniere, coltivazioni e altri edifici nel cerchio passano al conquistatore con tutto quello che contengono (anche le Bombe), tranne le truppe avversarie.
+- Un giocatore può cedere una parte del suo territorio (a un altro giocatore, a nessuno, o a un nuovo giocatore che nasce lì con un suo kit) o un singolo edificio.
+
+## 12. I biomi
+
+Bioma | Effetti
+Pianura | nessuno
+Deserto | danno :1,5
+Giungla | danno x1,5; niente città
+Palude | niente città; il livello di umidità più alto
+Tundra | gittata x2, velocità :2
+Montagna | velocità :2; niente bacche
+Alta montagna | niente città, niente bacche; confina solo con la Montagna
+Fiume / lago | Soldati e Carrarmati lo attraversano con i ponti
+
+### Velocità nei biomi (cm per turno)
+
+Bioma | Soldato | Nave | Elicottero | Carrarmato | Carro | Nave Carro | Aereo Carro
+Pianura | 1 | – | 4 | 1 | 4 | – | 12
+Deserto | 0,3 | – | 4 | 0,2 | 1 | – | 12
+Giungla | 0,3 | – | 4 | 0,2 | 1 | – | 12
+Palude | 0,3 | – | 4 | 0,2 | 0,8 | – | 12
+Tundra | 0,5 | – | 4 | 0,5 | 2 | – | 12
+Montagna | 0,5 | – | 4 | 0,5 | 2 | – | 12
+Alta montagna | 0,4 | – | 4 | 0,2 | 1,3 | – | 12
+Glaciale | 1 | – | 4 | 1 | 4 | – | 12
+Vulcanico | 1 | – | 4 | 1 | 4 | – | 12
+Lavico | 0,5 | – | 4 | 0,5 | 2 | – | 12
+Banchisa | 0,5 | 1.5 | 4 | 0,5 | 2 | 6 | 12
+Fiume/lago | ponte | 4 | 4 | ponte | – | – | 12
+
+### Danno nei biomi
+
+Bioma | Soldato | Elicottero | Carrarmato
+Deserto | 50 | 350 | 1000
+Giungla | 100 | 800 | 2200
+
+Nella Tundra la gittata raddoppia per Soldato, Elicottero e Carrarmato. Le truppe marine e aeree non subiscono i malus di velocità del terreno. Nave Carro e Aereo Carro cambiano statistiche solo con le bacche.
+
+### Vulcanico e Lavico
+
+- Ogni 10 giri si tira un dado per ogni vulcano: con 1 il terreno entro 1 cm dal Vulcanico diventa Lavico per 3 giri, e truppe ed edifici lì vengono distrutti (la pozione Ignifuga protegge un edificio).
+- Lavico: velocità :2. Brucia le truppe per 3 turni (Soldato 20, Carrarmato 500, Carro 500 a turno); la bruciatura non si somma. Le truppe aeree non atterrano nel Lavico. Esistono zone di lava perenne.
+- Vulcanico e Lavico non cambiano gittata e danno.
+
+### Glaciale e Banchisa
+
+- Glaciale: niente bacche, nessun effetto su velocità, gittata e danno.
+- Banchisa: ghiaccio su mare, laghi e fiumi. Velocità :2 per truppe di terra e di mare; la Nave va a 1,5 cm e la Nave Carro a 6 cm. Le truppe aeree non atterrano e non si costruisce niente (nemmeno strade).
+
+### Area radioattiva
+
+La lascia la Superbomba: dura 3 giri, anche sul mare, e dimezza la velocità dopo il malus del bioma, arrotondando per eccesso al millimetro. Esempio: un Soldato nel Deserto va a 0,3 cm; nell'area radioattiva 0,3 : 2 = 0,15 → 0,2 cm.
+
+## 13. Le bacche
+
+- Crescono nelle Coltivazioni, una ogni 5 giri, del bioma in cui si trova la Coltivazione. Non ci sono bacche in Pianura, Montagna, Alta montagna, Vulcanico, Glaciale e Banchisa.
+- Si lanciano da Capitale, Città e Accampamenti, con la gittata delle Bombe (15 cm, 10 dagli Accampamenti), su qualsiasi truppa (proprie o degli altri): decide chi lancia. L'effetto dura 3 giri e colpisce tutto l'esercito.
+- Al massimo 1 bacca per turno; non conta come sparo.
+Bacca | Effetto per 3 giri
+Deserto | danno :1,5
+Giungla | danno x1,5
+Palude | velocità :5
+Tundra | gittata x2
+
+Se la truppa è nel bioma della bacca, il primo effetto vale normalmente e il secondo aggiunge o toglie una quantità fissa. Deserto e Giungla insieme si annullano.
+Truppa | Deserto (danno) | Giungla (danno) | Tundra (gittata) | Palude (velocità)
+Soldato | -20 | +30 | +1 | -0,1
+Nave | -150 | +250 | +3 | -0,5
+Elicottero | -150 | +250 | +4 | -0,7
+Carrarmato | -500 | +600 | +2 | -0,1
+Carro | – | – | – | -0,7
+Nave Carro | -30 | +50 | – | -1,5
+Aereo Carro | -30 | +50 | +6 | -2,3
+
+## 14. Le pozioni
+
+Pozione | Costo | Effetto
+Stipendio+ | 50.000 soldi + 20 kg oro | 3 truppe o eserciti a scelta fanno il doppio dei danni per 1 turno.
+Velocità | 10.000 soldi + 100 kg argento | Una truppa o un esercito va 1 cm in più; nei biomi con malus la velocità raddoppia (dopo il malus).
+Curacittà | 5000 soldi + 50 kg platino
+oppure 5000 soldi + 100 kg argento | Cura gli Accampamenti di 1.000, le Città di 2.000 e le Capitali di 4.000.
+Concime | 25.000 soldi + 1 t carbone + 100 kg ferro | Toglie 2 turni all'attesa di una Coltivazione.
+Miglioracittà | 25.000 soldi + 50 kg diamanti + 100 kg platino
+oppure 25.000 soldi + 50 kg diamanti + 200 kg argento | Aggiunge 10.000 di rendita e 5.000 di vita a una Città.
+Curatruppe | 15.000 soldi + 100 kg platino
+oppure 15.000 soldi + 200 kg argento | Cura 1 truppa del 50% della sua vita, solo dentro Città o Accampamento (Navi anche nel Porto, Elicotteri e Aereo Carro anche nell'Aeroporto).
+Ignifuga | 20.000 soldi + 300 kg ossidiana | Protegge 1 edificio dalle eruzioni finché non viene distrutto.
+
+## 15. Consigli di gioco
+
+Non sono regole, solo suggerimenti.
+- Se una tua città sta per essere conquistata, puoi bombardarla tu stesso per distruggerla prima, oppure scappare con il Carro portando via soldi e materiali.
+- Sui fiumi il Porto di solito non serve: una Nave parte già da un fiume se c'è una tua Città entro 1 cm.
+- Colpi a caso sul tavolo: metti in un bicchiere le perline dell'esercito colpito (una per truppa). Per ogni colpo pescane una a occhi chiusi: è la truppa colpita. Rimettila nel bicchiere (si può essere colpiti due volte); se muore, toglila. Con poche truppe va bene anche un dado: numera le truppe e tira (se esce un numero senza truppa, ritira).
+
+## 16. Glossario
+
+Termine | Significato
+Truppa | Una singola unità: Soldato, Nave, Elicottero, Carrarmato, Carro, Nave Carro o Aereo Carro.
+Esercito | Insieme di truppe che si muovono e attaccano insieme.
+Flotta | Esercito con almeno una Nave o una Nave Carro.
+Spawn | La nascita di una truppa in una Città, nella Capitale o in un Accampamento.
+Banco | Il compratore dei materiali.
+Gittata | La distanza (in cm) a cui una truppa o un'arma può colpire.
+Buff / nerf | Un aumento o una diminuzione di velocità, danno o gittata.
+Territorio | L'area conquistata da un giocatore.
+Giro | Un turno di ogni giocatore.
