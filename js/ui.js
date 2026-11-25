@@ -96,7 +96,7 @@
       ` · velocità qui ${spd} cm` + (u.m ? ' · già mossa' : '') + (u.s ? ' · ha sparato' : '') +
       (u.bf && u.bf.until > G.round ? ' · bacca ' + DM.BIOME_NAME[u.bf.k] + ' fino al giro ' + (u.bf.until - 1) : '') +
       (u.bn > 0 ? ' · brucia ancora ' + u.bn + ' turni' : '') + (u.oc ? ' · in territorio nemico da ' + u.oc + ' giri' : '');
-    if (u.cg) s += '<br>Carico: ' + DM.fmtInv(u.cg) + ` (${DM.cargoPts(u.cg).toFixed(1)}/${DM.CARGO_CAP[u.t]} punti)`;
+    if (u.cg) s += '<br>Carico: ' + DM.fmtInv(u.cg) + ` (${DM.cargoPts(u.cg)}/${DM.CARGO_CAP[u.t]} punti)`;
     if (u.o === G.p && u.g && !ui.mode) s += '<div class="r"><small>Fai uscire una truppa:</small>' + A.map(v => btn('leave', T[v.t].name + ' ' + v.hp, v.id)).join('') + '</div>';
     if (u.o === G.p && !u.g) s += transportUI(u);
     if (u.o !== G.p) s += '<br><small>Truppa avversaria.</small>';
@@ -156,7 +156,7 @@
     return `<div class="cargo"><label>Quantità (vuoto = il massimo): <input type="number" id="cq" min="0" inputmode="numeric" value="${ui.cargoQty || ''}"></label>` +
       cars.map(c => {
         const g = c.cg || { mon: 0, mat: {} }, on = ['mon'].concat(DM.ITEMS).filter(m => m === 'mon' ? g.mon > 0 : g.mat[m] > 0);
-        return `<div><b>${T[c.t].name}</b> ${DM.cargoPts(g).toFixed(1)}/${DM.CARGO_CAP[c.t]} punti · ${DM.fmtInv(g)}` +
+        return `<div><b>${T[c.t].name}</b> ${DM.cargoPts(g)}/${DM.CARGO_CAP[c.t]} punti · ${DM.fmtInv(g)}` +
           row(here.map(m => btn('load', 'Carica ' + lab(m), c.id + ':' + m)).join('') + on.map(m => btn('unload', 'Scarica ' + lab(m), c.id + ':' + m)).join('') + (on.length ? btn('unload', 'Scarica tutto', c.id + ':') : '')) + '</div>';
       }).join('') + '</div>';
   }

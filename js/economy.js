@@ -86,7 +86,10 @@
   };
 
   // ---- Carichi (Carro, Nave Carro, Aereo Carro): soldi a multipli di 1000, materiali a peso 1 ----
-  DM.cargoPts = g => g.mon / DM.MONEY_PER_POINT + DM.ITEMS.reduce((s, m) => s + (g.mat[m] || 0) / DM.PER_POINT[m], 0);
+  // Punti occupati da una cosa: sempre interi, arrotondati per eccesso (decisione dell'utente: 20.000 soldi = 1 punto)
+  const perOf = m => m === 'mon' ? DM.MONEY_PER_POINT : DM.PER_POINT[m];
+  DM.itemPts = (m, q) => q > 0 ? Math.ceil(q / perOf(m) - 1e-9) : 0;
+  DM.cargoPts = g => DM.itemPts('mon', g.mon) + DM.ITEMS.reduce((s, m) => s + DM.itemPts(m, g.mat[m] || 0), 0);
   const cargo = c => c.cg || (c.cg = { mon: 0, mat: {} });
   const lotOf = m => m === 'mon' ? 1000 : 1;
   DM.cargoNear = (G, site) => G.units.filter(u => u.o === G.p && DM.CARGO_CAP[u.t] && Math.hypot(u.x - site.x, u.y - site.y) <= 1);
@@ -95,9 +98,11 @@
     if (Math.hypot(c.x - site.x, c.y - site.y) > 1) return 'Il veicolo deve essere entro 1 cm dall’edificio.';
     if (c.t === 'A' && site.k !== 'aer' && !G.sites.some(s => s.o === G.p && s.k === 'aer' && Math.hypot(s.x - c.x, s.y - c.y) <= .3)) return 'L’Aereo Carro carica e scarica solo in un Aeroporto.';
     const I = site.inv, g = cargo(c), per = m === 'mon' ? DM.MONEY_PER_POINT : DM.PER_POINT[m], lot = lotOf(m);
-    const free = DM.CARGO_CAP[c.t] - DM.cargoPts(g);
+    // quanto ci sta ancora di questa cosa: i punti liberi più quelli che questa cosa occupa già, meno quello che c'è già
+    const cur = m === 'mon' ? g.mon : (g.mat[m] || 0);
+    const room = (DM.CARGO_CAP[c.t] - DM.cargoPts(g) + DM.itemPts(m, cur)) * per - cur;
     const have = m === 'mon' ? I.mon : (I.mat[m] || 0);
-    const n = Math.floor(Math.min(have, free * per + 1e-6, qty > 0 ? qty : Infinity) / lot) * lot;
+    const n = Math.floor(Math.min(have, room + 1e-6, qty > 0 ? qty : Infinity) / lot) * lot;
     if (n <= 0) return 'Non c’è spazio (o niente da caricare).';
     if (m === 'mon') { I.mon -= n; g.mon += n; } else { I.mat[m] -= n; g.mat[m] = (g.mat[m] || 0) + n; }
     return 'Caricati ' + DM.fmtN(n) + ' ' + (m === 'mon' ? 'soldi' : DM.unitOf(m) + ' di ' + DM.nameOf(m).toLowerCase()) + '.';

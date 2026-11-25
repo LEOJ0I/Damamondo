@@ -70,17 +70,22 @@ test('Accampamento → Città pagando la differenza; costruzione di edifici dall
   assert.match(DM.buildInside(G, cap, 'porto'), /0,2 cm dall’acqua/);
 });
 
-test('carichi: soldi a multipli di 1000, materiali a peso 1, capacità in punti, entro 1 cm', () => {
+test('carichi: soldi a multipli di 1000, materiali a peso 1, punti interi arrotondati per eccesso, entro 1 cm', () => {
   const G = testGame();
   const cap = DM.capitalOf(G, 0);
   cap.inv.mat.ferro = 50000; cap.inv.mat.oro = 3;
   const c = DM.addUnit(G, 'C', 0, 15.5, 20);
   assert.match(DM.loadCargo(G, c, cap, 'mon', 1500), /Caricati 1000 soldi/);
-  assert.match(DM.loadCargo(G, c, cap, 'mon', 0), /Caricati 249\.000 soldi/);   // 249.000 / 30.000 = 8,3 punti
+  assert.equal(DM.cargoPts(c.cg), 1, '1000 soldi occupano già 1 punto intero');
+  assert.match(DM.loadCargo(G, c, cap, 'mon', 19000), /Caricati 19\.000 soldi/);
+  assert.equal(DM.cargoPts(c.cg), 1, '20.000 soldi = 1 punto (non 0,7)');
+  assert.match(DM.loadCargo(G, c, cap, 'mon', 0), /Caricati 230\.000 soldi/);   // 250.000 soldi in tutto = 9 punti
   assert.equal(cap.inv.mon, 0);
   assert.match(DM.loadCargo(G, c, cap, 'oro', 3), /Caricati 3 kg/);
-  assert.match(DM.loadCargo(G, c, cap, 'ferro', 0), /Caricati 11\.636 kg/);      // spazio rimasto 20 − 8,333 − 0,03 = 11,636 punti
-  assert.ok(Math.abs(DM.cargoPts(c.cg) - 20) < .001);
+  assert.equal(DM.cargoPts(c.cg), 10, '9 punti di soldi + 1 punto per 3 kg d’oro');
+  assert.match(DM.loadCargo(G, c, cap, 'ferro', 0), /Caricati 10\.000 kg/);      // restano 10 punti = 10 t di ferro
+  assert.equal(DM.cargoPts(c.cg), 20);
+  assert.match(DM.loadCargo(G, c, cap, 'oro', 0), /Non c’è spazio/);
   assert.match(DM.loadCargo(G, c, cap, 'ferro', 0), /Non c’è spazio/);
   c.x = 17;
   assert.match(DM.unloadCargo(G, c, cap), /entro 1 cm/);
@@ -89,7 +94,7 @@ test('carichi: soldi a multipli di 1000, materiali a peso 1, capacità in punti,
   assert.equal(city.inv.mon, 2000);
   assert.match(DM.unloadCargo(G, c, city), /Scaricato/);
   assert.equal(city.inv.mon, 250000);
-  assert.equal(city.inv.mat.ferro, 11636);
+  assert.equal(city.inv.mat.ferro, 10000);
   assert.equal(DM.cargoPts(c.cg), 0);
   const ac = DM.addUnit(G, 'A', 0, 17, 20);
   assert.match(DM.loadCargo(G, ac, city, 'mon', 0), /solo in un Aeroporto/);
