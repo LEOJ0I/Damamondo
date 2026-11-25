@@ -102,3 +102,5 @@ button.danger { background: #b42318; border-color: #b42318; color: #fff; }
 .card.slot.ask p { margin: 0; }
 .menu p.center { text-align: center; margin: 0; }
 .menu p.center a { color: inherit; font-weight: 600; }
+#hud { align-items: center; }
+#hud .hudbtn { min-height: 40px; padding: 6px 12px; font-weight: 700; }
