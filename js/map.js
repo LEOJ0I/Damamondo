@@ -62,16 +62,30 @@
   }
 
   DM.makeMap = function (opts, seed) {
-    const map = { opts: Object.assign({ isl: 1, hum: 2, temp: 2, comp: 2 }, opts), seed, n: noise(seed),
+    // gen: versione del generatore. Le partite salvate prima del 25/11/2026 non ce l'hanno (= 1) e tengono la loro mappa.
+    const map = { opts: Object.assign({ isl: 1, hum: 2, temp: 2, comp: 2, gen: 2 }, opts), seed, n: noise(seed),
       volc: [], erupt: [], cells: new Uint8Array(W * MR * H * MR), version: 0 };
-    const { h } = map.n, { comp, temp } = map.opts;
+    const { h } = map.n, { comp, temp, gen } = map.opts;
+    const ok = (x, y) => !'SFIAM'.includes(biome(map, x, y, 1)) && map.volc.every(v => Math.hypot(v[0] - x, v[1] - y) >= 8);
+    const add = (x, y, a, b) => map.volc.push([x, y, h(a + 2, b + 7) > .25, .5 + h(a + 9, b + 3) * .3]);
     // Vulcani: al massimo uno per riquadro di 14 cm
     for (let gx = 0; gx < W - 8; gx += 14) {
       for (let gy = 0; gy < H - 8; gy += 14) {
         if (comp > 0 && h(gx * 3.1 + 9, gy * 2.7 + 4) > [1.1, .7, .55, .5, .35][comp] + (temp - 2) * .06) {
-          const x = gx + 3 + h(gx, gy + 1) * 8, y = gy + 3 + h(gx + 5, gy) * 8;
-          if (!'SFIAM'.includes(biome(map, x, y, 1))) map.volc.push([x, y, h(gx + 2, gy + 7) > .25, .5 + h(gx + 9, gy + 3) * .3]);
+          // gen 2, mappe calde: se il primo punto è mare o montagna si provano altri punti del riquadro
+          for (let t = 0; t < (gen >= 2 && temp <= 1 ? 3 : 1); t++) {
+            const x = gx + 3 + h(gx + t * 17, gy + 1) * 8, y = gy + 3 + h(gx + 5, gy + t * 13) * 8;
+            if (gen >= 2 ? ok(x, y) : !'SFIAM'.includes(biome(map, x, y, 1))) { add(x, y, gx, gy); break; }
+          }
         }
+      }
+    }
+    // gen 2: con varietà da media in su almeno 1 vulcano; nelle mappe calde con varietà estrema o estremissima almeno 2
+    if (gen >= 2 && comp > 1) {
+      const min = temp <= 1 && comp >= 3 ? 2 : 1;
+      for (let k = 0; k < 400 && map.volc.length < min; k++) {
+        const x = 4 + h(k * 3.7, 11) * (W - 8), y = 4 + h(13, k * 5.3) * (H - 8);
+        if (ok(x, y)) add(x, y, k, k * 2);
       }
     }
     return map;
