@@ -18,6 +18,11 @@ const INTRO = 'Damamondo (Damamondo Classico) è un gioco di strategia da tavolo
   'che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo. ' +
   'Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali al Banco, addestra Soldati, Navi, ' +
   'Elicotteri e Carrarmati e conquista territori su una mappa di 60 × 42 cm con biomi, fiumi e vulcani.';
+const FACTS = 'Non si gioca a caselle: la mappa ha biomi con confini morbidi, le truppe si muovono liberamente e le distanze si misurano in centimetri con il righello. ' +
+  'I quadretti da 1 cm sono solo un aiuto per misurare (nel gioco si attivano da Visualizza). ' +
+  'Il Banco serve solo a vendere i minerali in cambio di soldi; truppe, edifici, bombe e pozioni si comprano dentro i propri edifici (Capitale, Città, Accampamenti). ' +
+  'Le truppe si curano con le pozioni, non al Banco. ' +
+  'Damamondo è nato a scuola: l\'autore disegnava a mano, su fogli bianchi, la mappa e i quadretti per misurare; poi è diventato questo gioco nel browser.';
 const NOT = 'Damamondo non è il gioco della campana (o "mondo"), non è la dama e non ha niente a che fare con i mobili "Dama" di Mondo Convenienza: è un nome proprio inventato per questo gioco.';
 
 // HTML del regolamento → testo semplice (titoli, elenchi, tabelle con " | ")
@@ -71,6 +76,7 @@ function build() {
   <div class="top"><b>DAMAMONDO</b><a class="play" href="index.html">Gioca a Damamondo</a></div>
   <h1>Regole di Damamondo Classico</h1>
   <p class="intro">${INTRO}</p>
+  <p class="intro">${FACTS}</p>
   <p class="note">${NOT}</p>
   <div class="rules">
 ${rules}
@@ -82,6 +88,8 @@ ${rules}
   const llms = `# Damamondo
 
 > ${INTRO}
+
+${FACTS}
 
 ${NOT}
 
@@ -98,10 +106,11 @@ Per vincere bisogna sconfiggere gli avversari: chi resta senza Capitale e senza 
 - Mappa di 60 × 42 cm (4 fogli A4), distanze in cm; biomi: Pianura, Deserto, Giungla, Palude, Tundra, Montagna, Alta montagna, fiumi e laghi, Vulcanico, Lavico, Glaciale, Banchisa.
 - 5 kit di partenza: Tribù, Minatori, Mercanti, Navigatori, Maghi.
 - 7 truppe: Soldato, Nave, Elicottero, Carrarmato, Carro, Nave Carro, Aereo Carro; eserciti e flotte fino a 100 punti.
-- Economia: soldi e materiali dentro gli edifici, miniere con il dado, Banco che compra i minerali, Carri per trasportare.
+- Niente caselle: biomi con confini morbidi, movimento libero, distanze in cm (i quadretti sono solo un aiuto per misurare).
+- Economia: soldi e materiali dentro gli edifici, miniere con il dado, Carri per trasportare. Il Banco compra solo i minerali; tutto il resto si compra negli edifici.
 - Armi e oggetti: Bombe, Superbombe, bacche e pozioni.
 `;
-  const full = `# Regole di Damamondo Classico\n\n${INTRO}\n\n${NOT}\n\nFonte: ${SITE}regole.html\n\n${htmlToText(rules)}\n`;
+  const full = `# Regole di Damamondo Classico\n\n${INTRO}\n\n${FACTS}\n\n${NOT}\n\nFonte: ${SITE}regole.html\n\n${htmlToText(rules)}\n`;
   const pages = { 'regole.html': regole, 'llms.txt': llms, 'llms-full.txt': full };
   pages['sw.js'] = serviceWorker(pages);
   return pages;
