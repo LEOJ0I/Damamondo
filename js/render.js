@@ -81,6 +81,83 @@
     cx.closePath();
   };
 
+  // ---- un edificio (usato anche dalle animazioni) ----
+  const ICON = { porto: 1, aer: 1, col: 1 }, FILL = { porto: '#1e6fd9', aer: '#ffffff', col: '#6ab04c' }, INK = { porto: '#fff', aer: '#111', col: '#fff' };
+  // simboli disegnati a mano (i caratteri ✈ ⚓ non ci sono su tutti i telefoni)
+  function glyph(cx, k, x, y, z) {
+    cx.save(); cx.translate(x, y); cx.scale(z, z);
+    cx.fillStyle = cx.strokeStyle = INK[k]; cx.lineWidth = .16; cx.lineCap = 'round';
+    cx.beginPath();
+    if (k === 'aer') {   // aereo visto dall'alto
+      cx.moveTo(0, -.8); cx.lineTo(.12, -.3); cx.lineTo(.8, .05); cx.lineTo(.8, .2); cx.lineTo(.12, .05); cx.lineTo(.1, .5);
+      cx.lineTo(.35, .7); cx.lineTo(.35, .8); cx.lineTo(0, .7); cx.lineTo(-.35, .8); cx.lineTo(-.35, .7); cx.lineTo(-.1, .5);
+      cx.lineTo(-.12, .05); cx.lineTo(-.8, .2); cx.lineTo(-.8, .05); cx.lineTo(-.12, -.3); cx.closePath(); cx.fill();
+    } else if (k === 'porto') {   // ancora
+      cx.arc(0, -.55, .18, 0, 7); cx.moveTo(0, -.37); cx.lineTo(0, .65); cx.moveTo(-.35, -.15); cx.lineTo(.35, -.15);
+      cx.moveTo(-.6, .2); cx.quadraticCurveTo(-.5, .7, 0, .65); cx.quadraticCurveTo(.5, .7, .6, .2); cx.stroke();
+    } else {   // fiore
+      for (let i = 0; i < 5; i++) { cx.moveTo(0, 0); cx.arc(Math.cos(i * 1.257) * .4, Math.sin(i * 1.257) * .4, .25, 0, 7); }
+      cx.fill();
+    }
+    cx.restore();
+  }
+  DM.siteSize = (s, Z) => { const sz = Math.max(1, 6 / Z); return s.k === 'cap' ? .75 * sz : s.k === 'min' ? .4 * sz : ICON[s.k] ? .38 * sz : (s.k === 'citta' ? .55 : .35) * sz; };
+  DM.drawSite = function (cx, G, s, Z, detail) {
+    const px = 1 / Z, sz = Math.max(1, 6 * px), col = DM.PLAYER_COLORS[s.o];
+    cx.lineWidth = .12; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    if (s.k === 'cap') {
+      if (detail && Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
+      star(cx, s.x, s.y, .75 * sz); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke();
+    } else if (s.k === 'min') {
+      cx.beginPath();
+      for (let i = 0; i < 6; i++) cx.lineTo(s.x + Math.cos(i * 1.047) * .4 * sz, s.y + Math.sin(i * 1.047) * .4 * sz);
+      cx.closePath(); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.lineWidth = .08; cx.stroke();
+      cx.fillStyle = '#fff'; cx.font = 'bold ' + (.3 * sz) + 'px sans-serif'; cx.fillText(DM.SYMBOL[s.mt], s.x, s.y + .02);
+      if (detail && Z >= 12) DM.drawOre(cx, s, sz);
+    } else if (ICON[s.k]) {
+      const z = .38 * sz;
+      cx.fillStyle = FILL[s.k]; cx.strokeStyle = col; cx.lineWidth = Math.max(.08, 2 * px);
+      cx.fillRect(s.x - z, s.y - z, 2 * z, 2 * z); cx.strokeRect(s.x - z, s.y - z, 2 * z, 2 * z);
+      glyph(cx, s.k, s.x, s.y, z * .8);
+    } else {
+      const z = (s.k === 'citta' ? .55 : .35) * sz;
+      cx.fillStyle = col; cx.strokeStyle = '#fff';
+      cx.fillRect(s.x - z, s.y - z, 2 * z, 2 * z); cx.strokeRect(s.x - z, s.y - z, 2 * z, 2 * z);
+      if (detail && Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
+    }
+  };
+
+  // ---- una truppa o un esercito (usato anche dalle animazioni) ----
+  DM.unitRadius = (u, Z) => { const ur = Math.max(.42, 7 / Z); return u.g ? ur * 1.3 : ur; };
+  DM.drawUnit = function (cx, G, u, Z, detail, o) {
+    o = o || {};
+    const pc = DM.PLAYER_COLORS, ur = Math.max(.42, 7 / Z);
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.globalAlpha = (o.moved ? .55 : 1) * (o.alpha === undefined ? 1 : o.alpha);
+    cx.fillStyle = pc[u.o];
+    cx.strokeStyle = o.picked ? '#ffd54a' : u.g ? '#111' : '#fff';
+    cx.lineWidth = o.picked ? ur * .4 : u.g ? ur * .35 : ur * .22;
+    cx.beginPath(); cx.arc(u.x, u.y, u.g ? ur * 1.3 : ur, 0, 7); cx.fill(); cx.stroke();
+    cx.fillStyle = '#fff'; cx.font = 'bold ' + ur + 'px sans-serif';
+    // ingrandendo, al posto della lettera c'è il disegno della truppa (l'esercito tiene il numero)
+    if (detail && Z >= 14 && !u.g) DM.drawTroopIcon(cx, u.t, u.x, u.y, ur * .9);
+    else cx.fillText(u.g ? String(u.an) : DM.TROOPS[u.t].label, u.x, u.y + .02);
+    if (detail && Z >= 14 && u.g) {   // nell'esercito: piccolo disegno della truppa più forte
+      const best = DM.armyOf(G, u).sort((a, b) => DM.TROOPS[b.t].hp - DM.TROOPS[a.t].hp)[0];
+      const bx = u.x - ur * 1.05, by = u.y + ur * 1.05;
+      cx.fillStyle = pc[u.o]; cx.strokeStyle = '#111'; cx.lineWidth = ur * .12;
+      cx.beginPath(); cx.arc(bx, by, ur * .55, 0, 7); cx.fill(); cx.stroke();
+      DM.drawTroopIcon(cx, best.t, bx, by, ur * .45);
+    }
+    const on = G.units.filter(v => v.carried && DM.armyOf(G, u).some(w => w.id === v.carried)).length;
+    if (on) {   // quante truppe a bordo
+      const bx = u.x + ur * .95, by = u.y - ur * .95;
+      cx.fillStyle = '#111'; cx.beginPath(); cx.arc(bx, by, ur * .55, 0, 7); cx.fill();
+      cx.fillStyle = '#fff'; cx.font = 'bold ' + (ur * .7) + 'px sans-serif'; cx.fillText(String(on), bx, by + .01);
+    }
+    cx.globalAlpha = 1;
+  };
+
   // ui: {sel, pick, mode, cede}, view: {sheets, biomes, terr, units}
   DM.draw = function (cv, G, ui, view, Z) {
     const cx = DM.sizeCanvas(cv, Z), pc = DM.PLAYER_COLORS, px = 1 / Z;   // px = un pixel in cm
@@ -166,58 +243,20 @@
         cx.strokeStyle = pc[r.o]; cx.lineWidth = .1; cx.stroke();
       });
     });
-    // edifici (prima quelli normali, poi quelli dentro le città, sopra)
-    const sz = Math.max(1, 6 * px);   // non scendere sotto qualche pixel
-    const ICON = { porto: 1, aer: 1, col: 1 }, FILL = { porto: '#1e6fd9', aer: '#ffffff', col: '#6ab04c' }, INK = { porto: '#fff', aer: '#111', col: '#fff' };
-    // simboli disegnati a mano (i caratteri ✈ ⚓ non ci sono su tutti i telefoni)
-    const glyph = (k, x, y, z) => {
-      cx.save(); cx.translate(x, y); cx.scale(z, z);
-      cx.fillStyle = cx.strokeStyle = INK[k]; cx.lineWidth = .16; cx.lineCap = 'round';
-      cx.beginPath();
-      if (k === 'aer') {   // aereo visto dall'alto
-        cx.moveTo(0, -.8); cx.lineTo(.12, -.3); cx.lineTo(.8, .05); cx.lineTo(.8, .2); cx.lineTo(.12, .05); cx.lineTo(.1, .5);
-        cx.lineTo(.35, .7); cx.lineTo(.35, .8); cx.lineTo(0, .7); cx.lineTo(-.35, .8); cx.lineTo(-.35, .7); cx.lineTo(-.1, .5);
-        cx.lineTo(-.12, .05); cx.lineTo(-.8, .2); cx.lineTo(-.8, .05); cx.lineTo(-.12, -.3); cx.closePath(); cx.fill();
-      } else if (k === 'porto') {   // ancora
-        cx.arc(0, -.55, .18, 0, 7); cx.moveTo(0, -.37); cx.lineTo(0, .65); cx.moveTo(-.35, -.15); cx.lineTo(.35, -.15);
-        cx.moveTo(-.6, .2); cx.quadraticCurveTo(-.5, .7, 0, .65); cx.quadraticCurveTo(.5, .7, .6, .2); cx.stroke();
-      } else {   // fiore
-        for (let i = 0; i < 5; i++) { cx.moveTo(0, 0); cx.arc(Math.cos(i * 1.257) * .4, Math.sin(i * 1.257) * .4, .25, 0, 7); }
-        cx.fill();
-      }
-      cx.restore();
-    };
-    const badge = (k, x, y, z, col) => {
-      cx.fillStyle = FILL[k]; cx.strokeStyle = col; cx.lineWidth = Math.max(.08, 2 * px);
-      cx.fillRect(x - z, y - z, 2 * z, 2 * z); cx.strokeRect(x - z, y - z, 2 * z, 2 * z);
-      glyph(k, x, y, z * .8);
-    };
-    G.sites.filter(s => !s.par).concat(G.sites.filter(s => s.par)).forEach(s => {
-      const col = pc[s.o];
-      cx.lineWidth = .12;
-      if (s.par) {
-        // edificio dentro una città: sulla mappa si vede solo la città; il pannello dice cosa c'è dentro
-      } else if (s.k === 'cap') {
-        if (detail && Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
-        star(cx, s.x, s.y, .75 * sz); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke();
-      } else if (s.k === 'min') {
-        cx.beginPath();
-        for (let i = 0; i < 6; i++) cx.lineTo(s.x + Math.cos(i * 1.047) * .4 * sz, s.y + Math.sin(i * 1.047) * .4 * sz);
-        cx.closePath(); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.lineWidth = .08; cx.stroke();
-        cx.fillStyle = '#fff'; cx.font = 'bold ' + (.3 * sz) + 'px sans-serif'; cx.fillText(DM.SYMBOL[s.mt], s.x, s.y + .02);
-        if (detail && Z >= 12) DM.drawOre(cx, s, sz);
-      } else if (ICON[s.k]) {
-        badge(s.k, s.x, s.y, .38 * sz, col);
-      } else {
-        const z = (s.k === 'citta' ? .55 : .35) * sz;
-        cx.fillStyle = col; cx.strokeStyle = '#fff';
-        cx.fillRect(s.x - z, s.y - z, 2 * z, 2 * z); cx.strokeRect(s.x - z, s.y - z, 2 * z, 2 * z);
-        if (detail && Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
-      }
+    // edifici (prima quelli normali, poi quelli dentro le città, sopra); quelli che stanno nascendo li disegna l'animazione
+    const hid = DM.FX ? DM.FX.hidden : { u: new Set(), s: new Set() };
+    G.sites.filter(s => !s.par).forEach(s => {
+      if (hid.s.has(s.id)) return;
+      DM.drawSite(cx, G, s, Z, detail);
       if (ui.selB === s) {
+        const sz = Math.max(1, 6 * px);
         cx.strokeStyle = '#ffd54a'; cx.lineWidth = Math.max(.12, 3 * px); cx.beginPath(); cx.arc(s.x, s.y, .9 * sz, 0, 7); cx.stroke();
       }
     });
+    if (ui.selB && ui.selB.par && G.sites.includes(ui.selB)) {   // edificio dentro una città: cerchio sulla città
+      const s = ui.selB, sz = Math.max(1, 6 * px);
+      cx.strokeStyle = '#ffd54a'; cx.lineWidth = Math.max(.12, 3 * px); cx.beginPath(); cx.arc(s.x, s.y, .9 * sz, 0, 7); cx.stroke();
+    }
     // raggio del selezionato (movimento o gittata)
     const sel = ui.sel;
     if (sel && G.units.includes(sel)) {
@@ -229,37 +268,14 @@
       const R = ui.mode === 'bomb' ? DM.bombRange(ui.selB, ui.bombKind) : DM.BERRY_RANGE[ui.selB.k];
       cx.setLineDash([.4, .3]); cx.strokeStyle = '#ff4d4d'; cx.lineWidth = Math.max(.08, 2 * px); cx.beginPath(); cx.arc(ui.selB.x, ui.selB.y, R, 0, 7); cx.stroke(); cx.setLineDash([]);
     }
-    // truppe: un solo pallino per esercito, col numero
+    // truppe: un solo pallino per esercito, col numero (quelle in viaggio le disegna l'animazione)
     if (view.units) {
-      const ur = Math.max(.42, 7 * px);
       const drawn = new Set();
       G.units.forEach(u => {
-        if (u.carried) return;   // a bordo: non si vede, conta il numero sul veicolo
+        if (u.carried || hid.u.has(u.id)) return;   // a bordo: non si vede, conta il numero sul veicolo
         if (u.g) { if (drawn.has(u.g)) return; drawn.add(u.g); }
-        const moved = u.o === G.p && u.m, picked = (sel && (u === sel || (sel.g && u.g === sel.g))) || ui.pick.includes(u);
-        cx.globalAlpha = moved ? .55 : 1;
-        cx.fillStyle = pc[u.o];
-        cx.strokeStyle = picked ? '#ffd54a' : u.g ? '#111' : '#fff';
-        cx.lineWidth = picked ? ur * .4 : u.g ? ur * .35 : ur * .22;
-        cx.beginPath(); cx.arc(u.x, u.y, u.g ? ur * 1.3 : ur, 0, 7); cx.fill(); cx.stroke();
-        cx.fillStyle = '#fff'; cx.font = 'bold ' + ur + 'px sans-serif';
-        // ingrandendo, al posto della lettera c'è il disegno della truppa (l'esercito tiene il numero)
-        if (detail && Z >= 14 && !u.g) DM.drawTroopIcon(cx, u.t, u.x, u.y, ur * .9);
-        else cx.fillText(u.g ? String(u.an) : DM.TROOPS[u.t].label, u.x, u.y + .02);
-        if (detail && Z >= 14 && u.g) {   // nell'esercito: piccolo disegno della truppa più forte
-          const best = DM.armyOf(G, u).sort((a, b) => DM.TROOPS[b.t].hp - DM.TROOPS[a.t].hp)[0];
-          const bx = u.x - ur * 1.05, by = u.y + ur * 1.05;
-          cx.fillStyle = pc[u.o]; cx.strokeStyle = '#111'; cx.lineWidth = ur * .12;
-          cx.beginPath(); cx.arc(bx, by, ur * .55, 0, 7); cx.fill(); cx.stroke();
-          DM.drawTroopIcon(cx, best.t, bx, by, ur * .45);
-        }
-        const on = G.units.filter(v => v.carried && DM.armyOf(G, u).some(w => w.id === v.carried)).length;
-        if (on) {   // quante truppe a bordo
-          const bx = u.x + ur * .95, by = u.y - ur * .95;
-          cx.fillStyle = '#111'; cx.beginPath(); cx.arc(bx, by, ur * .55, 0, 7); cx.fill();
-          cx.fillStyle = '#fff'; cx.font = 'bold ' + (ur * .7) + 'px sans-serif'; cx.fillText(String(on), bx, by + .01);
-        }
-        cx.globalAlpha = 1;
+        const picked = (sel && (u === sel || (sel.g && u.g === sel.g))) || ui.pick.includes(u);
+        DM.drawUnit(cx, G, u, Z, detail, { picked, moved: u.o === G.p && u.m });
       });
     }
   };

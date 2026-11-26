@@ -2,6 +2,7 @@
 (function (DM) {
   'use strict';
   DM.Music.init();
+  DM.Sfx.init();
   DM.startSettings();
   DM.startUI();
   DM.startMenu();

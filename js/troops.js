@@ -164,6 +164,8 @@
     if (A.some(v => T[v.t].kind === 'air' && 'ZI'.includes(DM.bAt(G, v.x + dx, v.y + dy) || ' '))) return 'Le truppe aeree non possono atterrare su Lavico o Banchisa.';
     // punti del percorso per prendere le terre di nessuno lungo la strada
     const pts = plan.path ? plan.path.map(s => [s.x - mx, s.y - my]) : [[dx, dy]];
+    // per le animazioni: il percorso sulla strada (non si salva)
+    G.lastPath = plan.path ? { ids: A.map(v => v.id), pts: plan.path.map(s => [s.x, s.y]), off: Object.fromEntries(A.map(v => [v.id, [v.x - mx, v.y - my]])) } : null;
     A.forEach(v => {
       v.cl = []; v.px = v.x; v.py = v.y;
       let ox = 0, oy = 0;

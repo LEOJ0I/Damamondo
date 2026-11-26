@@ -148,53 +148,58 @@
   const sectionOf = bar => Math.floor((bar % LOOP) / 16);
 
   // ---------- riproduzione nel sito ----------
-  const SET_KEY = 'damamondo-impostazioni';
-  const read = () => { try { return Object.assign({ music: true, volume: .6 }, JSON.parse(localStorage.getItem(SET_KEY) || '{}')); } catch (e) { return { music: true, volume: .6 }; } };
-  const save = s => { try { localStorage.setItem(SET_KEY, JSON.stringify(s)); } catch (e) { /* senza memoria: vale solo per questa visita */ } };
-  let settings = read(), ctx = null, master = null, out = null, timer = 0, nextBar = 0, nextTime = 0, scene = 'menu';
-  const level = () => settings.music ? settings.volume * (scene === 'game' ? .45 : 1) * .9 : 0;
+  // Un solo contesto audio per musica ed effetti sonori (js/sfx.js); le impostazioni stanno in DM.Prefs.
+  const P = DM.Prefs;
+  let ctx = null, master = null, out = null, timer = 0, nextBar = 0, nextTime = 0, scene = 'menu';
+  const level = () => P.get('music') ? P.get('volume') * (scene === 'game' ? .45 : 1) * .9 : 0;
 
-  function start() {
-    if (ctx || !settings.music) return;
+  function context() {
+    if (ctx) return ctx;
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
+    if (!AC) return null;
     ctx = new AC();
     master = ctx.createGain(); master.gain.value = 0.0001; master.connect(ctx.destination);
     out = chain(ctx, master);
-    master.gain.setTargetAtTime(level(), ctx.currentTime, .8);
     nextBar = 0; nextTime = ctx.currentTime + .15;
-    tick(); timer = setInterval(tick, 200);
+    timer = setInterval(tick, 200);
+    return ctx;
   }
   function tick() {
-    if (!ctx || ctx.state !== 'running') return;
+    if (!ctx || ctx.state !== 'running' || !P.get('music')) return;
     if (nextTime < ctx.currentTime - .05) nextTime = ctx.currentTime + .1;   // dopo una pausa non recupera le battute perse
     while (nextTime < ctx.currentTime + 1.2) {
       playBar(ctx, out, nextBar, nextTime, sectionOf(nextBar), scene === 'game');
       nextBar = (nextBar + 1) % LOOP; nextTime += BAR;
     }
   }
+  const wanted = () => P.get('music') || P.get('sfx');
   function apply() {
-    if (!settings.music) { if (ctx) { master.gain.setTargetAtTime(0.0001, ctx.currentTime, .15); setTimeout(() => { if (ctx && !settings.music) ctx.suspend(); }, 600); } return; }
     if (!ctx) return;   // partirà al prossimo tocco
-    if (ctx.state !== 'running') { ctx.resume(); nextTime = Math.max(nextTime, ctx.currentTime + .1); }
-    master.gain.setTargetAtTime(level(), ctx.currentTime, .3);
+    if (wanted() && ctx.state !== 'running' && !document.hidden) { ctx.resume(); nextTime = Math.max(nextTime, ctx.currentTime + .1); }
+    master.gain.setTargetAtTime(Math.max(.0001, level()), ctx.currentTime, P.get('music') ? .3 : .15);
+    if (P.get('music')) tick();
+    if (!wanted()) setTimeout(() => { if (ctx && !wanted()) ctx.suspend(); }, 600);
   }
 
   DM.Music = {
-    get settings() { return Object.assign({}, settings); },
-    get playing() { return !!ctx && ctx.state === 'running' && settings.music; },
-    setEnabled(on) { settings.music = !!on; save(settings); if (on) start(); apply(); },
-    setVolume(v) { settings.volume = Math.max(0, Math.min(1, +v)); save(settings); apply(); },
+    get settings() { return { music: P.get('music'), volume: P.get('volume') }; },
+    get playing() { return !!ctx && ctx.state === 'running' && P.get('music'); },
+    setEnabled(on) { P.set({ music: !!on }); if (on) context(); apply(); },
+    setVolume(v) { P.set({ volume: Math.max(0, Math.min(1, +v)) }); apply(); },
     setScene(s) { scene = s; apply(); },
+    // contesto audio pronto (dopo il primo tocco), per gli effetti sonori
+    get ctx() { return ctx && ctx.state === 'running' ? ctx : null; },
+    lib: { env, noise, drum, reverb, hz },
+    apply,
     init() {
       // i browser fanno partire l'audio solo dopo un tocco della persona
-      const first = () => { if (settings.music) { start(); apply(); } };
+      const first = () => { if (wanted()) { context(); apply(); } };
       document.addEventListener('pointerdown', first, true);
       document.addEventListener('keydown', first, true);
-      // app in secondo piano: musica in pausa
+      // app in secondo piano: audio in pausa
       document.addEventListener('visibilitychange', () => {
         if (!ctx) return;
-        if (document.hidden) ctx.suspend(); else if (settings.music) { ctx.resume(); nextTime = Math.max(nextTime, ctx.currentTime + .1); }
+        if (document.hidden) ctx.suspend(); else if (wanted()) { ctx.resume(); nextTime = Math.max(nextTime, ctx.currentTime + .1); }
       });
     },
     // "Registra" la sigla in un file (per i video): durata in secondi, colpi forti ai secondi indicati, sfumata finale.

@@ -11,7 +11,7 @@
     sel: null, selB: null, mode: '', pick: [], spawn: '', msg: '', cede: null, keep: false,
     bombKind: '', berryKind: '', pz: null, choice: null, bridgeA: null, cargoQty: 0, cedeBTo: false, mineAt: null, rolling: false, Z: 10
   };
-  const view = () => ({ sheets: $('oS').checked, biomes: $('oB').checked, terr: $('oR').checked, units: $('oU').checked, grid: $('oG').checked, detail: $('oD').checked });
+  const view = () => ({ sheets: $('oS').checked, biomes: $('oB').checked, terr: $('oR').checked, units: $('oU').checked, grid: $('oG').checked, detail: DM.Prefs.get('detail') !== false });
   const tapR = () => Math.max(.5, Math.min(1.5, 16 / ui.Z));   // circa 16 pixel, tra 0,5 e 1,5 cm
   const pcol = o => DM.PLAYER_COLORS[o];
   const btn = (act, label, arg, cls) => `<button type="button" data-act="${act}"${arg !== undefined ? ` data-arg="${arg}"` : ''}${cls ? ` class="${cls}"` : ''}>${label}</button>`;
@@ -23,7 +23,16 @@
   }
 
   // ---------- Disegno e pannelli ----------
+  // Prima di un'azione: begin(tipo, dettagli) fa la "foto" della partita; il draw() che segue passa dalle animazioni
+  // (js/fx.js), che decidono quando ridisegnare davvero (render).
+  let pend = null;
+  function begin(kind, x) { if (G) pend = { kind, x: x || {}, before: DM.FX.snap(G, kind) }; return pend; }
   function draw() {
+    if (!G) return;
+    if (pend) { const p = pend; pend = null; DM.FX.react(G, p.kind, p.before, p.x, render, ui.msg); return; }
+    render();
+  }
+  function render() {
     if (!G) return;
     G.tapR = tapR();
     if (ui.sel && !G.units.includes(ui.sel)) ui.sel = null;
@@ -32,7 +41,7 @@
     hud(); info(); eco(); reserveMenu(); legend(); buttons();
     autosave(); savesPanel();
   }
-  DM.redraw = draw;
+  DM.redraw = render;
 
   function hud() {
     $('seedInfo').textContent = 'Mappa attuale: numero ' + G.seed + ' (stesse opzioni + stesso numero = stessa mappa).';
@@ -204,37 +213,42 @@
 
   // ---------- Tocchi sulla mappa ----------
   function tap(x, y) {
+    if (DM.FX.busy) { DM.FX.skip(); return; }   // un tocco salta l'animazione in corso
     if (ui.rolling) return;
+    begin('act');
     if (G.phase === 'cap') {
       ui.msg = DM.placeCapital(G, x, y);
       if (G.phase === 'play') focus();
       draw(); return;
     }
-    if (G.phase !== 'play') return;
+    if (G.phase !== 'play') { pend = null; return; }
     if (!$('oU').checked) { ui.msg = 'Truppe nascoste: riattivale per giocare.'; draw(); return; }
     const m = ui.mode;
+    if (['cede', 'cedeside', 'army'].includes(m)) pend.kind = 'tap';
     if (m === 'cede') { ui.cede.pts.push([x, y]); ui.msg = ui.cede.pts.length + ' punti: continua a toccare o premi "Conferma linea".'; draw(); return; }
     if (m === 'cedeside') {
       const r = DM.cedeCompute(G, ui.cede.pts, x, y, ui.cede.noSnap);
       if (r.err) ui.msg = r.err; else { Object.assign(ui.cede, r, { sx: x, sy: y }); ui.mode = 'cedeto'; ui.msg = ''; }
       draw(); return;
     }
-    if (m === 'cedeto' || ui.mineAt) return;
-    if (ui.choice) return;
+    if (m === 'cedeto' || ui.mineAt || ui.choice) { pend = null; return; }
     if (m === 'road') {
       ui.msg = DM.buildRoad(G, ui.selB, DM.nodeNear(G, x, y, ui.selB)); ui.mode = ''; draw(); return;
     }
     if (m === 'bomb') {
       const site = ui.selB, k = ui.bombKind;
-      choose(DM.anyTargets(G, x, y), 'Cosa vuoi colpire con la ' + DM.nameOf(k) + '?', t => DM.launchBombAt(G, site, k, t, x, y), k === 'superbomba');
+      choose(DM.anyTargets(G, x, y), 'Cosa vuoi colpire con la ' + DM.nameOf(k) + '?', t => DM.launchBombAt(G, site, k, t, x, y), k === 'superbomba',
+        t => ['bomb', { k, sx: site.x, sy: site.y, tx: t ? t.x : x, ty: t ? t.y : y }]);
       return;
     }
     if (m === 'berry') {
       const site = ui.selB, k = ui.berryKind;
-      choose(DM.berryTargets(G, x, y), 'Su chi lanci la bacca ' + k + '?', t => DM.throwBerryAt(G, site, k, t));
+      choose(DM.berryTargets(G, x, y), 'Su chi lanci la bacca ' + k + '?', t => DM.throwBerryAt(G, site, k, t), false,
+        t => ['berry', { sx: site.x, sy: site.y, tx: t ? t.x : x, ty: t ? t.y : y, col: DM.BIOME_COLOR[DM.BERRIES[k]] }]);
       return;
     }
     if (m === 'pz') {
+      Object.assign(pend.x, { potion: true, at: [x, y] });
       const r = DM.potionOnUnit(G, ui.selB, ui.pz.k, x, y, ui.pz.first);
       if (r.err) ui.msg = r.err;
       else {
@@ -249,33 +263,48 @@
       if (err) ui.msg = err; else { ui.pick.push(u); ui.msg = ui.pick.length + ' scelte (' + DM.armyPts(ui.pick) + '/100 punti). Tocca altre truppe o premi "Conferma esercito".'; }
       draw(); return;
     }
-    if (m === 'shoot') { const u = ui.sel; choose(DM.shootTargets(G, x, y), 'A cosa spari?', t => DM.shootAt(G, u, t)); return; }
+    if (m === 'shoot') {
+      const u = ui.sel, ready = DM.armyOf(G, u).filter(v => !v.s && T[v.t].dmg > 0).map(v => ({ id: v.id, t: v.t, x: v.x, y: v.y }));
+      choose(DM.shootTargets(G, x, y), 'A cosa spari?', t => DM.shootAt(G, u, t), false, t => {
+        const fired = new Set(DM.armyOf(G, u).filter(v => v.s).map(v => v.id));
+        // chi ha sparato davvero (non tutto l'esercito spara): i più forti in portata
+        const from = t ? ready.filter(v => fired.has(v.id) && Math.hypot(v.x - t.x, v.y - t.y) <= DM.stat(G, DM.unitById(G, v.id) || u)[1] + 1e-9) : [];
+        return ['shoot', { from: from.length ? from : ready.slice(0, 1), tx: t ? t.x : x, ty: t ? t.y : y }];
+      });
+      return;
+    }
     if (ui.spawn) { spawnTap(x, y); return; }
 
     const own = v => v.o === G.p;
     const hit = DM.unitNear(G, x, y, own);
     const sites = DM.siteNear(G, x, y, own);
+    pend.kind = 'tap';
     if (hit && hit === ui.sel) {   // secondo tocco sulla truppa: passa all'edificio sotto, oppure deseleziona
       ui.sel = null; ui.selB = sites[0] || null; ui.msg = sites.length ? '' : 'Truppa deselezionata.'; draw(); return;
     }
-    if (!hit && !ui.sel && sites.length) { ui.selB = sites[(sites.indexOf(ui.selB) + 1) % sites.length]; ui.msg = ''; ui.cedeBTo = false; draw(); return; }
-    if (hit) { ui.sel = hit; ui.selB = null; ui.msg = hit.m ? 'Questa truppa ha già mosso.' : 'Tocca la destinazione.'; draw(); return; }
+    if (!hit && !ui.sel && sites.length) { DM.Sfx.play('select'); ui.selB = sites[(sites.indexOf(ui.selB) + 1) % sites.length]; ui.msg = ''; ui.cedeBTo = false; draw(); return; }
+    if (hit) { DM.Sfx.play('select'); ui.sel = hit; ui.selB = null; ui.msg = hit.m ? 'Questa truppa ha già mosso.' : 'Tocca la destinazione.'; draw(); return; }
     if (!ui.sel) {
       const enemyU = DM.unitNear(G, x, y), enemyS = DM.siteNear(G, x, y)[0];
       ui.selB = null;
       ui.msg = enemyU ? unitInfo(enemyU) : enemyS ? siteInfo(enemyS) : 'Tocca una tua truppa o un tuo edificio.';
       draw(); return;
     }
+    pend.kind = 'act';
     ui.msg = DM.moveUnit(G, ui.sel, x, y);
     draw();
   }
 
   // Un solo bersaglio: si colpisce subito. Più bersagli: il giocatore sceglie dall'elenco.
   // emptyOk: si può anche colpire il punto vuoto (Superbomba)
-  function choose(list, title, run, emptyOk) {
-    if (list.length > 1) { ui.choice = { list, title, run }; draw(); return; }
+  // fx(t): tipo di animazione e dettagli per il bersaglio t (dopo l'azione)
+  function choose(list, title, run, emptyOk, fx) {
+    if (list.length > 1) { pend = null; ui.choice = { list, title, run, fx }; draw(); return; }
+    const t = list[0] || null;
     if (!list.length && !emptyOk) { ui.msg = run(null); ui.mode = ''; draw(); return; }
-    ui.msg = run(list[0] || null); ui.mode = ''; draw();
+    ui.msg = run(t); ui.mode = '';
+    if (fx && pend) { const [k, x] = fx(t); pend.kind = k; pend.x = x; }
+    draw();
   }
 
   function spawnTap(x, y) {
@@ -296,20 +325,17 @@
     draw();
   }
 
+  // Miniera: il dado rotola sulla mappa (animazione), poi compare la miniera
   function mine(x, y, die) {
+    begin('mine');
     const r = DM.buildMine(G, x, y, die);
     ui.spawn = ''; ui.mineAt = null;
     if (r.err) { ui.msg = r.err; draw(); return; }
-    const done = 'Miniera costruita: dado ' + r.die + ', ' + r.mat + '. Prima produzione: ' + DM.fmtN(r.qty) + ' ' + DM.unitOf(r.mat) + '.';
+    ui.msg = 'Miniera costruita: dado ' + r.die + ', ' + r.mat + '. Prima produzione: ' + DM.fmtN(r.qty) + ' ' + DM.unitOf(r.mat) + '.';
     ui.selB = r.site; ui.sel = null;
+    pend.x.die = r.die;
+    if (DM.FX.on) $('info').innerHTML = `<span class="dice">${DICE[r.die - 1]}</span> Il dado gira…`;
     draw();
-    ui.rolling = true;
-    let n = 0;
-    const t = setInterval(() => {
-      n++;
-      $('info').innerHTML = `<span class="dice">${DICE[n >= 10 ? r.die - 1 : Math.floor(Math.random() * 6)]}</span> Il dado gira…`;
-      if (n >= 10) { clearInterval(t); setTimeout(() => { ui.rolling = false; ui.msg = done; draw(); }, 400); }
-    }, 100);
   }
 
   // ---------- Pulsanti nel pannello (delegati) ----------
@@ -374,13 +400,22 @@
     done: () => { resetModes(); ui.msg = ''; }
   };
 
+  // azioni dei pulsanti che mostrano un'animazione (le altre: solo pannelli)
+  const FXK = { deployhere: 'act', upgrade: 'act', makecap: 'act', inside: 'act', choose: 'act', potion: 'act', cedebto: 'act', load: 'act', unload: 'act',
+    cedeto: 'act', cedenew: 'act', board: 'act', unboard: 'act', leave: 'act' };
   function onAction(e) {
     const b = e.target.closest('[data-act]');
     if (!b || b.disabled) return;
-    const f = ACT[b.dataset.act];
+    const a = b.dataset.act, f = ACT[a];
     if (!f) return;
+    if (G && FXK[a]) {
+      begin(FXK[a]);
+      if (a === 'potion') pend.x = { potion: true, at: ui.selB ? [ui.selB.x, ui.selB.y] : null };
+      if (a === 'choose' && ui.choice && ui.choice.fx) { const c = ui.choice, t = c.list[+b.dataset.arg]; pend.fx = () => c.fx(t); }
+    }
     const handled = f(b.dataset.arg);
-    if (!handled) draw();
+    if (pend && pend.fx) { const [k, x] = pend.fx(); pend.kind = k; pend.x = x; delete pend.fx; }
+    if (!handled) draw(); else pend = null;
   }
 
   // ---------- Barra dei comandi ----------
@@ -388,10 +423,12 @@
     if (G.phase !== 'play' || ui.rolling) return;
     resetModes();
     ui.sel = null; ui.selB = null;
+    begin('turn');
     ui.msg = DM.endTurn(G);
-    draw(); focus();
+    focus(); draw();
   }
   function undo() {
+    begin('undo');
     ui.msg = DM.undoMove(G, ui.sel);
     draw();
   }
@@ -399,6 +436,7 @@
     if (G.phase !== 'play') return;
     if (ui.mode === 'army') {
       if (ui.pick.length >= 2) {
+        begin('army');
         const r = DM.formArmy(G, ui.pick);
         ui.msg = r.err || r.msg;
         if (!r.err) ui.sel = ui.pick[0];
@@ -461,6 +499,7 @@
 
   // Mostra la schermata di gioco con la partita H, salvata nel posto "slot"
   DM.playGame = function (H, slot) {
+    DM.FX.stopAll();
     G = DM.game = H;
     Object.assign(ui, { sel: null, selB: null, msg: '', slot: slot || null, autoOk: undefined });
     resetModes();
@@ -470,7 +509,7 @@
     ui.Z = minZoom();
     draw(); focus();
   };
-  DM.leaveGame = function () { if (G) autosave(); };
+  DM.leaveGame = function () { DM.FX.stopAll(); if (G) autosave(); };
 
   DM.startUI = function () {
     $('sp').onchange = e => {
@@ -488,6 +527,12 @@
       const r = $('c').getBoundingClientRect();
       tap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H);
     });
+    // durante un'animazione che blocca (la bomba in volo, il dado…), un tocco la salta e basta
+    document.addEventListener('click', e => {
+      if (!DM.FX.busy || $('game').hidden || e.target.closest('[data-settings], #settings')) return;
+      if (e.target.closest('#c')) return;   // sulla mappa ci pensa tap()
+      DM.FX.skip(); e.stopPropagation(); e.preventDefault();
+    }, true);
     document.addEventListener('click', onAction);
     document.addEventListener('input', e => { if (e.target.id === 'cq') ui.cargoQty = Math.max(0, Math.floor(+e.target.value) || 0); });
     $('end').onclick = endTurn; $('undo').onclick = undo; $('army').onclick = army; $('shoot').onclick = shoot; $('ced').onclick = cede;
@@ -499,12 +544,12 @@
       r.onload = () => { ui.pendingFile = String(r.result); e.target.value = ''; draw(); };
       r.readAsText(e.target.files[0]);
     });
-    ['oS', 'oG', 'oD', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
+    ['oS', 'oG', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
     DM.MATERIALS.forEach(m => $('bm').add(new Option(m + ' · ' + DM.fmtN(DM.BANK[m][0]) + ' ' + DM.unitOf(m) + ' = ' + DM.fmtN(DM.BANK[m][1]) + ' soldi', m)));
     DM.BUYABLE.forEach(k => $('by').add(new Option(DM.nameOf(k), k)));
     $('by').onchange = () => eco();
-    $('bs').onclick = () => { if (G.phase !== 'play') return; ui.msg = DM.sell(G, ui.selB, $('bm').value, +$('bq').value); draw(); };
-    $('bb').onclick = () => { if (G.phase !== 'play') return; ui.msg = DM.buy(G, ui.selB, $('by').value); draw(); };
+    $('bs').onclick = () => { if (G.phase !== 'play') return; begin('act'); ui.msg = DM.sell(G, ui.selB, $('bm').value, +$('bq').value); draw(); };
+    $('bb').onclick = () => { if (G.phase !== 'play') return; begin('act'); ui.msg = DM.buy(G, ui.selB, $('by').value); draw(); };
     let rt = 0;
     addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (!$('game').hidden) draw(); }, 150); });
   };
