@@ -64,6 +64,8 @@ const findSpot = (far, minD) => ev(([far, minD]) => {
 test.before(async () => {
   browser = await chromium.launch();
   const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+  // in queste prove le animazioni sono spente (tutto subito); le animazioni hanno la loro prova (fx.test.js)
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem('damamondo-impostazioni')) localStorage.setItem('damamondo-impostazioni', '{"anim":false}'); } catch (e) {} });
   page = await ctx.newPage();
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -308,10 +310,14 @@ test('partita completa sul telefono', async (t) => {
     await page.selectOption('#sp', 'S');
     await tapCm(B[0] + 1.5, B[1]);
     await page.selectOption('#sp', 'min');
+    await ev(() => DM.Prefs.set({ anim: true }));   // qui il dado rotola davvero
     await tapCm(B[0] + 1.5, B[1] + 1);
     await page.waitForFunction(() => /Il dado gira/.test(document.getElementById('info').innerText));
+    assert.equal(await page.isVisible('#dice'), true, 'il dado si vede sopra la mappa');
     await page.waitForFunction(() => /Miniera costruita: dado \d/.test(document.getElementById('info').innerText), null, { timeout: 5000 });
+    await page.waitForFunction(() => document.getElementById('dice').hidden, null, { timeout: 5000 });
     assert.match(await info(), /Miniera.*Contiene/s);
+    await ev(() => DM.Prefs.set({ anim: false }));
   });
 
   await t.test('opzioni di visualizzazione e legenda', async () => {
@@ -326,8 +332,7 @@ test('partita completa sul telefono', async (t) => {
     await page.check('#oS'); await page.uncheck('#oS');
     await page.check('#oU'); await page.check('#oB');
     await page.check('#oG');
-    assert.equal(await page.isChecked('#oD'), true, 'i dettagli sono attivi di partenza');
-    await page.uncheck('#oD'); await page.check('#oD');
+    assert.equal(await page.locator('#oD').count(), 0, '"Dettagli quando ingrandisci" è passato nelle Impostazioni');
     assert.match(await page.locator('#leg').innerText(), /✈\s*Aeroporto/);
     await shot('06-vista');
   });
@@ -553,7 +558,7 @@ test('impostazioni: ingranaggio nel menu e in partita, musica sì/no e volume ri
   if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
   await page.locator('#menu .gear').click();
   assert.equal(await page.isVisible('#settings'), true);
-  assert.equal(await ev(() => DM.Music.playing), true, 'dopo un tocco la musica suona');
+  await page.waitForFunction(() => DM.Music.playing, null, { timeout: 3000 });   // dopo un tocco la musica suona (l'audio parte in un attimo)
   await page.fill('#setVol', '40'); await page.dispatchEvent('#setVol', 'input');
   assert.match(await page.locator('#setVolOut').innerText(), /40%/);
   await page.click('#setMusic');
@@ -567,7 +572,7 @@ test('impostazioni: ingranaggio nel menu e in partita, musica sì/no e volume ri
   await page.click('[data-m=locale]'); await page.click('[data-m=continua] >> nth=0');
   await page.locator('#hud [data-settings]').click();
   await page.click('#setMusic');
-  assert.equal(await ev(() => DM.Music.playing), true, 'riaccesa in partita');
+  await page.waitForFunction(() => DM.Music.playing, null, { timeout: 3000 });   // riaccesa in partita
   await page.keyboard.press('Escape');
   assert.equal(await page.isHidden('#settings'), true);
   assert.deepEqual(errors, []);

@@ -26,7 +26,10 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/menu.js` | menu iniziale (Gioca → Locale / Multiplayer, Regole) e le 3 partite salvate |
 | `js/rules.js` | il regolamento completo, con le tabelle prese dai dati del gioco |
 | `js/music.js` | la sigla di Damamondo: musica originale suonata dal browser, nel menu e in partita |
-| `js/settings.js` | la finestra Impostazioni (ingranaggio): musica sì/no e volume |
+| `js/prefs.js` | le Impostazioni ricordate nel telefono |
+| `js/sfx.js` | effetti sonori fatti dal browser (bombe, eruzioni, passi, dado, cantiere, monete, bacche…) e vibrazione |
+| `js/fx.js` | animazioni: truppe che viaggiano, bombe in volo, esplosioni, cantieri, dado, cartello del turno, scosse |
+| `js/settings.js` | la finestra Impostazioni (ingranaggio): musica, effetti sonori, animazioni, vibrazione, dettagli quando ingrandisci |
 | `js/main.js` | avvio |
 | `tools/build-pages.js` | crea `regole.html`, `llms.txt` e `llms-full.txt` dalle regole del gioco (`npm run pagine`) |
 | `regole.html` | il regolamento come pagina normale: da leggere, stampare, e per Google e le AI |
@@ -35,11 +38,13 @@ Si apre `index.html` nel browser: non serve installare niente.
 
 Le regole (`data` … `turn`) non usano la pagina: si possono provare da sole e riusare per un'app.
 
+Animazioni e suoni non toccano le regole: prima di un'azione l'interfaccia fa una "foto" della partita, dopo `js/fx.js` guarda cosa è cambiato (truppe mosse o eliminate, edifici nuovi o distrutti, soldi, territorio, lava) e sceglie animazione e suono. Le azioni che "volano" (bomba, bacca, colpi, dado, eruzione) mostrano il risultato sulla mappa solo all'arrivo; un tocco le salta.
+
 ## Prove
 
 ```
 npm test               # 56 prove delle regole (anche che le pagine statiche siano aggiornate) (serve Node 18+)
-npm run test:browser   # 35 passi giocati + prova dell'app senza internet in un browser che finge un iPhone (serve Playwright)
+npm run test:browser   # 35 passi giocati, 15 prove di animazioni e suoni, prova dell'app senza internet, in un browser che finge un iPhone (serve Playwright)
 ```
 
 ## Regole decise insieme (oltre al PDF)
