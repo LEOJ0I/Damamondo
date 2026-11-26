@@ -37,11 +37,12 @@
   function hud() {
     $('seedInfo').textContent = 'Mappa attuale: numero ' + G.seed + ' (stesse opzioni + stesso numero = stessa mappa).';
     const menu = '<button type="button" class="hudbtn" id="toMenu" data-act="tomenu" aria-label="Torna al menu">☰ Menu</button>';
-    if (G.phase !== 'play') { $('hud').innerHTML = menu + `<b>Preparazione</b><span>${G.phase === 'num' ? '' : G.names[G.p]}</span>`; return; }
+    const gear = '<button type="button" class="hudbtn gearbtn" data-settings aria-label="Impostazioni"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>';
+    if (G.phase !== 'play') { $('hud').innerHTML = menu + `<b>Preparazione</b><span>${G.phase === 'num' ? '' : G.names[G.p]}</span>` + gear; return; }
     const q = DM.cur(G);
     $('hud').innerHTML = menu + `<b style="color:${pcol(G.p)}">${G.names[G.p]}</b><span>Giro <b>${G.round}</b></span>` +
       `<span>Mosse ${G.moved}/${DM.moveLimit(G.round)} · Spari ${G.shots}/${DM.shotLimit(G.round)}</span>` +
-      (q.noCap ? '<span class="warn">Senza Capitale!</span>' : '');
+      (q.noCap ? '<span class="warn">Senza Capitale!</span>' : '') + gear;
   }
 
   function buttons() {
@@ -465,6 +466,7 @@
     resetModes();
     lastAuto = '';
     $('menu').hidden = true; $('game').hidden = false;
+    if (DM.Music) DM.Music.setScene('game');
     ui.Z = minZoom();
     draw(); focus();
   };

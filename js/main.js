@@ -1,6 +1,8 @@
 // Damamondo – avvio della pagina: comandi del gioco pronti, poi il menu.
 (function (DM) {
   'use strict';
+  DM.Music.init();
+  DM.startSettings();
   DM.startUI();
   DM.startMenu();
   // app installabile: il gioco funziona anche senza internet (solo sul sito vero, in https o in prova su localhost)
