@@ -40,6 +40,7 @@
       <p><a href="regole.html">Leggi le regole complete di Damamondo</a></p>
       <noscript><p>Per giocare serve JavaScript attivo nel browser.</p></noscript>
     </div>
+    <button type="button" class="gear" data-settings aria-label="Impostazioni"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>
     <!-- canali di Damamondo: piccoli, in basso a destra -->
     <nav class="social" aria-label="Damamondo sui social">
       <a href="https://www.youtube.com/@Damamondo" target="_blank" rel="noopener" aria-label="Damamondo su YouTube">
@@ -94,6 +95,18 @@
   <p class="w help"><small>Tocca una tua truppa, poi dove muoverla. Tocca un tuo edificio per vedere cosa contiene e cosa puoi fare. Le truppe del kit sono nella riserva: schierale vicino a Capitale, Città o Accampamenti (navi nei Porti, Aereo Carro negli Aeroporti). Le distanze sono in cm come sul foglio.</small></p>
   </div>
 
+  <!-- Impostazioni (si aprono con l'ingranaggio, nel menu e in partita) -->
+  <div id="settings" class="modal" role="dialog" aria-modal="true" aria-labelledby="setTitle" hidden>
+    <div class="sheet">
+      <h2 id="setTitle">Impostazioni</h2>
+      <label class="row"><span>Musica</span><input type="checkbox" id="setMusic" class="switch"></label>
+      <label class="row col"><span>Volume della musica <output id="setVolOut"></output></span>
+        <input type="range" id="setVol" min="0" max="100" step="5"></label>
+      <small>La musica parte al primo tocco: i browser non la lasciano partire da sola. In partita suona più piano.</small>
+      <div class="r"><button type="button" id="setClose" class="go">Chiudi</button></div>
+    </div>
+  </div>
+
   <script src="js/data.js"></script>
   <script src="js/map.js"></script>
   <script src="js/game.js"></script>
@@ -108,8 +121,10 @@
   <script src="js/rules.js"></script>
   <script src="js/decor.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/music.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/menu.js"></script>
+  <script src="js/settings.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

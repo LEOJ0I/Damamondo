@@ -548,3 +548,27 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
 
   await t.test('nessun errore JavaScript nella pagina', () => { assert.deepEqual(errors, []); });
 });
+
+test('impostazioni: ingranaggio nel menu e in partita, musica sì/no e volume ricordati', async () => {
+  if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
+  await page.locator('#menu .gear').click();
+  assert.equal(await page.isVisible('#settings'), true);
+  assert.equal(await ev(() => DM.Music.playing), true, 'dopo un tocco la musica suona');
+  await page.fill('#setVol', '40'); await page.dispatchEvent('#setVol', 'input');
+  assert.match(await page.locator('#setVolOut').innerText(), /40%/);
+  await page.click('#setMusic');
+  assert.deepEqual(await ev(() => DM.Music.settings), { music: false, volume: .4 });
+  await page.click('#setClose');
+  assert.equal(await page.isHidden('#settings'), true);
+  await page.reload(); await page.waitForSelector('[data-m=gioca]');
+  assert.deepEqual(await ev(() => DM.Music.settings), { music: false, volume: .4 }, 'ricordate dopo la ricarica');
+  await page.click('[data-m=gioca]');
+  assert.equal(await ev(() => DM.Music.playing), false, 'spenta: non riparte');
+  await page.click('[data-m=locale]'); await page.click('[data-m=continua] >> nth=0');
+  await page.locator('#hud [data-settings]').click();
+  await page.click('#setMusic');
+  assert.equal(await ev(() => DM.Music.playing), true, 'riaccesa in partita');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.isHidden('#settings'), true);
+  assert.deepEqual(errors, []);
+});

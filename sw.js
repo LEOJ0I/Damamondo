@@ -1,6 +1,6 @@
 // Damamondo – funzionamento senza internet. File creato da tools/build-pages.js: non modificarlo a mano.
-const CACHE = 'damamondo-c58f5e60c9d2';
-const FILES = ["./","index.html","regole.html","manifest.webmanifest","css/style.css","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png","icons/favicon-32.png","js/buildings.js","js/combat.js","js/data.js","js/decor.js","js/economy.js","js/game.js","js/main.js","js/map.js","js/menu.js","js/render.js","js/rules.js","js/save.js","js/territory.js","js/transport.js","js/troops.js","js/turn.js","js/ui.js"];
+const CACHE = 'damamondo-664d4f3ab591';
+const FILES = ["./","index.html","regole.html","manifest.webmanifest","css/style.css","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png","icons/favicon-32.png","js/buildings.js","js/combat.js","js/data.js","js/decor.js","js/economy.js","js/game.js","js/main.js","js/map.js","js/menu.js","js/music.js","js/render.js","js/rules.js","js/save.js","js/settings.js","js/territory.js","js/transport.js","js/troops.js","js/turn.js","js/ui.js"];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
