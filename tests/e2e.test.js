@@ -78,6 +78,8 @@ test('partita completa sul telefono', async (t) => {
   let A, B;
   await t.test('menu: titolo, Gioca, Multiplayer "coming soon", Regole', async () => {
     assert.match(await page.locator('#menu').innerText(), /DAMAMONDO/);
+    assert.deepEqual(await page.locator('.social a').evaluateAll(as => as.map(a => a.href)), ['https://www.youtube.com/@Damamondo', 'https://www.tiktok.com/@damamondo']);
+    assert.match(await page.locator('.social').innerText(), /@Damamondo[\s\S]*@damamondo/);
     await page.click('[data-m=gioca]');
     await page.click('[data-m=multi]');
     assert.match(await page.locator('#menu').innerText(), /Coming soon/i);
