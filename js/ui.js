@@ -111,7 +111,7 @@
     else if (ui.mineAt) s = '<b>Miniera</b>: scegli il risultato del dado (kit Maghi, ancora ' + DM.cur(G).dice + ')' + row([1, 2, 3, 4, 5, 6].map(d => btn('minedie', DICE[d - 1] + ' ' + d, d)).join('') + btn('minedie', 'Tira il dado', 0) + btn('cancel', 'Annulla'));
     else if (ui.sel) s = unitInfo(ui.sel);
     else if (ui.selB) s = siteInfo(ui.selB);
-    if (['road', 'bomb', 'berry', 'pz', 'shoot', 'army'].includes(ui.mode) || ui.spawn) s = row(btn('cancel', ui.mode === 'pz' && !ui.pz.first ? 'Fatto' : 'Annulla')) + s;
+    if (['road', 'bomb', 'berry', 'pz', 'shoot', 'army'].includes(ui.mode) || ui.spawn) s = row(btn('cancel', ui.mode === 'pz' && !ui.pz.first ? 'Fatto' : ui.spawn && !ui.mode ? 'Deseleziona' : 'Annulla')) + s;
     f.innerHTML = (ui.msg ? `<p class="msg">${ui.msg}</p>` : '') + (s || (!ui.msg ? '<small>Tocca una tua truppa o un tuo edificio.</small>' : ''));
   }
 
@@ -297,6 +297,7 @@
       keys.forEach(k => sp.add(new Option(T[k] ? 'Schiera ' + DM.nameOf(k) + ' (' + r[k] + ')' :
         k.startsWith('ponte') ? 'Costruisci ponte liv. ' + k.slice(5) + ' (' + r[k] + (r[k] > 1 ? ' pezzi)' : ' pezzo)') : 'Costruisci ' + DM.nameOf(k) + ' (' + r[k] + ')', k)));
     }
+    sp.options[0].text = ui.spawn ? '✕ Deseleziona' : 'Schiera o costruisci dalla riserva…';
     sp.value = ui.spawn;
     const n = botNow() ? 0 : keys.reduce((t, k) => t + r[k], 0);
     $('spN').textContent = n ? (n > 99 ? '99+' : String(n)) : '';
@@ -415,7 +416,7 @@
     if (k.startsWith('ponte')) {   // il ponte si posa con due tocchi: una riva e poi l'altra
       if (!ui.bridgeA) { ui.bridgeA = [x, y]; ui.msg = 'Ora tocca la terra dall’altra parte dell’acqua.'; draw(); return; }
       ui.msg = DM.buildBridge(G, ui.bridgeA[0], ui.bridgeA[1], x, y, +k.slice(5));
-      ui.bridgeA = null; ui.spawn = ''; draw(); return;
+      ui.bridgeA = null; keepSpawn(k); draw(); return;
     }
     if (T[k]) ui.msg = DM.deploy(G, k, x, y);
     else if (k === 'min') {
@@ -424,18 +425,25 @@
       else if (DM.cur(G).dice > 0) { ui.mineAt = [x, y]; ui.msg = ''; draw(); return; }
       else { mine(x, y); return; }
     } else ui.msg = DM.buildSite(G, k, x, y);
-    ui.spawn = '';
+    keepSpawn(k);
     draw();
+  }
+  // dopo averne messo uno, la stessa cosa resta selezionata finché ce n'è ancora nella riserva
+  function keepSpawn(k) {
+    const n = G.phase === 'play' ? DM.cur(G).res[k] || 0 : 0;
+    ui.spawn = n > 0 ? k : '';
+    if (ui.spawn) ui.msg = (ui.msg ? ui.msg + ' ' : '') + 'Nella riserva: ancora ' + n + '. Tocca la mappa per metterne un altro, oppure "Deseleziona".';
   }
 
   // Miniera: il dado rotola sulla mappa (animazione), poi compare la miniera
   function mine(x, y, die) {
     begin('mine');
     const r = DM.buildMine(G, x, y, die);
-    ui.spawn = ''; ui.mineAt = null;
-    if (r.err) { ui.msg = r.err; draw(); return; }
+    ui.mineAt = null; ui.spawn = '';
+    if (r.err) { ui.msg = r.err; keepSpawn('min'); draw(); return; }
     ui.msg = 'Miniera costruita: dado ' + r.die + ', ' + r.mat + '. Prima produzione: ' + DM.fmtN(r.qty) + ' ' + DM.unitOf(r.mat) + '.';
     ui.selB = r.site; ui.sel = null;
+    keepSpawn('min');
     pend.x.die = r.die;
     if (DM.FX.on) $('info').innerHTML = `<span class="dice">${DICE[r.die - 1]}</span> Il dado gira…`;
     draw();
@@ -695,6 +703,26 @@
       if (Math.abs(s - 1) > .02) zoomAt(s, m[0], m[1]);
     };
     v.addEventListener('touchend', end); v.addEventListener('touchcancel', end);
+    // computer: si tiene premuto il tasto sinistro e si trascina la mappa (un trascinamento non conta come clic)
+    let drag = null;
+    v.addEventListener('pointerdown', e => {
+      ui.dragged = 0;   // un nuovo clic: quello di prima non era un trascinamento
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag = { x: e.clientX, y: e.clientY, l: v.scrollLeft, t: v.scrollTop, moved: false, id: e.pointerId };
+    });
+    v.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+      if (!drag.moved) { drag.moved = true; v.classList.add('dragging'); try { v.setPointerCapture(e.pointerId); } catch (er) { /* niente */ } }
+      v.scrollLeft = drag.l - dx; v.scrollTop = drag.t - dy;
+    });
+    const stop = e => {
+      if (!drag || (e && e.pointerId !== drag.id)) return;
+      if (drag.moved) { v.classList.remove('dragging'); ui.dragged = Date.now(); }
+      drag = null;
+    };
+    v.addEventListener('pointerup', stop); v.addEventListener('pointercancel', stop);
     // computer: Ctrl + rotellina (o due dita sul trackpad)
     v.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); zoomAt(Math.exp(-e.deltaY / 200), e.clientX, e.clientY); }, { passive: false });
   }
@@ -758,12 +786,14 @@
       resetModes();
       ui.spawn = k;
       ui.sel = null;
+      if (!k) { ui.msg = ''; draw(); return; }   // "Deseleziona"
       ui.msg = ui.spawn ? (T[ui.spawn] ? 'Tocca la mappa per schierare ' + T[ui.spawn].name + (T[ui.spawn].kind === 'sea' ? ' (dentro un tuo Porto).' : ui.spawn === 'A' ? ' (dentro un tuo Aeroporto).' : ' (entro 2 cm da Capitale, Città o Accampamento).') :
         ui.spawn.startsWith('ponte') ? 'Tocca la terra da una parte dell’acqua, poi dall’altra. Ogni cm di ponte usa un pezzo (anche 0,7 cm usa 1 pezzo, 1,3 cm ne usa 2).' :
         'Tocca la mappa per costruire ' + DM.nameOf(ui.spawn) + (ui.spawn === 'porto' ? ' (in acqua, vicino alla tua costa).' : ' (nel tuo territorio, con una tua truppa entro 2 cm).')) : '';
       draw();
     };
     $('c').addEventListener('click', e => {
+      if (ui.dragged && Date.now() - ui.dragged < 300) return;   // era un trascinamento della mappa
       const r = $('c').getBoundingClientRect();
       tap((e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H);
     });

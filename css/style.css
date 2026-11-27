@@ -157,6 +157,7 @@ body.ingame { overflow: hidden; padding: 0; overscroll-behavior: none; }
 .vpw { position: absolute; inset: 0; will-change: transform; }
 #vp { position: absolute; inset: 0; overflow: auto; display: flex; background: #3f7bb8; touch-action: pan-x pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 #vp::-webkit-scrollbar { display: none; }
+@media (pointer: fine) { #vp { cursor: grab; } #vp.dragging, #vp.dragging canvas { cursor: grabbing; } }
 /* margine attorno alla mappa: anche i bordi si possono portare fuori da sotto la barra in alto e i comandi in basso */
 #vpin { margin: auto; flex: none; padding: calc(70px + env(safe-area-inset-top, 0px)) 62px calc(38vh + 100px + env(safe-area-inset-bottom, 0px)) 14px; }
 #vp canvas { display: block; transform-origin: 0 0; }
