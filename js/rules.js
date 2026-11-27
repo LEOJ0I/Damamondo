@@ -73,6 +73,8 @@
       art('Velocità di 4 cm; quando parte da un Aeroporto dispone di 2 cm aggiuntivi, validi solo per quel movimento.', 'Elicottero') +
       art('Decolla e atterra soltanto negli Aeroporti, dove carica e scarica truppe e materiali.', 'Aereo Carro') +
       art('Trasporta materiali, soldi, bombe, pozioni e bacche. Non ha capacità di attacco e la strada non ne raddoppia la velocità.', 'Carro') +
+      art('Carro, Nave Carro e Aereo Carro possono essere mossi più volte nello stesso turno, finché non hanno percorso in tutto la loro velocità; solo la prima mossa conta nel limite dei movimenti (art. 3.2).', 'Più mosse per i mezzi da carico') +
+      box('ex', 'Un Carro in Pianura ha velocità 4 cm: può percorrere 1,5 cm per caricare i materiali in una Città e poi altri 2,5 cm per portarli alla Capitale, contando un solo movimento.') +
       art('L\'acquisto di una Nave Carro o di un Aereo Carro comprende un Carro in omaggio, già a bordo.', 'Carro in omaggio'));
 
     add('Eserciti e flotte', () =>
@@ -139,7 +141,7 @@
       art('Colpisce tutto ciò che si trova entro 0,5 cm dal punto d\'impatto e lascia un\'area radioattiva per 3 giri (cap. 12, «Area radioattiva»).', 'Effetto della Superbomba'));
 
     add('Miniere', () =>
-      art('La miniera si costruisce con una propria truppa entro 2 cm e ad almeno 2 cm da ogni altra miniera. Costa 5.000 soldi e la costruzione riesce sempre.', 'Costruzione') +
+      art('La miniera si costruisce con una propria truppa entro 2 cm e ad almeno ' + DM.MINE_GAP + ' cm da ogni altra miniera. Costa 5.000 soldi e la costruzione riesce sempre.', 'Costruzione') +
       art('Costruita la miniera, si tira un dado: il minerale estratto dipende dal bioma e dal risultato, secondo la tabella. Con il kit Maghi il minerale si sceglie direttamente (art. 2.2).', 'Minerale') +
       table(['Bioma', '1', '2', '3', '4', '5', '6'], Object.keys(DM.MINE_TABLE).map(b => [DM.BIOME_NAME[b], ...DM.MINE_TABLE[b].split(' ').map(cap)])) +
       art('La miniera produce subito una prima quantità e poi la stessa quantità ogni 5 giri, finché non viene distrutta o non esce dal territorio del proprietario.', 'Produzione') +

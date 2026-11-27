@@ -8,6 +8,7 @@
   DM.d6 = () => 1 + Math.floor(DM.rand() * 6);
   DM.dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   DM.fmtN = n => Math.round(n).toLocaleString('it-IT');
+  DM.fmtCm = n => (Math.floor(n * 10 + 1e-6) / 10).toFixed(1).replace('.', ',');   // cm al millimetro (per difetto)
 
   DM.newGame = function (opts, seed, map) {
     const G = {

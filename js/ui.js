@@ -130,7 +130,7 @@
     const spd = Math.min(...A.map(q => DM.speedAt(G, q, q.x, q.y)));
     let s = `<b style="color:${pcol(u.o)}">${u.g ? 'Esercito ' + u.an + ' (' + DM.composition(A) + ')' : t.name}</b> su ${DM.BIOME_NAME[b]}` +
       (u.g ? ` · ${DM.armyPts(A)}/100 punti` : ` · vita ${u.hp}/${t.hp} · danno ${st[0]} · gittata ${st[1]} cm`) +
-      ` · velocità qui ${spd} cm` + (u.m ? ' · già mossa' : '') + (u.s ? ' · ha sparato' : '') +
+      ` · velocità qui ${spd} cm` + (u.m ? (DM.moveLeft(G, u) > .01 ? ' · può muoversi ancora (' + DM.fmtCm(DM.moveLeft(G, u) * spd) + ' cm)' : ' · già mossa') : '') + (u.s ? ' · ha sparato' : '') +
       (u.bf && u.bf.until > G.round ? ' · bacca ' + DM.BIOME_NAME[u.bf.k] + ' fino al giro ' + (u.bf.until - 1) : '') +
       (u.bn > 0 ? ' · brucia ancora ' + u.bn + ' turni' : '') + (u.oc ? ' · in territorio nemico da ' + u.oc + ' giri' : '');
     if (u.cg) s += '<br>Carico: ' + DM.fmtInv(u.cg) + ` (${DM.cargoPts(u.cg)}/${DM.CARGO_CAP[u.t]} punti)`;
@@ -390,7 +390,7 @@
       ui.sel = null; ui.selB = sites[0] || null; ui.msg = sites.length ? '' : 'Truppa deselezionata.'; draw(); return;
     }
     if (!hit && !ui.sel && sites.length) { DM.Sfx.play('select'); ui.selB = sites[(sites.indexOf(ui.selB) + 1) % sites.length]; ui.msg = ''; ui.cedeBTo = false; draw(); return; }
-    if (hit) { DM.Sfx.play('select'); ui.sel = hit; ui.selB = null; ui.msg = hit.m ? 'Questa truppa ha già mosso.' : 'Tocca la destinazione.'; draw(); return; }
+    if (hit) { DM.Sfx.play('select'); ui.sel = hit; ui.selB = null; ui.msg = !hit.m ? 'Tocca la destinazione.' : DM.moveLeft(G, hit) > .01 ? 'Tocca la destinazione: può muoversi ancora in questo turno.' : 'Questa truppa ha già mosso.'; draw(); return; }
     if (!ui.sel) {
       const enemyU = DM.unitNear(G, x, y), enemyS = DM.siteNear(G, x, y)[0];
       ui.selB = null;

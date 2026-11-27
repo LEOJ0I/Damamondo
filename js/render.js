@@ -269,7 +269,7 @@
     const sel = ui.sel;
     if (sel && G.units.includes(sel)) {
       const A = DM.armyOf(G, sel);
-      const r = ui.mode === 'shoot' ? Math.max(...A.map(q => DM.stat(G, q)[1])) : sel.m ? 0 : Math.min(...A.map(q => DM.speedAt(G, q, q.x, q.y)));
+      const r = ui.mode === 'shoot' ? Math.max(...A.map(q => DM.stat(G, q)[1])) : DM.moveLeft(G, sel) * Math.min(...A.map(q => DM.speedAt(G, q, q.x, q.y)));
       if (r > 0) { cx.setLineDash([.2, .2]); cx.strokeStyle = '#fff'; cx.lineWidth = Math.max(.07, 1.5 * px); cx.beginPath(); cx.arc(sel.x, sel.y, r, 0, 7); cx.stroke(); cx.setLineDash([]); }
     }
     if (ui.selB && (ui.mode === 'bomb' || ui.mode === 'berry')) {

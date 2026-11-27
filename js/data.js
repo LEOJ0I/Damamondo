@@ -43,6 +43,8 @@
     A: { name: 'Aereo Carro', label: 'AC', kind: 'air', range: 6, dmg: 100, hp: 20000, air: 12 }
   };
   DM.TROOP_KEYS = 'SNETCXA';
+  DM.MINE_GAP = 1;        // distanza minima tra due miniere (cm)
+  DM.MULTI_MOVE = 'CXA';   // Carro, Nave Carro e Aereo Carro si muovono anche più volte per turno (fino alla loro velocità)
 
   // 12.3 danno nei biomi (correzione: Carrarmato 1000 Deserto, 2200 Giungla).
   DM.BIOME_DMG = { S: { D: 50, G: 100 }, E: { D: 350, G: 800 }, T: { D: 1000, G: 2200 } };
