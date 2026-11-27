@@ -112,7 +112,10 @@ test('la mappa originale: il 6 solo dopo tutte le mappe segrete (opts.orig), fat
   assert.ok(land > .2 && land < .4, 'terra ' + land);
   assert.equal(m.volc.length, 0, 'niente vulcani');
   // il cratere del foglio in alto a sinistra: un'isola di sola montagna con la cima alta (vicino all'angolo in alto a destra del foglio)
-  assert.equal(DM.secretBiome(m, 26.6, 2.75, 1), 'A');
+  assert.equal(DM.secretBiome(m, 26.9, 3.78, 1), 'A');
+  // tutto intorno alla mappa c'è il mare
+  for (let x = .05; x < 60; x += .5) for (const y of [.05, 41.95]) assert.equal(DM.secretBiome(m, x, y, 1), 'S');
+  for (let y = .05; y < 42; y += .5) for (const x of [.05, 59.95]) assert.equal(DM.secretBiome(m, x, y, 1), 'S');
   assert.equal(DM.secretInfo('originale').emoji, '📜');
   assert.equal(DM.SECRETS.length, 14, 'non conta tra le 14');
   // si salva e si riprende uguale, e i bot ci giocano
