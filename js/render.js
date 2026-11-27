@@ -101,13 +101,20 @@
     }
     cx.restore();
   }
+  // capitale dorata: solo per le persone (non per i bot), se il premio è stato sbloccato e acceso nelle Impostazioni
+  DM.goldCap = (G, o) => !!(DM.Prefs && DM.Prefs.get('gold') && DM.Secrets && DM.Secrets.hasOrig() && !(DM.isBot && DM.isBot(G, o)));
   DM.siteSize = (s, Z) => { const sz = Math.max(1, 6 / Z); return s.k === 'cap' ? .75 * sz : s.k === 'min' ? .4 * sz : ICON[s.k] ? .38 * sz : (s.k === 'citta' ? .55 : .35) * sz; };
   DM.drawSite = function (cx, G, s, Z, detail) {
     const px = 1 / Z, sz = Math.max(1, 6 * px), col = DM.PLAYER_COLORS[s.o];
     cx.lineWidth = .12; cx.textAlign = 'center'; cx.textBaseline = 'middle';
     if (s.k === 'cap') {
       if (detail && Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
-      star(cx, s.x, s.y, .75 * sz); cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke();
+      star(cx, s.x, s.y, .75 * sz);
+      if (DM.goldCap(G, s.o)) {   // la capitale dorata (premio della mappa originale): oro, bordo del colore del giocatore
+        const r = .75 * sz, gr = cx.createLinearGradient(s.x - r, s.y - r, s.x + r, s.y + r);
+        gr.addColorStop(0, '#fff3b0'); gr.addColorStop(.45, '#f2c230'); gr.addColorStop(1, '#a8740c');
+        cx.fillStyle = gr; cx.fill(); cx.lineWidth = .22 * sz; cx.strokeStyle = col; cx.stroke(); cx.lineWidth = .06 * sz; cx.strokeStyle = '#fff8d0'; cx.stroke();
+      } else { cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke(); }
     } else if (s.k === 'min') {
       cx.beginPath();
       for (let i = 0; i < 6; i++) cx.lineTo(s.x + Math.cos(i * 1.047) * .4 * sz, s.y + Math.sin(i * 1.047) * .4 * sz);

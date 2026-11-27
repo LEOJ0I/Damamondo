@@ -29,9 +29,13 @@
     { id: 'luna', n: 1969, name: 'la Luna (1969: il primo sbarco)', emoji: '🌕' }
   ];
   DM.SECRETS = LIST.map(s => ({ id: s.id, name: s.name, emoji: s.emoji }));
+  // La mappa originale: il numero 6, ma solo dopo aver trovato tutte le altre (il menu mette opts.orig).
+  // Senza opts.orig il 6 dà una mappa normale.
+  const ORIG = { id: 'originale', n: 6, ok: o => !!o.orig, name: 'la mappa originale di Damamondo, disegnata a mano su quattro fogli', emoji: '📜' };
+  DM.SECRET_ORIGINAL = { id: ORIG.id, name: ORIG.name, emoji: ORIG.emoji };
   // Quale mappa segreta per queste opzioni e questo numero (o null)
-  DM.secretFor = (opts, seed) => LIST.find(s => s.n === seed && (!s.ok || s.ok(opts))) || null;
-  DM.secretInfo = id => DM.SECRETS.find(s => s.id === id) || null;
+  DM.secretFor = (opts, seed) => (seed === ORIG.n && ORIG.ok(opts) ? ORIG : null) || LIST.find(s => s.n === seed && (!s.ok || s.ok(opts))) || null;
+  DM.secretInfo = id => DM.SECRETS.concat(DM.SECRET_ORIGINAL).find(s => s.id === id) || null;
 
   // ---------- attrezzi ----------
   const decode = rle => {
@@ -267,6 +271,13 @@
   // ---------- le mappe ----------
   const MASK = id => decode(DM.SECRET_MASKS[id].rle), VIEW = id => DM.SECRET_MASKS[id].view;
   const MAKERS = {
+    // i quattro fogli ricopiati dalle foto: solo pianura, mare, fiumi e laghi, montagna, alta montagna
+    originale: map => {
+      const cells = new Uint8Array(FW * FH);
+      DM.SECRET_ORIG.split(';').forEach((row, j) => { let i = 0; row.replace(/([A-Z])([0-9a-z]+)/g, (_, b, n) => { n = parseInt(n, 36); cells.fill(code(b), j * FW + i, j * FW + i + n); i += n; }); });
+      map.volc = [];
+      return { cells };
+    },
     oggi: map => { const v = VIEW('mondo'); map.volc = vToMap(proj(v), V_TODAY); return { view: v, mask: MASK('mondo'), rules: today(), rivers: RIVERS }; },
     anello: map => { const v = VIEW('mondo'); map.volc = vToMap(proj(v), V_RING); return { view: v, mask: MASK('mondo'), rules: today(), rivers: RIVERS }; },
     saharaverde: map => { const v = VIEW('mondo'); map.volc = vToMap(proj(v), V_TODAY); return { view: v, mask: MASK('mondo'), rules: today(GREEN), rivers: RIVERS.concat(GREEN_RIVERS) }; },
@@ -466,7 +477,7 @@
   // Prepara la mappa segreta (una volta sola): griglia dei biomi e vulcani
   DM.secretSetup = function (map) {
     const o = MAKERS[map.secret](map);
-    map.sec = { cells: build(map, o), vr: o.vr || .6, crater: o.crater || .22 };
+    map.sec = { cells: o.cells || build(map, o), vr: o.vr || .6, crater: o.crater || .22 };
   };
   // Bioma nel punto (x, y) al giro "round": la griglia preparata, più i vulcani (e le eruzioni in corso)
   DM.secretBiome = function (map, x, y, round) {

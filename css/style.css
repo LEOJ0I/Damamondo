@@ -278,4 +278,8 @@ body.ingame { overflow: hidden; padding: 0; overscroll-behavior: none; }
 button.explorer { margin-top: 6px; min-height: 40px; padding: 6px 14px; border-radius: 999px; font-size: 14px; background: color-mix(in srgb, var(--pn) 80%, transparent); }
 ul.secrets { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
 ul.secrets li { padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--ac) 15%, transparent); }
+ol.chain { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+ol.chain li { padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--fg) 6%, transparent); opacity: .7; }
+ol.chain li.open { background: color-mix(in srgb, #f2c230 22%, transparent); opacity: 1; }
+ol.chain li.ok { background: color-mix(in srgb, var(--ac) 15%, transparent); opacity: 1; }
 ul.secrets li.no { background: color-mix(in srgb, var(--fg) 6%, transparent); opacity: .7; }

@@ -100,3 +100,28 @@ test('una partita sulla mappa segreta si salva e si riprende uguale, e ci si gio
     assert.equal(H.sites.filter(s => s.k === 'cap').length, 2);
   }
 });
+
+test('la mappa originale: il 6 solo dopo tutte le mappe segrete (opts.orig), fatta solo di pianura, mare, acqua e montagne', () => {
+  assert.equal(DM.makeMap({}, 6).secret, undefined, 'senza sblocco il 6 è una mappa normale');
+  const m = DM.makeMap({ orig: 1 }, 6);
+  assert.equal(m.secret, 'originale');
+  assert.equal(DM.makeMap({ orig: 1 }, 7).secret, undefined);
+  const B = DM.BIOMES, used = new Set(m.sec.cells);
+  assert.deepEqual([...used].map(c => B[c]).sort(), ['A', 'F', 'M', 'P', 'S']);
+  const land = m.sec.cells.filter(c => B[c] !== 'S').length / m.sec.cells.length;
+  assert.ok(land > .2 && land < .4, 'terra ' + land);
+  assert.equal(m.volc.length, 0, 'niente vulcani');
+  // il cratere del foglio in alto a sinistra: un'isola di sola montagna con la cima alta (vicino all'angolo in alto a destra del foglio)
+  assert.equal(DM.secretBiome(m, 26.6, 2.75, 1), 'A');
+  assert.equal(DM.secretInfo('originale').emoji, '📜');
+  assert.equal(DM.SECRETS.length, 14, 'non conta tra le 14');
+  // si salva e si riprende uguale, e i bot ci giocano
+  const G = DM.newGame({ orig: 1 }, 6);
+  DM.setPlayers(G, 6);
+  for (let i = 0; i < 6; i++) DM.setBot(G, i, 'difficile');
+  while (G.phase !== 'play') DM.botSetup(G);
+  for (let i = 0; i < 12; i++) { DM.botPlayTurn(G); DM.endTurn(G); }
+  const H = DM.deserialize(DM.serialize(G));
+  assert.equal(H.map.secret, 'originale');
+  assert.equal(H.sites.filter(s => s.k === 'cap').length, 6);
+});
