@@ -44,7 +44,7 @@
 
   const when = t => new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const b = (m, label, cls, arg) => `<button type="button" class="big${cls ? ' ' + cls : ''}" data-m="${m}"${arg !== undefined ? ` data-arg="${arg}"` : ''}>${label}</button>`;
-  const title = '<h1 class="title">DAMAMONDO<small>Classico</small></h1>';
+  const title = '<h1 class="title">DAMAMONDO</h1>';
   let msg = '', np = 2, asking = null;
   let who = ['', '', '', '', '', ''];   // per ogni giocatore: '' = persona, oppure il livello del bot
   const lastLvl = ['normale', 'normale', 'normale', 'normale', 'normale', 'normale'];   // il livello si ricorda anche passando a "Persona"   // asking: partita di cui si chiede conferma per eliminarla

@@ -1,6 +1,6 @@
 # Damamondo
 
-> Damamondo (Damamondo Classico) è un gioco di strategia da tavolo per 2 o più giocatori che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo, anche contro avversari guidati dal computer (bot, in tre livelli). Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali al Banco, addestra Soldati, Navi, Elicotteri e Carrarmati e conquista territori su una mappa di 60 × 42 cm con biomi, fiumi e vulcani.
+> Damamondo è un gioco di strategia da tavolo per 2 o più giocatori che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo, anche contro avversari guidati dal computer (bot, in tre livelli). Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali al Banco, addestra Soldati, Navi, Elicotteri e Carrarmati e conquista territori su una mappa di 60 × 42 cm con biomi, fiumi e vulcani.
 
 Non si gioca a caselle: la mappa ha biomi con confini morbidi, le truppe si muovono liberamente e le distanze si misurano in centimetri con il righello. I quadretti da 1 cm sono solo un aiuto per misurare (nel gioco si attivano da Visualizza). Il Banco serve solo a vendere i minerali in cambio di soldi; truppe, edifici, bombe e pozioni si comprano dentro i propri edifici (Capitale, Città, Accampamenti). Le truppe si curano con le pozioni, non al Banco. Damamondo è nato a scuola: l'autore disegnava a mano, su fogli bianchi, la mappa e i quadretti per misurare; poi è diventato questo gioco nel browser.
 
@@ -13,7 +13,7 @@ Vince chi sconfigge tutti gli avversari: un giocatore è eliminato quando perde 
 - [Gioca a Damamondo](https://leoj0i.github.io/Damamondo/): il gioco nel browser, pensato per il telefono (menu: Gioca → Locale, Regole)
 - [Regole complete](https://leoj0i.github.io/Damamondo/regole.html): il regolamento ufficiale con tutte le tabelle
 - [Regole in testo semplice](https://leoj0i.github.io/Damamondo/llms-full.txt): lo stesso regolamento, in testo
-- [Regolamento in PDF](https://leoj0i.github.io/Damamondo/Damamondo_Regolamento_Classico.pdf): lo stesso regolamento, da stampare
+- [Regolamento in PDF](https://leoj0i.github.io/Damamondo/Damamondo_Regolamento.pdf): lo stesso regolamento, da stampare
 
 ## In breve
 

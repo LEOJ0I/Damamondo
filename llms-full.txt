@@ -1,6 +1,6 @@
-# Regole di Damamondo Classico
+# Regole di Damamondo
 
-Damamondo (Damamondo Classico) è un gioco di strategia da tavolo per 2 o più giocatori che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo, anche contro avversari guidati dal computer (bot, in tre livelli). Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali al Banco, addestra Soldati, Navi, Elicotteri e Carrarmati e conquista territori su una mappa di 60 × 42 cm con biomi, fiumi e vulcani.
+Damamondo è un gioco di strategia da tavolo per 2 o più giocatori che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo, anche contro avversari guidati dal computer (bot, in tre livelli). Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali al Banco, addestra Soldati, Navi, Elicotteri e Carrarmati e conquista territori su una mappa di 60 × 42 cm con biomi, fiumi e vulcani.
 
 Non si gioca a caselle: la mappa ha biomi con confini morbidi, le truppe si muovono liberamente e le distanze si misurano in centimetri con il righello. I quadretti da 1 cm sono solo un aiuto per misurare (nel gioco si attivano da Visualizza). Il Banco serve solo a vendere i minerali in cambio di soldi; truppe, edifici, bombe e pozioni si comprano dentro i propri edifici (Capitale, Città, Accampamenti). Le truppe si curano con le pozioni, non al Banco. Damamondo è nato a scuola: l'autore disegnava a mano, su fogli bianchi, la mappa e i quadretti per misurare; poi è diventato questo gioco nel browser.
 
@@ -10,15 +10,26 @@ Fonte: https://leoj0i.github.io/Damamondo/regole.html
 
 ## 1. Introduzione e obiettivo
 
-1.1 Il gioco. Damamondo Classico è un gioco di strategia per due o più giocatori. Ciascun giocatore guida un popolo: fonda città, sfrutta le risorse del proprio territorio, commercia con il Banco, addestra truppe ed estende i propri confini.
+1.1 Il gioco. Damamondo è un gioco di strategia per due o più giocatori. Ciascun giocatore guida un popolo: fonda città, sfrutta le risorse del proprio territorio, commercia con il Banco, addestra truppe ed estende i propri confini.
 
 1.2 Obiettivo. Vince il giocatore che sconfigge tutti gli avversari. In alternativa, i giocatori possono accordarsi per una partita aperta, senza vincitore, che prosegue a tempo indeterminato.
 
 1.3 Sconfitta. Un giocatore è eliminato quando perde la Capitale e non dispone di alcuna Città in cui trasferirla (art. 7.5).
 
-1.4 Mappa. La mappa misura 60 × 42 cm ed è composta da quattro fogli A4: i fogli 1 e 2 in alto, i fogli 3 e 4 in basso. Il bordo esterno della mappa è sempre mare. Le distanze si misurano in centimetri; le velocità si esprimono in centimetri per turno.
+1.4 Mappa. La mappa misura 60 × 42 cm ed è composta da quattro fogli A4: i fogli 1 e 2 in alto, i fogli 3 e 4 in basso. Il bordo esterno della mappa è sempre mare. Le distanze si misurano in centimetri; le velocità si esprimono in centimetri per turno. Durante la partita si possono aggiungere altri fogli per nuove terre da conquistare.
 
-1.5 Convenzioni. Il simbolo «:» indica la divisione, il simbolo «x» la moltiplicazione. I danni modificati da biomi e bacche si arrotondano alla decina più vicina. Quando un valore rientra in due intervalli di una tabella, si applica il primo (gli intervalli si leggono 5–10 e 11–15, non 10–15).
+1.5 Materiale. Per giocare su carta servono i fogli della mappa, un righello, dadi a sei facce (per le miniere e le eruzioni) e un segnalino per ogni elemento del gioco, come indicato nella tabella.
+Elemento | Segnalino consigliato
+Truppe | Perline Hama Midi da 5 mm, un colore per ogni tipo di truppa. Gli eserciti si formano impilando le perline.
+Accampamenti | Dischetti rotondi di legno
+Città | Cubetti da 1 cm; le Città migliorate si ottengono impilando i cubetti.
+Capitale | Una stella (oppure un quadrato)
+Miniere | Esagoni, di un colore diverso per ogni minerale
+Porti | Quadrati blu
+Aeroporti | Quadrati bianchi
+Per tenere fermi i pezzi | Patafix o prodotti simili sotto i segnalini
+
+1.6 Convenzioni. Il simbolo «:» indica la divisione, il simbolo «x» la moltiplicazione. I danni modificati da biomi e bacche si arrotondano alla decina più vicina. Quando un valore rientra in due intervalli di una tabella, si applica il primo (gli intervalli si leggono 5–10 e 11–15, non 10–15).
 
 ## 2. Preparazione e kit di partenza
 
@@ -118,9 +129,13 @@ oppure 500.000 soldi + 10 t ferro + 2500 l petrolio
 
 5.2 Movimento. L'esercito si muove alla velocità della sua truppa più lenta.
 
-5.3 Danni subiti. Quando si spara a un esercito, o alle truppe all'interno di un edificio, ogni colpo raggiunge una truppa estratta a caso tra quelle ancora in vita; la stessa truppa può essere colpita più volte. Esempio: 10 Soldati sparano a un esercito di 2 Carrarmati, 1 Elicottero e 10 Soldati; ciascuno dei 10 colpi da 70 cade su una truppa a caso, per esempio 1 su un Carrarmato e 9 sui Soldati. Le Bombe, invece, colpiscono tutte le truppe dell'esercito.
+5.3 Danni subiti. Quando si spara a un esercito, o alle truppe all'interno di un edificio, ogni colpo raggiunge una truppa estratta a caso tra quelle ancora in vita; la stessa truppa può essere colpita più volte. Le Bombe, invece, colpiscono tutte le truppe dell'esercito.
 
-5.4 Sparo. Ogni truppa spara con le proprie caratteristiche. Lo sparo di un esercito conta come uno solo ai fini del limite, ma possono sparare al massimo un numero di truppe pari al doppio del limite. Esempio: al 16° giro il limite è 5, quindi un esercito può far sparare fino a 10 truppe consumando un solo sparo.
+Esempio: 10 Soldati sparano a un esercito di 2 Carrarmati, 1 Elicottero e 10 Soldati. Ciascuno dei 10 colpi da 70 cade su una truppa a caso: per esempio 1 su un Carrarmato e 9 sui Soldati, e un Soldato può essere colpito due volte.
+
+5.4 Sparo. Ogni truppa spara con le proprie caratteristiche. Lo sparo di un esercito conta come uno solo ai fini del limite, ma possono sparare al massimo un numero di truppe pari al doppio del limite.
+
+Esempio: Al 16° giro il limite è 5 spari: un esercito può far sparare fino a 10 delle sue truppe, consumando un solo sparo.
 
 5.5 Composizione. Le Navi si uniscono soltanto a Navi, Elicotteri e Navi Carro. La Nave Carro si unisce a Navi, Elicotteri e Aerei Carro, mai a Soldati, Carrarmati e Carri. Un esercito di terra può comprendere Soldati, Carrarmati, Carri, Elicotteri e Aerei Carro.
 
@@ -365,25 +380,27 @@ Bioma | Soldato | Elicottero | Carrarmato
 Deserto | 50 | 350 | 1000
 Giungla | 100 | 800 | 2200
 
-12.2 Eccezioni. Nella Tundra la gittata raddoppia per Soldato, Elicottero e Carrarmato. Le truppe marine e aeree non subiscono le riduzioni di velocità del terreno. Nave Carro e Aereo Carro modificano le proprie caratteristiche soltanto per effetto delle bacche.
+Importante: Nella Tundra la gittata raddoppia per Soldato, Elicottero e Carrarmato. Le truppe marine e aeree non subiscono le riduzioni di velocità del terreno. Nave Carro e Aereo Carro modificano le proprie caratteristiche soltanto per effetto delle bacche.
 
 ### Vulcanico e Lavico
 
-12.3 Eruzioni. Ogni 10 giri si tira un dado per ciascun vulcano: con 1, il terreno entro 1 cm dal Vulcanico diventa Lavico per 3 giri e le truppe e gli edifici presenti vengono distrutti. La pozione Ignifuga protegge un edificio.
+12.2 Eruzioni. Ogni 10 giri si tira un dado per ciascun vulcano: con 1, il terreno entro 1 cm dal Vulcanico diventa Lavico per 3 giri e le truppe e gli edifici presenti vengono distrutti. La pozione Ignifuga protegge un edificio.
 
-12.4 Lavico. Velocità :2. Le truppe che vi si trovano subiscono bruciature per 3 turni (Soldato 20, Carrarmato 500, Carro 500 per turno); le bruciature non si sommano. Le truppe aeree non possono atterrarvi. Esistono zone di lava perenne.
+12.3 Lavico. Velocità :2. Le truppe che vi si trovano subiscono bruciature per 3 turni (Soldato 20, Carrarmato 500, Carro 500 per turno); le bruciature non si sommano. Le truppe aeree non possono atterrarvi. Esistono zone di lava perenne.
 
-12.5 Gittata e danno. Vulcanico e Lavico non modificano gittata e danno.
+12.4 Gittata e danno. Vulcanico e Lavico non modificano gittata e danno.
 
 ### Glaciale e Banchisa
 
-12.6 Glaciale. Non produce bacche e non modifica velocità, gittata e danno.
+12.5 Glaciale. Non produce bacche e non modifica velocità, gittata e danno.
 
-12.7 Banchisa. Ghiaccio su mare, laghi e fiumi. Velocità :2 per le truppe di terra e di mare; la Nave procede a 1,5 cm e la Nave Carro a 6 cm. Le truppe aeree non vi atterrano e non vi si costruisce nulla, nemmeno strade.
+12.6 Banchisa. Ghiaccio su mare, laghi e fiumi. Velocità :2 per le truppe di terra e di mare; la Nave procede a 1,5 cm e la Nave Carro a 6 cm. Le truppe aeree non vi atterrano e non vi si costruisce nulla, nemmeno strade.
 
 ### Area radioattiva
 
-12.8 Area radioattiva. È generata dalla Superbomba e dura 3 giri, anche sul mare. Dimezza la velocità dopo l'effetto del bioma, arrotondando per eccesso al millimetro. Esempio: un Soldato nel Deserto procede a 0,3 cm; nell'area radioattiva 0,3 : 2 = 0,15, arrotondato a 0,2 cm.
+12.7 Area radioattiva. È generata dalla Superbomba e dura 3 giri, anche sul mare. Dimezza la velocità dopo l'effetto del bioma, arrotondando per eccesso al millimetro.
+
+Esempio: Un Soldato nel Deserto procede a 0,3 cm; nell'area radioattiva la sua velocità diventa 0,3 : 2 = 0,15, arrotondata a 0,2 cm.
 
 ## 13. Le bacche
 

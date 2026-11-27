@@ -104,6 +104,9 @@ button.big.small { font-size: 15px; min-height: 44px; padding: 8px 14px; font-we
 .rules ul { padding-left: 20px; }
 .rules li { margin: 4px 0; }
 p.art { margin: 8px 0; line-height: 1.5; }
+.rules .box { margin: 10px 0; padding: 8px 12px; border-left: 4px solid #d4a72c; border-radius: 6px; background: color-mix(in srgb, #f2c230 14%, var(--pn)); font-size: 14px; }
+.rules .box.imp { border-color: #c0392b; background: color-mix(in srgb, #c0392b 10%, var(--pn)); }
+.rules .box b { display: block; font-size: 12px; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 2px; }
 p.art > b:first-child { display: inline-block; min-width: 2.4em; color: color-mix(in srgb, var(--ac) 70%, var(--fg)); font-variant-numeric: tabular-nums; }
 .toc ol { columns: 2; column-gap: 20px; padding-left: 22px; margin: 6px 0 0; }
 .toc a { color: inherit; }

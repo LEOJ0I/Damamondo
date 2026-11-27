@@ -17,13 +17,19 @@
     // ogni capitolo è fatto di articoli numerati (1.1, 1.2…): art('testo') dà il paragrafo con il suo numero
     let cn = 0, an = 0;
     const art = (text, title) => `<p class="art"><b>${cn}.${++an}</b> ${title ? `<b>${title}.</b> ` : ''}${text}</p>`;
+    // riquadri: "Esempio" e "Importante"
+    const box = (kind, text) => `<div class="box ${kind}"><b>${kind === 'ex' ? 'Esempio' : 'Importante'}</b>${text}</div>`;
     const add = (title, fn) => { cn = ch.length + 1; an = 0; ch.push({ title, html: fn() }); };
 
     add('Introduzione e obiettivo', () =>
-      art('Damamondo Classico è un gioco di strategia per due o più giocatori. Ciascun giocatore guida un popolo: fonda città, sfrutta le risorse del proprio territorio, commercia con il Banco, addestra truppe ed estende i propri confini.', 'Il gioco') +
+      art('Damamondo è un gioco di strategia per due o più giocatori. Ciascun giocatore guida un popolo: fonda città, sfrutta le risorse del proprio territorio, commercia con il Banco, addestra truppe ed estende i propri confini.', 'Il gioco') +
       art('Vince il giocatore che sconfigge tutti gli avversari. In alternativa, i giocatori possono accordarsi per una partita aperta, senza vincitore, che prosegue a tempo indeterminato.', 'Obiettivo') +
       art('Un giocatore è eliminato quando perde la Capitale e non dispone di alcuna Città in cui trasferirla (art. 7.5).', 'Sconfitta') +
-      art('La mappa misura 60 × 42 cm ed è composta da quattro fogli A4: i fogli 1 e 2 in alto, i fogli 3 e 4 in basso. Il bordo esterno della mappa è sempre mare. Le distanze si misurano in centimetri; le velocità si esprimono in centimetri per turno.', 'Mappa') +
+      art('La mappa misura 60 × 42 cm ed è composta da quattro fogli A4: i fogli 1 e 2 in alto, i fogli 3 e 4 in basso. Il bordo esterno della mappa è sempre mare. Le distanze si misurano in centimetri; le velocità si esprimono in centimetri per turno. Durante la partita si possono aggiungere altri fogli per nuove terre da conquistare.', 'Mappa') +
+      art('Per giocare su carta servono i fogli della mappa, un righello, dadi a sei facce (per le miniere e le eruzioni) e un segnalino per ogni elemento del gioco, come indicato nella tabella.', 'Materiale') +
+      table(['Elemento', 'Segnalino consigliato'], [['Truppe', 'Perline Hama Midi da 5 mm, un colore per ogni tipo di truppa. Gli eserciti si formano impilando le perline.'], ['Accampamenti', 'Dischetti rotondi di legno'],
+        ['Città', 'Cubetti da 1 cm; le Città migliorate si ottengono impilando i cubetti.'], ['Capitale', 'Una stella (oppure un quadrato)'], ['Miniere', 'Esagoni, di un colore diverso per ogni minerale'],
+        ['Porti', 'Quadrati blu'], ['Aeroporti', 'Quadrati bianchi'], ['Per tenere fermi i pezzi', 'Patafix o prodotti simili sotto i segnalini']]) +
       art('Il simbolo «:» indica la divisione, il simbolo «x» la moltiplicazione. I danni modificati da biomi e bacche si arrotondano alla decina più vicina. Quando un valore rientra in due intervalli di una tabella, si applica il primo (gli intervalli si leggono 5–10 e 11–15, non 10–15).', 'Convenzioni'));
 
     add('Preparazione e kit di partenza', () =>
@@ -72,8 +78,10 @@
     add('Eserciti e flotte', () =>
       art('Un esercito è un gruppo di truppe che si muovono e attaccano insieme. Un esercito che comprende almeno una Nave o una Nave Carro si chiama flotta. Si possono riunire in esercito le truppe che si trovano entro 1 cm l\'una dall\'altra.', 'Definizione') +
       art('L\'esercito si muove alla velocità della sua truppa più lenta.', 'Movimento') +
-      art('Quando si spara a un esercito, o alle truppe all\'interno di un edificio, ogni colpo raggiunge una truppa estratta <b>a caso</b> tra quelle ancora in vita; la stessa truppa può essere colpita più volte. Esempio: 10 Soldati sparano a un esercito di 2 Carrarmati, 1 Elicottero e 10 Soldati; ciascuno dei 10 colpi da 70 cade su una truppa a caso, per esempio 1 su un Carrarmato e 9 sui Soldati. Le Bombe, invece, colpiscono tutte le truppe dell\'esercito.', 'Danni subiti') +
-      art('Ogni truppa spara con le proprie caratteristiche. Lo sparo di un esercito conta come uno solo ai fini del limite, ma possono sparare al massimo un numero di truppe pari al doppio del limite. Esempio: al 16° giro il limite è 5, quindi un esercito può far sparare fino a 10 truppe consumando un solo sparo.', 'Sparo') +
+      art('Quando si spara a un esercito, o alle truppe all\'interno di un edificio, ogni colpo raggiunge una truppa estratta <b>a caso</b> tra quelle ancora in vita; la stessa truppa può essere colpita più volte. Le Bombe, invece, colpiscono tutte le truppe dell\'esercito.', 'Danni subiti') +
+      box('ex', '10 Soldati sparano a un esercito di 2 Carrarmati, 1 Elicottero e 10 Soldati. Ciascuno dei 10 colpi da 70 cade su una truppa a caso: per esempio 1 su un Carrarmato e 9 sui Soldati, e un Soldato può essere colpito due volte.') +
+      art('Ogni truppa spara con le proprie caratteristiche. Lo sparo di un esercito conta come uno solo ai fini del limite, ma possono sparare al massimo un numero di truppe pari al doppio del limite.', 'Sparo') +
+      box('ex', 'Al 16° giro il limite è 5 spari: un esercito può far sparare fino a 10 delle sue truppe, consumando un solo sparo.') +
       art('Le Navi si uniscono soltanto a Navi, Elicotteri e Navi Carro. La Nave Carro si unisce a Navi, Elicotteri e Aerei Carro, mai a Soldati, Carrarmati e Carri. Un esercito di terra può comprendere Soldati, Carrarmati, Carri, Elicotteri e Aerei Carro.', 'Composizione') +
       art('Un esercito o una flotta non può superare i 100 punti indicati nella tabella seguente. Questi punti valgono soltanto per tale limite.', 'Dimensione massima') +
       table(['Truppa', 'Punti in una flotta', 'Punti in un esercito di terra'], DM.TROOP_KEYS.split('').map(k => [T[k].name, DM.FLEET_PTS[k] || '–', DM.LAND_PTS[k] || '–'])));
@@ -163,7 +171,7 @@
         ['Tundra', 'gittata x2, velocità :2'], ['Montagna', 'velocità :2; niente bacche'], ['Alta montagna', 'niente città, niente bacche; confina soltanto con la Montagna'], ['Fiume / lago', 'Soldati e Carrarmati lo attraversano con i ponti']]) +
       '<h4>Velocità nei biomi (cm per turno)</h4>' + table(['Bioma', ...DM.TROOP_KEYS.split('').map(k => T[k].name)], BIO_LAND.split('').concat('F').map(b => [DM.BIOME_NAME[b], ...spRow(b)])) +
       '<h4>Danno nei biomi</h4>' + table(['Bioma', ...Object.keys(DM.BIOME_DMG).map(k => T[k].name)], ['D', 'G'].map(b => [DM.BIOME_NAME[b], ...Object.keys(DM.BIOME_DMG).map(k => n(DM.BIOME_DMG[k][b]))])) +
-      art('Nella Tundra la gittata raddoppia per Soldato, Elicottero e Carrarmato. Le truppe marine e aeree non subiscono le riduzioni di velocità del terreno. Nave Carro e Aereo Carro modificano le proprie caratteristiche soltanto per effetto delle bacche.', 'Eccezioni') +
+      box('imp', 'Nella Tundra la gittata raddoppia per Soldato, Elicottero e Carrarmato. Le truppe marine e aeree non subiscono le riduzioni di velocità del terreno. Nave Carro e Aereo Carro modificano le proprie caratteristiche soltanto per effetto delle bacche.') +
       '<h4>Vulcanico e Lavico</h4>' +
       art('Ogni 10 giri si tira un dado per ciascun vulcano: con 1, il terreno entro 1 cm dal Vulcanico diventa Lavico per 3 giri e le truppe e gli edifici presenti vengono distrutti. La pozione Ignifuga protegge un edificio.', 'Eruzioni') +
       art('Velocità :2. Le truppe che vi si trovano subiscono bruciature per 3 turni (Soldato 20, Carrarmato 500, Carro 500 per turno); le bruciature non si sommano. Le truppe aeree non possono atterrarvi. Esistono zone di lava perenne.', 'Lavico') +
@@ -172,7 +180,8 @@
       art('Non produce bacche e non modifica velocità, gittata e danno.', 'Glaciale') +
       art('Ghiaccio su mare, laghi e fiumi. Velocità :2 per le truppe di terra e di mare; la Nave procede a 1,5 cm e la Nave Carro a 6 cm. Le truppe aeree non vi atterrano e non vi si costruisce nulla, nemmeno strade.', 'Banchisa') +
       '<h4>Area radioattiva</h4>' +
-      art('È generata dalla Superbomba e dura 3 giri, anche sul mare. Dimezza la velocità dopo l\'effetto del bioma, arrotondando per eccesso al millimetro. Esempio: un Soldato nel Deserto procede a 0,3 cm; nell\'area radioattiva 0,3 : 2 = 0,15, arrotondato a 0,2 cm.', 'Area radioattiva'));
+      art('È generata dalla Superbomba e dura 3 giri, anche sul mare. Dimezza la velocità dopo l\'effetto del bioma, arrotondando per eccesso al millimetro.', 'Area radioattiva') +
+      box('ex', 'Un Soldato nel Deserto procede a 0,3 cm; nell\'area radioattiva la sua velocità diventa 0,3 : 2 = 0,15, arrotondata a 0,2 cm.'));
 
     add('Le bacche', () =>
       art('Le bacche crescono nelle Coltivazioni, una ogni 5 giri, e sono del bioma in cui si trova la Coltivazione. Pianura, Montagna, Alta montagna, Vulcanico, Glaciale e Banchisa non producono bacche.', 'Produzione') +

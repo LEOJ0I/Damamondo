@@ -1,4 +1,4 @@
-// Damamondo Classico – dati del regolamento (tabelle, costi, kit).
+// Damamondo – dati del regolamento (tabelle, costi, kit).
 // Le correzioni del documento di passaggio hanno la precedenza sul PDF.
 (function (DM) {
   'use strict';

@@ -14,7 +14,7 @@ function loadDM() {
   return globalThis.DM;
 }
 
-const INTRO = 'Damamondo (Damamondo Classico) è un gioco di strategia da tavolo per 2 o più giocatori ' +
+const INTRO = 'Damamondo è un gioco di strategia da tavolo per 2 o più giocatori ' +
   'che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo, anche contro avversari guidati dal computer (bot, in tre livelli). ' +
   'Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali al Banco, addestra Soldati, Navi, ' +
   'Elicotteri e Carrarmati e conquista territori su una mappa di 60 × 42 cm con biomi, fiumi e vulcani.';
@@ -31,7 +31,7 @@ function htmlToText(html) {
     .replace(/<nav class="toc">[\s\S]*?<\/nav>/, '')
     .replace(/<h3>(.*?)<\/h3>/g, '\n\n## $1\n')
     .replace(/<h4>(.*?)<\/h4>/g, '\n\n### $1\n')
-    .replace(/<tr>/g, '\n').replace(/<\/t[hd]><t[hd]>/g, ' | ')
+    .replace(/<div class="box[^"]*"><b>(.*?)<\/b>/g, '\n\n$1: ').replace(/<tr>/g, '\n').replace(/<\/t[hd]><t[hd]>/g, ' | ')
     .replace(/<li>/g, '\n- ')
     .replace(/<p[^>]*>/g, '\n\n').replace(/<br>/g, '\n')
     .replace(/<[^>]+>/g, '')
@@ -43,7 +43,7 @@ function htmlToText(html) {
 function build() {
   const DM = loadDM();
   const rules = DM.rulesHTML();
-  const desc = 'Regole complete di Damamondo Classico, gioco di strategia da tavolo: kit di partenza, truppe, eserciti, trasporto, città, edifici, miniere, Banco, territori, biomi, bacche e pozioni.';
+  const desc = 'Regole complete di Damamondo, gioco di strategia da tavolo: kit di partenza, truppe, eserciti, trasporto, città, edifici, miniere, Banco, territori, biomi, bacche e pozioni.';
   const regole = `<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -69,12 +69,12 @@ function build() {
     @media print { .top a.play { display: none; } .tw { overflow: visible; } }
   </style>
   <script type="application/ld+json">
-  ${JSON.stringify({ '@context': 'https://schema.org', '@type': 'Game', name: 'Damamondo', alternateName: 'Damamondo Classico', url: SITE, description: INTRO, inLanguage: 'it', numberOfPlayers: { '@type': 'QuantitativeValue', minValue: 2 } })}
+  ${JSON.stringify({ '@context': 'https://schema.org', '@type': 'Game', name: 'Damamondo', url: SITE, description: INTRO, inLanguage: 'it', numberOfPlayers: { '@type': 'QuantitativeValue', minValue: 2 } })}
   </script>
 </head>
 <body>
-  <div class="top"><b>DAMAMONDO</b><span><a href="Damamondo_Regolamento_Classico.pdf">Regolamento in PDF</a> &nbsp; <a class="play" href="index.html">Gioca a Damamondo</a></span></div>
-  <h1>Regole di Damamondo Classico</h1>
+  <div class="top"><b>DAMAMONDO</b><span><a href="Damamondo_Regolamento.pdf">Regolamento in PDF</a> &nbsp; <a class="play" href="index.html">Gioca a Damamondo</a></span></div>
+  <h1>Regole di Damamondo</h1>
   <p class="intro">${INTRO}</p>
   <p class="intro">${FACTS}</p>
   <p class="note">${NOT}</p>
@@ -100,7 +100,7 @@ Vince chi sconfigge tutti gli avversari: un giocatore è eliminato quando perde 
 - [Gioca a Damamondo](${SITE}): il gioco nel browser, pensato per il telefono (menu: Gioca → Locale, Regole)
 - [Regole complete](${SITE}regole.html): il regolamento ufficiale con tutte le tabelle
 - [Regole in testo semplice](${SITE}llms-full.txt): lo stesso regolamento, in testo
-- [Regolamento in PDF](${SITE}Damamondo_Regolamento_Classico.pdf): lo stesso regolamento, da stampare
+- [Regolamento in PDF](${SITE}Damamondo_Regolamento.pdf): lo stesso regolamento, da stampare
 
 ## In breve
 
@@ -111,7 +111,7 @@ Vince chi sconfigge tutti gli avversari: un giocatore è eliminato quando perde 
 - Economia: soldi e materiali custoditi negli edifici, miniere con il dado (con il kit Maghi il minerale si sceglie), Carri per trasportare. Il Banco compra solo i minerali; tutto il resto si compra negli edifici.
 - Armi e oggetti: Bombe, Superbombe, bacche e pozioni.
 `;
-  const full = `# Regole di Damamondo Classico\n\n${INTRO}\n\n${FACTS}\n\n${NOT}\n\nFonte: ${SITE}regole.html\n\n${htmlToText(rules)}\n`;
+  const full = `# Regole di Damamondo\n\n${INTRO}\n\n${FACTS}\n\n${NOT}\n\nFonte: ${SITE}regole.html\n\n${htmlToText(rules)}\n`;
   const pages = { 'regole.html': regole, 'llms.txt': llms, 'llms-full.txt': full };
   pages['sw.js'] = serviceWorker(pages);
   return pages;
