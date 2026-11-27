@@ -741,3 +741,27 @@ test('partita di soli bot: pausa, si toccano truppe ed edifici di tutti (solo da
   await page.click('#toMenu');
   assert.deepEqual(errors, []);
 });
+
+test('mappe segrete: numero 0 = la Terra di oggi, messaggio e Esploratore', async () => {
+  if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
+  if (await page.locator('[data-m=gioca]').count() === 0) await page.locator('[data-m=home]').first().click();
+  assert.match(await page.locator('.explorer').innerText(), /Mappe segrete: 0 di 14/);
+  await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  while ((await page.locator('[data-m=elimina]').count()) >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
+  await page.click('[data-m=nuova]');
+  await page.click('[data-m=who][data-arg="0:"]'); await page.click('[data-m=who][data-arg="1:"]');   // due persone (il menu ricorda le scelte di prima)
+  await page.fill('#seed', '0'); await page.click('[data-m=inizia]');
+  await page.waitForSelector('[data-act=kit]');
+  assert.equal(await ev(() => DM.game.map.secret), 'oggi');
+  assert.match(await info(), /Hai trovato una mappa segreta: la Terra di oggi!.*1 di 14/s);
+  // il Sahara è deserto anche nella pagina
+  assert.equal(await ev(() => { const v = DM.SECRET_MASKS.mondo.view; return DM.bAt(DM.game, (10 - v[0]) / (v[1] - v[0]) * 60, (23 - v[2]) / (v[3] - v[2]) * 42); }), 'D');
+  await page.click('#toMenu');
+  assert.match(await page.locator('.explorer').innerText(), /1 di 14/);
+  await page.click('.explorer');
+  const list = await page.locator('#menu').innerText();
+  assert.match(list, /Esploratore[\s\S]*1 di 14[\s\S]*la Terra di oggi[\s\S]*\?\?\?/);
+  assert.equal((list.match(/\?\?\?/g) || []).length, 13);
+  await page.locator('[data-m=home]').first().click();
+  assert.deepEqual(errors, []);
+});

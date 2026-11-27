@@ -11,7 +11,8 @@
 
   DM.newGame = function (opts, seed, map) {
     const G = {
-      seed: seed || 7, phase: 'num', np: 2, names: [], players: [], p: 0, round: 1,
+      // il numero mappa 0 vale (mappe segrete)
+      seed: seed === 0 ? 0 : seed || 7, phase: 'num', np: 2, names: [], players: [], p: 0, round: 1,
       moved: 0, shots: 0, berried: false, units: [], sites: [], roads: [], bridges: [], rad: [],
       uid: 0, gid: 0, sid: 0, tapR: .7
     };

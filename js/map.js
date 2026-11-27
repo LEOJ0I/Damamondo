@@ -44,6 +44,7 @@
 
   // Bioma nel punto (x, y) in cm, al giro "round".
   function biome(map, x, y, round) {
+    if (map.secret) return DM.secretBiome(map, x, y, round);
     const { isl, hum, temp, comp, gen } = map.opts, { nz } = map.n, f = ISF[isl];
     if (x < SEA_BORDER || y < SEA_BORDER || x > W - SEA_BORDER || y > H - SEA_BORDER) return 'S';
     const d0 = Math.min(x, y, W - x, H - y);
@@ -85,6 +86,9 @@
     const map = { opts: Object.assign({ isl: 1, hum: 2, temp: 2, comp: 2, gen: 5 }, opts), seed, n: noise(seed),
       volc: [], erupt: [], cells: new Uint8Array(W * MR * H * MR), version: 0 };
     const { h } = map.n, { comp, temp, gen } = map.opts;
+    // mappe segrete (numero 0 con certe opzioni, oppure numeri speciali): la Terra vera, la Pangea, l'Italia…
+    const secret = gen >= 5 && DM.secretFor ? DM.secretFor(map.opts, seed) : null;
+    if (secret) { map.secret = secret.id; DM.secretSetup(map); return map; }
     if (gen >= 5 && map.opts.isl == 0) {
       const cx = W / 2 + (h(31, 17) - .5) * 12, cy = H / 2 + (h(19, 43) - .5) * 8;
       map.cont = { bias: (x, y) => .24 * Math.exp(-(((x - cx) / 16) ** 2 + ((y - cy) / 11) ** 2)), shift: 0 };
