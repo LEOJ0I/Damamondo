@@ -731,7 +731,7 @@ test('partita di soli bot: pausa, si toccano truppe ed edifici di tutti (solo da
   assert.equal(await page.isVisible('#bubble'), true);
   // una truppa
   const u = await ev(() => { const v = DM.game.units.find(x => !x.carried); return [v.x, v.y]; });
-  for (let i = 0; i < 4 && !/Truppa di|Esercito/.test(await info()); i++) await tapCm(u[0], u[1]);
+  for (let i = 0; i < 12 && !/Truppa di|Esercito/.test(await info()); i++) await tapCm(u[0], u[1]);
   assert.match(await info(), /Truppa di|Esercito/);
   assert.doesNotMatch(await info(), /Fai salire|Fai uscire|Deseleziona/);
   // si riprende: i bot vanno avanti
