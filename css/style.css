@@ -288,4 +288,5 @@ ol.chain { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6p
 ol.chain li { padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--fg) 6%, transparent); opacity: .7; }
 ol.chain li.open { background: color-mix(in srgb, #f2c230 22%, transparent); opacity: 1; }
 ol.chain li.ok { background: color-mix(in srgb, var(--ac) 15%, transparent); opacity: 1; }
+small.fact { display: block; margin-top: 4px; font-size: 13px; line-height: 1.4; opacity: .85; }
 ul.secrets li.no { background: color-mix(in srgb, var(--fg) 6%, transparent); opacity: .7; }

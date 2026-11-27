@@ -13,26 +13,26 @@
 
   // ---------- l'elenco ----------
   const LIST = [
-    { id: 'oggi', n: 0, ok: MED, name: 'la Terra di oggi', emoji: '🌍' },
-    { id: 'pangea', n: 0, ok: o => only(o, 'isl', 0), name: 'la Pangea (250 milioni di anni fa)', emoji: '🦕' },
-    { id: 'glaciale', n: 0, ok: o => only(o, 'temp', 4), name: 'l’ultima era glaciale (20.000 anni fa)', emoji: '❄️' },
-    { id: 'cretaceo', n: 0, ok: o => only(o, 'temp', 0), name: 'la Terra dei dinosauri (Cretaceo, 90 milioni di anni fa)', emoji: '🦖' },
-    { id: 'saharaverde', n: 0, ok: o => only(o, 'hum', 4), name: 'il Sahara verde (6.000 anni fa)', emoji: '🌿' },
-    { id: 'anello', n: 0, ok: o => only(o, 'comp', 4), name: 'l’Anello di fuoco: i vulcani veri della Terra', emoji: '🌋' },
-    { id: 'italia', n: 39, name: 'l’Italia (39 è il suo prefisso)', emoji: '🇮🇹' },
-    { id: 'napoli', n: 79, name: 'il Golfo di Napoli nell’anno 79, quando il Vesuvio seppellì Pompei', emoji: '🌋' },
-    { id: 'mediterraneo', n: 753, name: 'il Mediterraneo dei Romani (Roma nasce nel 753 a.C.)', emoji: '🏛️' },
-    { id: 'atlantico', n: 1492, name: 'l’Atlantico di Cristoforo Colombo (1492)', emoji: '⛵' },
-    { id: 'nordatlantico', n: 1912, name: 'il Nord Atlantico del Titanic (1912), con i ghiacci', emoji: '🧊' },
-    { id: 'himalaya', n: 8848, name: 'l’Himalaya (8848 metri: l’Everest)', emoji: '🏔️' },
-    { id: 'alpi', n: 4808, name: 'le Alpi (4808 metri: il Monte Bianco)', emoji: '⛰️' },
-    { id: 'luna', n: 1969, name: 'la Luna (1969: il primo sbarco)', emoji: '🌕' }
+    { id: 'oggi', n: 0, ok: MED, name: 'la Terra di oggi', emoji: '🌍', fact: 'Circa il 71% della superficie della Terra è coperto dagli oceani: è per questo che dallo spazio sembra un pianeta blu.' },
+    { id: 'pangea', n: 0, ok: o => only(o, 'isl', 0), name: 'la Pangea (250 milioni di anni fa)', emoji: '🦕', fact: '«Pangea» in greco vuol dire «tutta la Terra», e l’oceano che la circondava si chiamava Pantalassa, «tutto il mare». I continenti si muovono ancora oggi, di pochi centimetri all’anno.' },
+    { id: 'glaciale', n: 0, ok: o => only(o, 'temp', 4), name: 'l’ultima era glaciale (20.000 anni fa)', emoji: '❄️', fact: 'Nell’ultima era glaciale il mare era circa 120 metri più basso di oggi: si poteva andare a piedi dall’Asia all’America e dalla Francia all’Inghilterra.' },
+    { id: 'cretaceo', n: 0, ok: o => only(o, 'temp', 0), name: 'la Terra dei dinosauri (Cretaceo, 90 milioni di anni fa)', emoji: '🦖', fact: 'Nel Cretaceo faceva così caldo che ai poli non c’era ghiaccio, e un mare poco profondo tagliava in due il Nord America. Il Tirannosauro visse proprio alla fine di quest’epoca.' },
+    { id: 'saharaverde', n: 0, ok: o => only(o, 'hum', 4), name: 'il Sahara verde (6.000 anni fa)', emoji: '🌿', fact: '6.000 anni fa nel Sahara c’erano laghi, giraffe, elefanti e ippopotami: lo raccontano le pitture sulle rocce lasciate da chi ci viveva.' },
+    { id: 'anello', n: 0, ok: o => only(o, 'comp', 4), name: 'l’Anello di fuoco: i vulcani veri della Terra', emoji: '🌋', fact: 'Nell’Anello di fuoco, intorno all’oceano Pacifico, ci sono circa tre quarti dei vulcani attivi della Terra, e lì avviene la maggior parte dei terremoti più forti.' },
+    { id: 'italia', n: 39, name: 'l’Italia (39 è il suo prefisso)', emoji: '🇮🇹', fact: 'L’Etna, in Sicilia, è il vulcano attivo più alto d’Europa, e lo Stromboli erutta quasi senza sosta da migliaia di anni: i marinai lo chiamavano «il faro del Mediterraneo».' },
+    { id: 'napoli', n: 79, name: 'il Golfo di Napoli nell’anno 79, quando il Vesuvio seppellì Pompei', emoji: '🌋', fact: 'Un testimone dell’eruzione del 79, Plinio il Giovane, la descrisse in due lettere: per questo le eruzioni di quel tipo si chiamano ancora oggi «pliniane».' },
+    { id: 'mediterraneo', n: 753, name: 'il Mediterraneo dei Romani (Roma nasce nel 753 a.C.)', emoji: '🏛️', fact: 'I Romani chiamavano il Mediterraneo «Mare Nostrum», cioè «il nostro mare», perché ne controllavano tutte le coste.' },
+    { id: 'atlantico', n: 1492, name: 'l’Atlantico di Cristoforo Colombo (1492)', emoji: '⛵', fact: 'Colombo partì il 3 agosto 1492 e toccò terra il 12 ottobre, alle Bahamas: fino alla fine pensò di essere arrivato in Asia, nelle «Indie».' },
+    { id: 'nordatlantico', n: 1912, name: 'il Nord Atlantico del Titanic (1912), con i ghiacci', emoji: '🧊', fact: 'Il Titanic affondò nella notte tra il 14 e il 15 aprile 1912, durante il suo primo viaggio, dopo aver urtato un iceberg: si diceva che fosse inaffondabile.' },
+    { id: 'himalaya', n: 8848, name: 'l’Himalaya (8848 metri: l’Everest)', emoji: '🏔️', fact: 'L’Himalaya cresce ancora di qualche millimetro all’anno, perché l’India continua a spingere contro l’Asia; sulla cima dell’Everest si trovano fossili di animali marini.' },
+    { id: 'alpi', n: 4808, name: 'le Alpi (4808 metri: il Monte Bianco)', emoji: '⛰️', fact: 'La cima del Monte Bianco è una cupola di ghiaccio: per questo la sua altezza cambia un po’ da un anno all’altro, secondo quanta neve cade.' },
+    { id: 'luna', n: 1969, name: 'la Luna (1969: il primo sbarco)', emoji: '🌕', fact: 'Il 20 luglio 1969 Neil Armstrong fu il primo uomo a camminare sulla Luna. Le impronte degli astronauti sono ancora lì, perché sulla Luna non c’è vento.' }
   ];
-  DM.SECRETS = LIST.map(s => ({ id: s.id, name: s.name, emoji: s.emoji }));
+  DM.SECRETS = LIST.map(s => ({ id: s.id, name: s.name, emoji: s.emoji, fact: s.fact }));   // fact: una curiosità vera, si legge quando la trovi
   // La mappa originale: il numero 6, ma solo dopo aver trovato tutte le altre (il menu mette opts.orig).
   // Senza opts.orig il 6 dà una mappa normale.
-  const ORIG = { id: 'originale', n: 6, ok: o => !!o.orig, name: 'la mappa originale di Damamondo, disegnata a mano su quattro fogli', emoji: '📜' };
-  DM.SECRET_ORIGINAL = { id: ORIG.id, name: ORIG.name, emoji: ORIG.emoji };
+  const ORIG = { id: 'originale', n: 6, ok: o => !!o.orig, name: 'la mappa originale di Damamondo, disegnata a mano su quattro fogli', emoji: '📜', fact: 'Questa è la mappa su cui è nato Damamondo, a scuola: quattro fogli disegnati a mano e colorati a matita, su cui giocavano sei amici. Per questo il suo numero è il 6.' };
+  DM.SECRET_ORIGINAL = { id: ORIG.id, name: ORIG.name, emoji: ORIG.emoji, fact: ORIG.fact };
   // Quale mappa segreta per queste opzioni e questo numero (o null)
   DM.secretFor = (opts, seed) => (seed === ORIG.n && ORIG.ok(opts) ? ORIG : null) || LIST.find(s => s.n === seed && (!s.ok || s.ok(opts))) || null;
   DM.secretInfo = id => DM.SECRETS.concat(DM.SECRET_ORIGINAL).find(s => s.id === id) || null;
