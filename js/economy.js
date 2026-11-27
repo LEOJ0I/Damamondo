@@ -13,7 +13,7 @@
   DM.costsText = k => DM.COST[k].map(DM.costText).join(' oppure ');
   DM.mulCost = (o, n) => ({ m: o.m * n, r: Object.fromEntries(Object.entries(o.r).map(e => [e[0], e[1] * n])) });
 
-  const canPay = (invs, o) => invs.reduce((t, I) => t + I.mon, 0) >= o.m &&
+  const canPay = DM.canPay = (invs, o) => invs.reduce((t, I) => t + I.mon, 0) >= o.m &&
     Object.keys(o.r).every(m => invs.reduce((t, I) => t + (I.mat[m] || 0), 0) >= o.r[m]);
   // Paga la prima alternativa possibile prendendo dagli inventari in ordine. Restituisce l'alternativa o null.
   DM.pay = function (invs, ops) {

@@ -31,13 +31,23 @@
     return m < t[0] ? 'D' : m > t[1] ? 'L' : m > t[2] ? 'G' : 'P';
   }
 
+  // Altitudine nel punto (x, y): rumore a più scale, che scende verso i bordi (sempre mare).
+  function elevation(map, x, y) {
+    const { nz } = map.n, f = ISF[map.opts.isl];
+    const d0 = Math.min(x, y, W - x, H - y), fe = Math.min(1, d0 / 9), se = fe * fe * (3 - 2 * fe);
+    const b = nz(x, y, f[0]) * .5 + nz(x, y, f[1]) * .4 + nz(x, y, f[2]) * .1;
+    let e = (.5 + (b - .5) * 1.5) * se;
+    // gen 5, "Poche isole": un grande continente (un rialzo largo vicino al centro) e il mare regolato per avere circa il 40% di terra
+    if (map.cont) e += map.cont.bias(x, y) - map.cont.shift;
+    return e;
+  }
+
   // Bioma nel punto (x, y) in cm, al giro "round".
   function biome(map, x, y, round) {
     const { isl, hum, temp, comp, gen } = map.opts, { nz } = map.n, f = ISF[isl];
     if (x < SEA_BORDER || y < SEA_BORDER || x > W - SEA_BORDER || y > H - SEA_BORDER) return 'S';
-    const d0 = Math.min(x, y, W - x, H - y), fe = Math.min(1, d0 / 9), se = fe * fe * (3 - 2 * fe);
-    const b = nz(x, y, f[0]) * .5 + nz(x, y, f[1]) * .4 + nz(x, y, f[2]) * .1;
-    const e = (.5 + (b - .5) * 1.5) * se;  // altitudine
+    const d0 = Math.min(x, y, W - x, H - y);
+    const e = elevation(map, x, y);  // altitudine
     if (e < f[3]) {
       const ice = comp > 1 && (nz(x + 600, y + 600, .1) * .8 + nz(x + 650, y + 650, .35) * .2) >
         .74 - (temp - 2) * .08 - (comp - 2) * .03 +
@@ -57,8 +67,10 @@
       if (d < 1.1) return comp > 1 && v[2] && nz(x + 800, y + 800, .9) > thr ? 'Z' : 'V';
       if (comp > 1 && v[2] && d < flow && nz(x + 800, y + 800, .7) > thr + .05) return 'Z';
     }
-    if (e > .78) return 'A';
-    if (e > .7) return 'M';
+    // gen 5: il rialzo del continente conta poco per le montagne (altrimenti il centro sarebbe tutto Alta montagna)
+    const em = map.cont ? e - map.cont.bias(x, y) * .8 : e;
+    if (em > .78) return 'A';
+    if (em > .7) return 'M';
     if (comp > 1 && nz(x + 700, y + 700, .09) > .77 - (temp - 2) * .08 - (comp - 2) * .04) return 'H';
     if (comp > 0 && comp < 4 && nz(x + 200, y + 200, .1) > .76 - (temp - 2) * .07 + (comp == 1 ? .06 : 0)) return 'T';
     if (comp > 0 && nz(x + 900, y + 900, .08) > DT[temp]) return 'D';
@@ -69,9 +81,19 @@
     // gen: versione del generatore. Le partite salvate prima del 25/11/2026 non ce l'hanno (= 1) e tengono la loro mappa.
     // gen 2 (25/11/2026): più vulcani nelle mappe calde. gen 3: Banchisa lontana dai bordi, nessun minimo nelle mappe fredde.
     // gen 4: niente vulcani con varietà semplice; minimo 1/2/3 con media/estrema/estremissima; lava più estesa.
-    const map = { opts: Object.assign({ isl: 1, hum: 2, temp: 2, comp: 2, gen: 4 }, opts), seed, n: noise(seed),
+    // gen 5 (27/11/2026): con "Poche isole" un grande continente e circa il 40% di terra (prima poteva essere dal 15% al 47%).
+    const map = { opts: Object.assign({ isl: 1, hum: 2, temp: 2, comp: 2, gen: 5 }, opts), seed, n: noise(seed),
       volc: [], erupt: [], cells: new Uint8Array(W * MR * H * MR), version: 0 };
     const { h } = map.n, { comp, temp, gen } = map.opts;
+    if (gen >= 5 && map.opts.isl == 0) {
+      const cx = W / 2 + (h(31, 17) - .5) * 12, cy = H / 2 + (h(19, 43) - .5) * 8;
+      map.cont = { bias: (x, y) => .24 * Math.exp(-(((x - cx) / 16) ** 2 + ((y - cy) / 11) ** 2)), shift: 0 };
+      const vals = [];
+      for (let y = .25; y < H; y += .5) for (let x = .25; x < W; x += .5) vals.push(elevation(map, x, y));
+      vals.sort((a, b) => a - b);
+      const land = .4 + (h(5, 9) - .5) * .06;   // tra il 37% e il 43% di terra
+      map.cont.shift = vals[Math.floor((1 - land) * vals.length)] - ISF[0][3];
+    }
     const ok = (x, y) => !'SFIAM'.includes(biome(map, x, y, 1)) && map.volc.every(v => Math.hypot(v[0] - x, v[1] - y) >= 8);
     const add = (x, y, a, b) => map.volc.push([x, y, h(a + 2, b + 7) > .25, .5 + h(a + 9, b + 3) * .3]);
     // Vulcani: al massimo uno per riquadro di 14 cm

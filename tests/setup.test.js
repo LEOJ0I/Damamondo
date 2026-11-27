@@ -97,7 +97,7 @@ test('le partite salvate prima del cambio dei vulcani tengono la loro mappa', ()
   const H = DM.deserialize(text);
   assert.equal(H.map.opts.gen, 1);
   assert.ok(H.map.cells.every((c, i) => c === G.map.cells[i]), 'stessa mappa di prima');
-  assert.equal(DM.newGame({ temp: 0, comp: 4 }, 11).map.opts.gen, 4, 'le partite nuove usano il generatore nuovo');
+  assert.equal(DM.newGame({ temp: 0, comp: 4 }, 11).map.opts.gen, 5, 'le partite nuove usano il generatore nuovo');
 });
 
 test('Banchisa: il bordo della mappa è sempre mare aperto, niente briciole di ghiaccio', () => {
@@ -136,4 +136,23 @@ test('vulcani secondo la varietà: nessuno con semplice, minimo 1 / 2 / 3 con me
   assert.ok(lava[3] > lava[2] * 1.3 && lava[4] > lava[3] * 1.3, 'più varietà, più lava per vulcano: ' + lava.slice(2).map(Math.round));
   // le mappe della versione 3 restano uguali (con semplice c'erano vulcani)
   assert.ok([1, 2, 3, 4, 5, 6].some(seed => DM.makeMap({ comp: 1, temp: 0, gen: 3 }, seed).volc.length > 0));
+});
+
+test('gen 5, "Poche isole": un grande continente e circa il 40% di terra', () => {
+  const w = DM.W * DM.MR, h = DM.H * DM.MR, S = DM.BIOMES.indexOf('S'), I = DM.BIOMES.indexOf('I');
+  for (const seed of [3, 7, 11, 19, 23, 42, 77, 101]) {
+    const m = DM.makeMap({ isl: 0 }, seed); DM.rebuildMap(m, 1);
+    const land = new Uint8Array(w * h); let n = 0;
+    for (let i = 0; i < w * h; i++) if (m.cells[i] !== S && m.cells[i] !== I) { land[i] = 1; n++; }
+    // il pezzo di terra più grande
+    const seen = new Uint8Array(w * h); let best = 0;
+    for (let i = 0; i < w * h; i++) if (land[i] && !seen[i]) {
+      let sz = 0; const st = [i]; seen[i] = 1;
+      while (st.length) { const c = st.pop(), x = c % w; sz++; for (const d of [x > 0 ? c - 1 : -1, x < w - 1 ? c + 1 : -1, c - w, c + w]) if (d >= 0 && d < w * h && land[d] && !seen[d]) { seen[d] = 1; st.push(d); } }
+      best = Math.max(best, sz);
+    }
+    const frac = n / (w * h);
+    assert.ok(frac > .35 && frac < .46, 'terra ' + (frac * 100).toFixed(0) + '% (mappa ' + seed + ')');
+    assert.ok(best / n > .75, 'continente principale ' + (best / n * 100).toFixed(0) + '% della terra (mappa ' + seed + ')');
+  }
 });

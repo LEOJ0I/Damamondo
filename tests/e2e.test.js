@@ -180,15 +180,24 @@ test('partita completa sul telefono', async (t) => {
 
   await t.test('edificio: info, schierare dentro, comprare, vendere al Banco, carico del Carro', async () => {
     await selectAt(A[0], A[1], /^Capitale/m);
-    assert.match(await info(), /Capitale.*vita 20000\/20000.*250\.000 soldi/s);
+    assert.match(await info(), /Capitale.*vita 20000\/20000/s);
+    // fumetto sopra la Capitale: cosa contiene, senza aprire niente
+    assert.equal(await page.isVisible('#bubble'), true);
+    assert.match(await page.locator('#bubble').innerText(), /Capitale[\s\S]*250\.000 soldi[\s\S]*Dentro: Aeroporto/);
+    const bb = await page.locator('#bubble').boundingBox(), cv = await page.locator('#c').boundingBox(), Zb = await ev(() => DM.ui.Z);
+    assert.ok(Math.abs(bb.x + bb.width / 2 - (cv.x + A[0] * Zb)) < bb.width / 2, 'il fumetto è sopra la Capitale');
+    assert.ok(bb.y + bb.height < cv.y + A[1] * Zb || bb.y > cv.y + A[1] * Zb, 'non copre la Capitale');
     await act('Schiera Carro');
     assert.match(await info(), /Carro schierato/);
     await side('ecoP');
-    await page.selectOption('#by', 'S');
-    await page.click('#bb');
+    assert.match(await page.locator('#shop').innerText(), /Soldato[\s\S]*5\.?000[\s\S]*1 t rame[\s\S]*1 t piombo/, 'nel negozio si vedono i costi');
+    assert.match(await page.locator('#shop').innerText(), /Superbomba[\s\S]*500\.000[\s\S]*50 kg uranio/);
+    assert.equal(await page.locator('#shop .item.no', { hasText: 'Soldato' }).count(), 1, 'senza rame e piombo il Soldato è "spento"');
+    await page.click('#shop [data-arg=S]');
     assert.match(await info(), /Non hai abbastanza risorse/);
-    await ev(() => { const c = DM.capitalOf(DM.game, 0); c.inv.mat.rame = 2; c.inv.mat.piombo = 2; c.inv.mat.ferro = 1000; });
-    await page.click('#bb');
+    await ev(() => { const c = DM.capitalOf(DM.game, 0); c.inv.mat.rame = 2; c.inv.mat.piombo = 2; c.inv.mat.ferro = 1000; DM.redraw(); });
+    assert.equal(await page.locator('#shop .item.no', { hasText: 'Soldato' }).count(), 0, 'ora si può comprare');
+    await page.click('#shop [data-arg=S]');
     assert.match(await info(), /Soldato creato in Capitale/);
     await page.selectOption('#bm', 'ferro');
     await page.fill('#bq', '2');
@@ -210,7 +219,8 @@ test('partita completa sul telefono', async (t) => {
 
   await t.test('Aeroporto dentro la Capitale: si vede e si apre', async () => {
     await selectAt(A[0], A[1], /^Capitale/m);
-    assert.match(await info(), /Dentro c’è un Aeroporto\./);
+    assert.match(await page.locator('#bubble').innerText(), /Dentro: Aeroporto/);
+    assert.match(await info(), /Apri l’Aeroporto/);
     await act('Apri l’Aeroporto');
     assert.match(await info(), /^Aeroporto \(dentro una città\)/m);
     await act('Torna a Capitale');
@@ -326,7 +336,8 @@ test('partita completa sul telefono', async (t) => {
     assert.equal(await page.isVisible('#dice'), true, 'il dado si vede sopra la mappa');
     await page.waitForFunction(() => /Miniera costruita: dado \d/.test(document.getElementById('info').innerText), null, { timeout: 5000 });
     await page.waitForFunction(() => document.getElementById('dice').hidden, null, { timeout: 5000 });
-    assert.match(await info(), /Miniera.*Contiene/s);
+    assert.match(await info(), /Miniera/);
+    assert.match(await page.locator('#bubble').innerText(), /Miniera[\s\S]*(t|kg|l) /, 'nel fumetto c’è la prima produzione');
     await ev(() => DM.Prefs.set({ anim: false }));
   });
 

@@ -40,7 +40,7 @@
     if (ui.selB && !G.sites.includes(ui.selB)) ui.selB = null;
     DM.draw($('c'), G, ui, view(), ui.Z);
     hud(); info(); eco(); reserveMenu(); legend(); buttons();
-    autosave(); savesPanel();
+    autosave(); savesPanel(); bubble();
     if (botNow() && !botBusy) setTimeout(maybeBot, 0);   // tocca a un bot: gioca da solo
   }
   DM.redraw = render;
@@ -147,14 +147,12 @@
   function siteInfo(s) {
     const q = DM.cur(G), mine = s.o === G.p, I = s.inv;
     const inside = G.units.filter(u => u.o === s.o && Math.hypot(u.x - s.x, u.y - s.y) <= .3);
+    // il contenuto dei propri edifici lo dice il fumetto sopra l'edificio; qui restano nome, vita e pulsanti
     let h = `<b style="color:${pcol(s.o)}">${DM.nameOf(s.k)}${s.par ? ' (dentro una città)' : ''}</b> · vita ${s.hp}/${DM.maxHp(s)}` +
       (s.k === 'min' ? ' · ' + s.mt : '') + (s.ign ? ' · ignifuga' : '') + (s.up ? ' · migliorata' : '') +
-      `<br>Contiene: ${DM.fmtInv(I)}` + (inside.length ? '<br>Truppe dentro: ' + DM.composition(inside) : '');
+      (!mine ? `<br>Contiene: ${DM.fmtInv(I)}` + (inside.length ? '<br>Truppe dentro: ' + DM.composition(inside) : '') : '');
     const inner = G.sites.filter(z => z.par === s.id);
-    if (inner.length) {
-      const un = k => 'un ' + DM.nameOf(k);
-      h += `<br><b>Dentro c’è ${inner.map(z => un(z.k)).join(' e ')}.</b>` + row(inner.map(z => btn('opensite', 'Apri ' + (z.k === 'aer' ? 'l’Aeroporto' : 'il Porto'), z.id)).join(''));
-    }
+    if (inner.length && mine) h += row(inner.map(z => btn('opensite', 'Apri ' + (z.k === 'aer' ? 'l’Aeroporto' : 'il Porto'), z.id)).join(''));
     if (s.par && DM.siteById(G, s.par)) h += row(btn('opensite', '← Torna a ' + DM.nameOf(DM.siteById(G, s.par).k), s.par));
     if (s.k === 'citta' && I.mon < DM.CITY_MIN_MONEY) h += '<br><small>Con meno di 5.000 soldi dentro conta come Accampamento (niente rendita).</small>';
     if (s.k === 'col') { const k = DM.BERRY_OF_BIOME[DM.bAt(G, s.x, s.y)]; h += '<br><small>Bacche ' + k + ': prossima al giro ' + (G.round + 5 - ((G.round - s.r0) % 5 + 5) % 5) + '.</small>'; }
@@ -202,11 +200,85 @@
 
   function eco() {
     const s = ui.selB;
-    const k = $('by').value;
     $('ecoMsg').textContent = ui.msg && !/[<]/.test(ui.msg) ? ui.msg : '';
     $('ecoT').innerHTML = (s ? `Edificio scelto: <b style="color:${pcol(s.o)}">${DM.nameOf(s.k)}</b><br>Contiene: ${DM.fmtInv(s.inv)}` : '<small>Prima tocca un tuo edificio sulla mappa: si vende e si compra con quello che c’è dentro.</small>') +
       (G.phase === 'play' ? `<br><small>Miniere: ${G.sites.filter(z => z.k === 'min' && z.o === G.p).length} · soldi totali: ${DM.fmtN(DM.moneyOf(G, G.p))}${DM.cur(G).sold ? ' · venduto in questo turno: ' + DM.cur(G).sold : ''}</small>` : '');
-    $('byCost').textContent = 'Costo ' + DM.nameOf(k) + ': ' + DM.costsText(k);
+    shop(s);
+  }
+
+  // Negozio: tutto quello che si compra, con il costo; più chiaro quello che qui non si può comprare
+  const SHOP = [['Truppe', ['S', 'N', 'E', 'T', 'C', 'X', 'A']], ['Edifici (vanno nella riserva)', ['acc', 'citta', 'porto', 'aer', 'col', 'min']],
+    ['Ponti (a pezzi da 1 cm)', ['ponte1', 'ponte2']], ['Armi', ['bomba', 'superbomba']], ['Pozioni', Object.keys(DM.POTIONS)]];
+  const chip = (t, cls) => `<span class="chip${cls ? ' ' + cls : ''}">${t}</span>`;
+  const costChips = o => chip('💰 ' + DM.fmtN(o.m)) + Object.keys(o.r).map(m => chip(DM.fmtN(o.r[m]) + ' ' + DM.unitOf(m) + ' ' + m)).join('');
+  function canBuyHere(s, k) {
+    if (!s || s.o !== G.p) return false;
+    if (T[k]) { if (k === 'N' && (s.k === 'cap' || s.k === 'citta')) return !!DM.riverSpot(G, s); if (!DM.SPAWNS[s.k].includes(k)) return false; }
+    if (k === 'bomba' && !DM.BOMB.bomba.from.includes(s.k)) return false;
+    if (k === 'superbomba' && !DM.BOMB.superbomba.from.includes(s.k)) return false;
+    return DM.COST[k].some(o => DM.canPay([s.inv], o));
+  }
+  function shop(s) {
+    $('shop').innerHTML = (s && s.o === G.p ? '' : '<small>Tocca un tuo edificio sulla mappa per comprare con quello che contiene.</small>') +
+      SHOP.map(([title, ks]) => `<h4>${title}</h4>` + ks.map(k => {
+        const ok = canBuyHere(s, k);
+        return `<div class="item${ok ? '' : ' no'}"><div class="what"><b>${DM.nameOf(k)}</b><div class="cost">${DM.COST[k].map(costChips).join('<small class="or">oppure</small>')}</div></div>` +
+          `<button type="button" class="playonly${ok ? ' go' : ''}" data-act="buyk" data-arg="${k}">Compra</button></div>`;
+      }).join('')).join('');
+  }
+
+  // Fumetto sopra l'edificio scelto: cosa c'è dentro
+  function bubbleHTML(s) {
+    const I = s.inv, out = [], inside = G.units.filter(u => u.o === s.o && !u.carried && Math.hypot(u.x - s.x, u.y - s.y) <= .3);
+    if (I.mon) out.push(chip('💰 ' + DM.fmtN(I.mon) + ' soldi', 'gold'));
+    DM.MATERIALS.forEach(m => { if (I.mat[m] > 0) out.push(chip(DM.fmtN(I.mat[m]) + ' ' + DM.unitOf(m) + ' ' + m)); });
+    if (I.mat.bomba > 0) out.push(chip('💣 ' + I.mat.bomba + ' × Bomba'));
+    if (I.mat.superbomba > 0) out.push(chip('☢️ ' + I.mat.superbomba + ' × Superbomba'));
+    Object.keys(DM.POTIONS).forEach(k => { if (I.mat[k] > 0) out.push(chip('🧪 ' + I.mat[k] + ' × ' + DM.POTIONS[k])); });
+    Object.keys(DM.BERRIES).forEach(k => { if (I.mat['bacca_' + k] > 0) out.push(chip('🫐 ' + I.mat['bacca_' + k] + ' × bacca ' + k)); });
+    const inner = G.sites.filter(z => z.par === s.id);
+    return `<div class="bt"><b style="color:${pcol(s.o)}">${DM.nameOf(s.k)}</b><small>❤ ${DM.fmtN(s.hp)}/${DM.fmtN(DM.maxHp(s))}</small></div>` +
+      `<div class="bc">${out.join('') || chip('vuoto', 'empty')}</div>` +
+      (inside.length ? `<div class="bi">🪖 ${DM.composition([...new Set(inside.flatMap(u => DM.armyOf(G, u)))])}</div>` : '') +
+      (inner.length ? `<div class="bi">🏠 Dentro: ${inner.map(z => DM.nameOf(z.k)).join(', ')}</div>` : '');
+  }
+  function bubble() {
+    const b = $('bubble'), s = G && ui.selB && G.sites.includes(ui.selB) && G.phase === 'play' && !botNow() ? ui.selB : null;
+    if (!s) { b.hidden = true; b.dataset.k = ''; b.dataset.sid = ''; return; }
+    const html = bubbleHTML(s);
+    if (b.dataset.k !== html) { b.innerHTML = html; b.dataset.k = html; }
+    b.hidden = false;
+    if (b.dataset.sid !== String(s.id)) { b.dataset.sid = s.id; roomForBubble(s); }
+    placeBubble();
+  }
+  // edificio appena scelto: se sopra non c'è posto per il fumetto, la mappa scende un po'
+  function roomForBubble(s) {
+    const at = s.par ? DM.siteById(G, s.par) || s : s, b = $('bubble'), v = $('vp');
+    const c = $('c').getBoundingClientRect(), hud = $('hud').getBoundingClientRect(), dock = document.querySelector('.dock').getBoundingClientRect();
+    const py = c.top + at.y * ui.Z, need = hud.bottom + 10 + b.offsetHeight + DM.siteSize(at, ui.Z) * ui.Z + 8;
+    if (py < need) v.scrollTop -= need - py;
+    else if (py > dock.top - 20) v.scrollTop += py - (dock.top - 20);
+  }
+  // il fumetto sta sopra l'edificio (sotto, se sopra non c'è posto) e segue la mappa
+  function placeBubble() {
+    const b = $('bubble'), s = ui.selB;
+    if (b.hidden || !s) return;
+    const at = s.par ? DM.siteById(G, s.par) || s : s;
+    const c = $('c').getBoundingClientRect(), v = $('vp').getBoundingClientRect(), hud = $('hud').getBoundingClientRect(), dock = document.querySelector('.dock').getBoundingClientRect();
+    const px = c.left + at.x * ui.Z, py = c.top + at.y * ui.Z, gap = DM.siteSize(at, ui.Z) * ui.Z + 8;
+    const w = b.offsetWidth, h = b.offsetHeight;
+    if (px < v.left || px > v.right || py < hud.bottom - 10 || py > dock.top + 10) { b.style.visibility = 'hidden'; return; }
+    b.style.visibility = '';
+    // sopra se c'è posto; altrimenti sotto, se lì non lo copre il riquadro in basso; altrimenti in alto, dove si vede
+    const fitsAbove = py - gap - h >= hud.bottom + 4, fitsBelow = py + gap + h <= dock.top - 4;
+    const below = !fitsAbove && fitsBelow;
+    const top = fitsAbove ? py - gap - h : below ? py + gap : hud.bottom + 4;
+    const left = Math.max(8, Math.min(innerWidth - w - 8, px - w / 2));
+    b.style.left = left + 'px';
+    b.style.top = top + 'px';
+    b.classList.toggle('below', below);
+    b.classList.toggle('notip', !fitsAbove && !below);
+    b.style.setProperty('--tip', Math.max(14, Math.min(w - 14, px - left)) + 'px');
   }
 
   function reserveMenu() {
@@ -423,11 +495,12 @@
     unboard: a => { const [v, u] = a.split(':'); ui.msg = DM.unboard(G, DM.unitById(G, v), DM.unitById(G, u)); },
     done: () => { resetModes(); ui.msg = ''; },
     bank: () => { openSide('ecoP'); },
+    buyk: k => { if (G.phase === 'play') ui.msg = DM.buy(G, ui.selB, k); },
     botfast: () => { ui.botFast = !ui.botFast; DM.FX.quick = ui.botFast && botNow(); if (DM.FX.quick) DM.FX.skip(); }
   };
 
   // azioni dei pulsanti che mostrano un'animazione (le altre: solo pannelli)
-  const FXK = { deployhere: 'act', upgrade: 'act', makecap: 'act', inside: 'act', choose: 'act', potion: 'act', cedebto: 'act', load: 'act', unload: 'act',
+  const FXK = { buyk: 'act', deployhere: 'act', upgrade: 'act', makecap: 'act', inside: 'act', choose: 'act', potion: 'act', cedebto: 'act', load: 'act', unload: 'act',
     cedeto: 'act', cedenew: 'act', board: 'act', unboard: 'act', leave: 'act' };
   function onAction(e) {
     const b = e.target.closest('[data-act]');
@@ -696,10 +769,8 @@
     });
     ['oS', 'oG', 'oB', 'oR', 'oU'].forEach(i => { $(i).onchange = () => { if (i === 'oB' && !$('oB').checked) $('oR').checked = true; draw(); }; });
     DM.MATERIALS.forEach(m => $('bm').add(new Option(m + ' · ' + DM.fmtN(DM.BANK[m][0]) + ' ' + DM.unitOf(m) + ' = ' + DM.fmtN(DM.BANK[m][1]) + ' soldi', m)));
-    DM.BUYABLE.forEach(k => $('by').add(new Option(DM.nameOf(k), k)));
-    $('by').onchange = () => eco();
     $('bs').onclick = () => { if (G.phase !== 'play') return; begin('act'); ui.msg = DM.sell(G, ui.selB, $('bm').value, +$('bq').value); draw(); };
-    $('bb').onclick = () => { if (G.phase !== 'play') return; begin('act'); ui.msg = DM.buy(G, ui.selB, $('by').value); draw(); };
+    $('vp').addEventListener('scroll', () => { if (G && !$('bubble').hidden) placeBubble(); }, { passive: true });
     let rt = 0;
     addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (!$('game').hidden) { ui.Z = Math.max(ui.Z, minZoom()); render(); } }, 150); });
   };
