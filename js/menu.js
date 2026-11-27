@@ -73,7 +73,7 @@
   DM.showMenu = function (screen) {
     cur = screen || 'home';
     if (cur !== 'locale') asking = null;
-    $('game').hidden = true; $('menu').hidden = false;
+    $('game').hidden = true; $('menu').hidden = false; document.body.classList.remove('ingame');
     if (DM.Music) DM.Music.setScene('menu');
     $('menu').className = 'menu' + (cur === 'regole' ? ' long' : '');
     $('menuBody').innerHTML = SCREENS[cur]();
