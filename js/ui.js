@@ -78,9 +78,13 @@
   function info() {
     const f = $('info');
     if (ui.rolling) return;
-    if (botNow()) {   // turno di un bot: si guarda (e si può accelerare)
-      f.innerHTML = `<p class="msg"><span style="color:${pcol(G.p)}">${G.names[G.p]}</span> 🤖 sta giocando…</p>` + (ui.msg ? `<p class="botsays">${ui.msg}</p>` : '') +
-        row(btn('botfast', ui.botFast ? 'Velocità normale' : 'Più veloce', '', ui.botFast ? 'on' : ''));
+    if (botNow()) {   // turno di un bot: si guarda (e si può accelerare; se giocano solo bot, anche mettere in pausa)
+      const all = allBots(), paused = all && ui.paused;
+      const look = paused && (ui.sel && G.units.includes(ui.sel) ? unitInfo(ui.sel, true) : ui.selB && G.sites.includes(ui.selB) ? siteInfo(ui.selB, true) : '');
+      f.innerHTML = (paused ? '<p class="msg">⏸ Partita in pausa</p>' + (look || '<small>Tocca una truppa o un edificio di qualsiasi giocatore per vedere com’è. Qui si guarda soltanto.</small>')
+        : `<p class="msg"><span style="color:${pcol(G.p)}">${G.names[G.p]}</span> 🤖 sta giocando…</p>` + (ui.msg ? `<p class="botsays">${ui.msg}</p>` : '')) +
+        row((all ? btn('botpause', paused ? '▶ Riprendi' : '⏸ Pausa', '', paused ? 'go' : '') : '') +
+          (paused ? '' : btn('botfast', ui.botFast ? 'Velocità normale' : 'Più veloce', '', ui.botFast ? 'on' : '')));
       return;
     }
     if (G.phase === 'num') { f.innerHTML = '<b>Quanti giocatori?</b>' + row([2, 3, 4, 5, 6].map(n => btn('players', n, n)).join('')); return; }
@@ -117,7 +121,8 @@
       '<br>Tutti: Capitale con Aeroporto gratis e 1 Carro.';
   }
 
-  function unitInfo(u) {
+  // look: solo da guardare (partita di soli bot in pausa): niente pulsanti
+  function unitInfo(u, look) {
     const t = T[u.t], b = DM.bAt(G, u.x, u.y), A = DM.armyOf(G, u), st = DM.stat(G, u);
     const spd = Math.min(...A.map(q => DM.speedAt(G, q, q.x, q.y)));
     let s = `<b style="color:${pcol(u.o)}">${u.g ? 'Esercito ' + u.an + ' (' + DM.composition(A) + ')' : t.name}</b> su ${DM.BIOME_NAME[b]}` +
@@ -126,6 +131,7 @@
       (u.bf && u.bf.until > G.round ? ' · bacca ' + DM.BIOME_NAME[u.bf.k] + ' fino al giro ' + (u.bf.until - 1) : '') +
       (u.bn > 0 ? ' · brucia ancora ' + u.bn + ' turni' : '') + (u.oc ? ' · in territorio nemico da ' + u.oc + ' giri' : '');
     if (u.cg) s += '<br>Carico: ' + DM.fmtInv(u.cg) + ` (${DM.cargoPts(u.cg)}/${DM.CARGO_CAP[u.t]} punti)`;
+    if (look) return s + '<br><small>Truppa di ' + G.names[u.o] + '.</small>';
     if (u.o === G.p && u.g && !ui.mode) s += '<div class="r"><small>Fai uscire una truppa:</small>' + A.map(v => btn('leave', T[v.t].name + ' ' + v.hp, v.id)).join('') + '</div>';
     if (u.o === G.p && !u.g) s += transportUI(u);
     if (u.o !== G.p) s += '<br><small>Truppa avversaria.</small>';
@@ -144,8 +150,8 @@
     return h;
   }
 
-  function siteInfo(s) {
-    const q = DM.cur(G), mine = s.o === G.p, I = s.inv;
+  function siteInfo(s, look) {
+    const q = DM.cur(G), mine = s.o === G.p && !look, I = s.inv;
     const inside = G.units.filter(u => u.o === s.o && Math.hypot(u.x - s.x, u.y - s.y) <= .3);
     // il contenuto dei propri edifici lo dice il fumetto sopra l'edificio; qui restano nome, vita e pulsanti
     let h = `<b style="color:${pcol(s.o)}">${DM.nameOf(s.k)}${s.par ? ' (dentro una città)' : ''}</b> · vita ${s.hp}/${DM.maxHp(s)}` +
@@ -243,7 +249,7 @@
       (inner.length ? `<div class="bi">🏠 Dentro: ${inner.map(z => DM.nameOf(z.k)).join(', ')}</div>` : '');
   }
   function bubble() {
-    const b = $('bubble'), s = G && ui.selB && G.sites.includes(ui.selB) && G.phase === 'play' && !botNow() ? ui.selB : null;
+    const b = $('bubble'), s = G && ui.selB && G.sites.includes(ui.selB) && G.phase === 'play' && (!botNow() || (allBots() && ui.paused)) ? ui.selB : null;
     if (!s) { b.hidden = true; b.dataset.k = ''; b.dataset.sid = ''; return; }
     const html = bubbleHTML(s);
     if (b.dataset.k !== html) { b.innerHTML = html; b.dataset.k = html; }
@@ -310,6 +316,7 @@
   // ---------- Tocchi sulla mappa ----------
   function tap(x, y) {
     if (DM.FX.busy) { DM.FX.skip(); return; }   // un tocco salta l'animazione in corso
+    if (botNow() && allBots() && ui.paused) { look(x, y); return; }   // partita di soli bot in pausa: si toccano le cose per vederle
     if (ui.rolling || botNow()) return;          // durante il turno di un bot la mappa si guarda soltanto
     begin('act');
     if (G.phase === 'cap') {
@@ -496,6 +503,7 @@
     done: () => { resetModes(); ui.msg = ''; },
     bank: () => { openSide('ecoP'); },
     buyk: k => { if (G.phase === 'play') ui.msg = DM.buy(G, ui.selB, k); },
+    botpause: () => { ui.paused = !ui.paused; if (!ui.paused) { ui.sel = null; ui.selB = null; } else DM.FX.skip(); },
     botfast: () => { ui.botFast = !ui.botFast; DM.FX.quick = ui.botFast && botNow(); if (DM.FX.quick) DM.FX.skip(); }
   };
 
@@ -531,8 +539,23 @@
 
   // ---------- Bot: giocano da soli, un'azione alla volta, con le animazioni ----------
   let botSeq = 0, botBusy = false;
+  // tutti i giocatori sono bot: si guarda la partita (e si può mettere in pausa)
+  function allBots() { return !!G && !!G.bots && Array.from({ length: G.np }, (_, i) => i).every(i => G.bots[i]); }
+  // in pausa: tocco su una truppa o un edificio di chiunque (ripetendo il tocco si passa al prossimo nello stesso punto)
+  function look(x, y) {
+    const us = G.units.filter(u => !u.carried && Math.hypot(u.x - x, u.y - y) < G.tapR).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
+    const ss = DM.siteNear(G, x, y);
+    const all = us.map(u => ['u', u]).concat(ss.map(z => ['s', z]));
+    if (!all.length) { ui.sel = null; ui.selB = null; render(); return; }
+    const cur = all.findIndex(([k, o]) => (k === 'u' ? ui.sel : ui.selB) === o);
+    const [k, o] = all[(cur + 1) % all.length];
+    ui.sel = k === 'u' ? o : null; ui.selB = k === 's' ? o : null;
+    DM.Sfx.play('select');
+    render();
+  }
   function botNow() { return !!G && DM.isBot(G, G.p) && ['kit', 'cap', 'play'].includes(G.phase) && DM.alive(G).length > 1; }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  async function whilePaused(live) { while (ui.paused && allBots() && live()) await sleep(120); }
   const pause = () => ui.botFast ? 40 : 420;
   function focusBotHome() { const c = DM.capitalOf(G, G.p); if (c) focus(c.x, c.y); }
   // porta sullo schermo il punto dell'azione, se è fuori dalla parte libera
@@ -549,6 +572,7 @@
       try {
         await sleep(ui.botFast ? 120 : 650);
         while (live() && botNow() && G.phase !== 'play') {   // preparazione: kit e Capitale
+          await whilePaused(live);
           begin('act');
           const r = DM.botSetup(G);
           ui.msg = r ? r.msg : '';
@@ -558,6 +582,8 @@
         if (live() && botNow()) {
           const it = DM.botTurn(G);
           while (live()) {
+            await whilePaused(live);
+            if (!live()) break;
             const before = DM.FX.snap(G, 'act');
             const r = it.next();
             if (r.done) break;
@@ -567,6 +593,7 @@
             await DM.FX.react(G, a.kind, before, a.x, render, a.msg);
             await sleep(pause());
           }
+          await whilePaused(live);
           if (live() && botNow()) { await endTurn(true); await sleep(pause()); }
         }
       } catch (e) {
@@ -713,7 +740,7 @@
     botSeq++; botBusy = false; DM.FX.quick = false;
     DM.FX.stopAll();
     G = DM.game = H;
-    Object.assign(ui, { sel: null, selB: null, msg: '', slot: slot || null, autoOk: undefined });
+    Object.assign(ui, { sel: null, selB: null, msg: '', slot: slot || null, autoOk: undefined, paused: false });
     resetModes();
     lastAuto = '';
     $('menu').hidden = true; $('game').hidden = false; closeSide();

@@ -704,3 +704,40 @@ test('bot: si sceglie nel menu, gioca da solo il suo turno, poi tocca di nuovo a
   assert.match(await hud(), /Giocatore 1.*Giro 4/s);
   assert.deepEqual(errors, []);
 });
+
+test('partita di soli bot: pausa, si toccano truppe ed edifici di tutti (solo da guardare), poi si riprende', async () => {
+  if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
+  await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  while ((await page.locator('[data-m=elimina]').count()) >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
+  await page.click('[data-m=nuova]');
+  await page.click('[data-m=who][data-arg="0:normale"]');
+  await page.click('[data-m=who][data-arg="1:normale"]');
+  await page.fill('#seed', '7'); await page.click('[data-m=inizia]');
+  // i bot preparano e giocano da soli; la pausa c'è solo perché giocano tutti bot
+  await page.waitForFunction(() => DM.game && DM.game.np === 2 && DM.game.bots && DM.game.bots[0] && DM.game.bots[1] && DM.game.phase === 'play' && DM.game.units.length > 3, null, { timeout: 30000 });
+  await page.locator('#info button', { hasText: 'Pausa' }).click();
+  assert.match(await info(), /Partita in pausa/);
+  const snap = () => ev(() => DM.serialize(DM.game).replace(/"saved":\d+/, ''));
+  const stop = await snap();
+  await page.waitForTimeout(1500);
+  assert.ok(await snap() === stop, 'in pausa i bot non fanno niente');
+  // tocco una Capitale (di chiunque): si vede com'è, con il fumetto, ma senza pulsanti per agire
+  const cap = await ev(() => { const c = DM.game.sites.find(s => s.k === 'cap'); return [c.x, c.y, DM.game.names[c.o]]; });
+  for (let i = 0; i < 15 && !/^Capitale/m.test(await info()); i++) await tapCm(cap[0], cap[1]);
+  const pos = await info();
+  assert.match(pos, /Capitale.*vita/s);
+  assert.match(pos, new RegExp('Edificio di ' + cap[2]));
+  assert.doesNotMatch(pos, /Schiera|Collega con strada|Lancia|Banco e acquisti/, 'niente pulsanti per agire');
+  assert.equal(await page.isVisible('#bubble'), true);
+  // una truppa
+  const u = await ev(() => { const v = DM.game.units.find(x => !x.carried); return [v.x, v.y]; });
+  for (let i = 0; i < 4 && !/Truppa di|Esercito/.test(await info()); i++) await tapCm(u[0], u[1]);
+  assert.match(await info(), /Truppa di|Esercito/);
+  assert.doesNotMatch(await info(), /Fai salire|Fai uscire|Deseleziona/);
+  // si riprende: i bot vanno avanti
+  await page.locator('#info button', { hasText: 'Riprendi' }).click();
+  await page.waitForFunction(s => DM.serialize(DM.game).replace(/"saved":\d+/, '') !== s, stop, { timeout: 20000 });
+  await page.locator('#info button', { hasText: 'Pausa' }).click();
+  await page.click('#toMenu');
+  assert.deepEqual(errors, []);
+});
