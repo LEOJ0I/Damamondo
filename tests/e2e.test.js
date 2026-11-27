@@ -741,3 +741,89 @@ test('partita di soli bot: pausa, si toccano truppe ed edifici di tutti (solo da
   await page.click('#toMenu');
   assert.deepEqual(errors, []);
 });
+
+test('mappe segrete: numero 0 = la Terra di oggi, messaggio e Esploratore', async () => {
+  if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
+  if (await page.locator('[data-m=gioca]').count() === 0) await page.locator('[data-m=home]').first().click();
+  assert.match(await page.locator('.explorer').innerText(), /Mappe segrete: 0 di 14/);
+  await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  while ((await page.locator('[data-m=elimina]').count()) >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
+  await page.click('[data-m=nuova]');
+  await page.click('[data-m=who][data-arg="0:"]'); await page.click('[data-m=who][data-arg="1:"]');   // due persone (il menu ricorda le scelte di prima)
+  await page.fill('#seed', '0'); await page.click('[data-m=inizia]');
+  await page.waitForSelector('[data-act=kit]');
+  assert.equal(await ev(() => DM.game.map.secret), 'oggi');
+  assert.match(await info(), /Hai trovato una mappa segreta: la Terra di oggi!.*1 di 14/s);
+  // il Sahara è deserto anche nella pagina
+  assert.equal(await ev(() => { const v = DM.SECRET_MASKS.mondo.view; return DM.bAt(DM.game, (10 - v[0]) / (v[1] - v[0]) * 60, (23 - v[2]) / (v[3] - v[2]) * 42); }), 'D');
+  await page.click('#toMenu');
+  assert.match(await page.locator('.explorer').innerText(), /1 di 14/);
+  await page.click('.explorer');
+  const list = await page.locator('#menu').innerText();
+  assert.match(list, /Esploratore[\s\S]*1 di 14[\s\S]*la Terra di oggi[\s\S]*\?\?\?/);
+  assert.equal(await page.locator('ul.secrets li.no').count(), 13);
+  assert.match(list, /Trova tutte le 14 mappe segrete \(1 di 14\)/);
+  await page.locator('[data-m=home]').first().click();
+  assert.deepEqual(errors, []);
+});
+
+test('mappa originale: si sblocca con tutte le mappe segrete (numero 6), poi sigla epica e capitale dorata', async () => {
+  if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
+  if (await page.locator('[data-m=gioca]').count() === 0) await page.locator('[data-m=home]').first().click();
+  // prima dello sblocco il 6 è una mappa normale
+  await newFromMenu(2, 6);
+  assert.equal(await ev(() => DM.game.map.secret), undefined);
+  assert.equal(await ev(() => DM.game.map.opts.orig), undefined);
+  // tutte le 14 trovate
+  await ev(() => localStorage.setItem('damamondo-segreti', JSON.stringify(DM.SECRETS.map(s => s.id))));
+  await page.click('#toMenu');
+  if (await page.locator('.explorer').count() === 0) await page.locator('[data-m=home]').first().click();
+  assert.match(await page.locator('.explorer').innerText(), /14 di 14 🥇/);
+  await page.click('.explorer');
+  assert.match(await page.locator('#menu').innerText(), /Sbloccata: la mappa originale/);
+  await shot('orig-esploratore-1');
+  // le Impostazioni non mostrano ancora i premi
+  await page.click('#menu [data-settings]');
+  assert.equal(await page.locator('#setPrize').isHidden(), true);
+  await page.click('#setClose');
+  await page.locator('[data-m=home]').first().click();
+  await newFromMenu(2, 6);
+  assert.equal(await ev(() => DM.game.map.secret), 'originale');
+  assert.match(await info(), /Hai trovato la mappa originale di Damamondo.*sigla epica.*capitale dorata/s);
+  await shot('orig-mappa');
+  // la partita salvata si riprende sulla stessa mappa
+  await page.reload(); await page.waitForSelector('[data-m=gioca]');
+  await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  await page.locator('[data-m=continua]').first().click();
+  assert.equal(await ev(() => DM.game.map.secret), 'originale');
+  // premi nelle Impostazioni: sigla epica e capitale dorata
+  await page.click('#hud [data-settings]');
+  assert.equal(await page.locator('#setPrize').isHidden(), false);
+  await page.selectOption('#setTheme', 'epica');
+  await page.check('#setGold');
+  assert.deepEqual(await ev(() => [DM.Prefs.get('theme'), DM.Prefs.get('gold')]), ['epica', true]);
+  await page.click('#setClose');
+  // la capitale dorata si disegna (anche nel disegno: un punto della stella è oro, non del colore del giocatore)
+  const G = await ev(() => { const G = DM.game; return G.sites.filter(s => s.k === 'cap').length; });
+  if (!G) {   // capitali non ancora messe: le mettono i bot per fare prima
+    await ev(() => { DM.setBot(DM.game, 0, 'normale'); DM.setBot(DM.game, 1, 'normale'); while (DM.game.phase !== 'play') DM.botSetup(DM.game); DM.setBot(DM.game, 0, ''); DM.setBot(DM.game, 1, ''); DM.redraw(); });
+  }
+  assert.equal(await ev(() => DM.goldCap(DM.game, 0)), true);
+  const px = await ev(() => {
+    const cap = DM.game.sites.find(s => s.k === 'cap' && s.o === 0), cv = document.createElement('canvas'); cv.width = cv.height = 100;
+    const cx = cv.getContext('2d'); cx.setTransform(10, 0, 0, 10, 50 - cap.x * 10, 50 - cap.y * 10);
+    DM.drawSite(cx, DM.game, cap, 10, false); return Array.from(cx.getImageData(50, 50, 1, 1).data);
+  });
+  assert.ok(px[0] > 200 && px[1] > 150 && px[2] < 120, 'oro: ' + px);
+  await page.evaluate(() => DM.focusMap && DM.focusMap(DM.game.sites.find(s => s.k === 'cap').x, DM.game.sites.find(s => s.k === 'cap').y));
+  await shot('orig-capitale');
+  // la sigla epica si "registra" senza errori e non satura
+  const peak = await ev(async () => { const b = await DM.Music.render(8, [], null, true); let m = 0; for (let c = 0; c < 2; c++) for (const v of b.getChannelData(c)) m = Math.max(m, Math.abs(v)); return m; });
+  assert.ok(peak > .05 && peak < 1, 'picco ' + peak);
+  // l'Esploratore mostra la catena completa
+  await page.click('#toMenu'); await page.click('.explorer');
+  assert.match(await page.locator('#menu').innerText(), /Trovata la mappa originale[\s\S]*Premi: la sigla epica/);
+  await ev(() => { localStorage.removeItem('damamondo-segreti'); DM.Prefs.set({ theme: 'classica', gold: false }); });
+  await page.locator('[data-m=home]').first().click();
+  assert.deepEqual(errors, []);
+});

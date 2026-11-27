@@ -29,6 +29,19 @@
   // la partita salvata dalla versione precedente diventa la prima delle 3
   if (store.get(KEY) === null && store.get(OLD)) { DM.Slots.create(store.get(OLD)); }
 
+  // ---- mappe segrete trovate (obiettivo "Esploratore") ----
+  const SKEY = 'damamondo-segreti';
+  DM.Secrets = {
+    list: () => { try { const l = JSON.parse(store.get(SKEY) || '[]'); return Array.isArray(l) ? l : []; } catch (e) { return []; } },
+    // segna la mappa come trovata; restituisce true se è la prima volta
+    found(id) { const l = this.list(); if (l.includes(id)) return false; l.push(id); store.set(SKEY, JSON.stringify(l)); return true; },
+    medal: n => n >= DM.SECRETS.length ? '🥇' : n >= 7 ? '🥈' : n >= 3 ? '🥉' : '',
+    // trovate tutte le 14: si sblocca la mappa originale (numero 6)
+    allFound() { const l = this.list(); return DM.SECRETS.every(z => l.includes(z.id)); },
+    // trovata la mappa originale: premi sbloccati (sigla epica e capitale dorata)
+    hasOrig() { return this.list().includes('originale'); }
+  };
+
   const when = t => new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const b = (m, label, cls, arg) => `<button type="button" class="big${cls ? ' ' + cls : ''}" data-m="${m}"${arg !== undefined ? ` data-arg="${arg}"` : ''}>${label}</button>`;
   const title = '<h1 class="title">DAMAMONDO<small>Classico</small></h1>';
@@ -37,7 +50,26 @@
   const lastLvl = ['normale', 'normale', 'normale', 'normale', 'normale', 'normale'];   // il livello si ricorda anche passando a "Persona"   // asking: partita di cui si chiede conferma per eliminarla
 
   const SCREENS = {
-    home: () => title + '<div class="stack">' + b('gioca', 'Gioca', 'go') + b('regole', 'Regole') + '</div>',
+    home: () => {
+      const S = DM.Secrets, n = S.list().filter(id => id !== 'originale').length, tot = DM.SECRETS.length;
+      return title + '<div class="stack">' + b('gioca', 'Gioca', 'go') + b('regole', 'Regole') + '</div>' +
+        `<button type="button" class="explorer" data-m="segreti">🧭 Mappe segrete: <b>${n} di ${tot}</b> ${S.medal(n)}${S.hasOrig() ? ' 📜' : ''}</button>`;
+    },
+    segreti: () => {
+      const S = DM.Secrets, got = S.list(), n = got.filter(id => id !== 'originale').length, tot = DM.SECRETS.length, md = S.medal(n);
+      const all = S.allFound(), orig = S.hasOrig(), O = DM.SECRET_ORIGINAL;
+      // la catena dei premi: 14 mappe segrete → la mappa originale → sigla epica e capitale dorata
+      const step = (ok, open, html) => `<li class="${ok ? 'ok' : open ? 'open' : 'no'}">${html}</li>`;
+      const chain = '<ol class="chain">' +
+        step(all, true, all ? '🥇 Tutte le mappe segrete trovate' : `🗺️ Trova tutte le ${tot} mappe segrete (${n} di ${tot})`) +
+        step(orig, all, orig ? `${O.emoji} Trovata ${O.name}!` : all ? '📜 Sbloccata: <b>la mappa originale</b>. Il suo numero? Il numero preferito di chi ha inventato il gioco, ed era anche il numero dei giocatori…' : '🔒 ??? (si sblocca con tutte le mappe segrete)') +
+        step(orig, false, orig ? '🎺 Premi: la <b>sigla epica</b> e la <b>capitale dorata</b> (si accendono nelle Impostazioni ⚙️)' : '🔒 ??? (due premi)') + '</ol>';
+      return '<h2>🧭 Esploratore</h2><div class="card"><p class="center"><b>' + n + ' di ' + tot + '</b> mappe segrete trovate ' + md + '</p>' +
+        '<p class="note"><small>🥉 con 3 · 🥈 con 7 · 🥇 con tutte. Si trovano scegliendo certi numeri mappa e certe opzioni in “Nuova partita”…</small></p>' +
+        '<ul class="secrets">' + DM.SECRETS.map(s2 => got.includes(s2.id) ? `<li>${s2.emoji} ${s2.name}</li>` : '<li class="no">❔ ???</li>').join('') + '</ul></div>' +
+        '<div class="card"><b>E dopo?</b>' + chain + '</div>' +
+        '<div class="stack">' + b('home', '← Menu', 'back') + '</div>';
+    },
     gioca: () => title + '<div class="stack">' + b('locale', 'Locale', 'go') + b('multi', 'Multiplayer') + b('home', '← Indietro', 'back') + '</div>',
     multi: () => title + '<div class="card soon"><b>Coming soon</b><p>Il multiplayer arriverà più avanti.</p></div><div class="stack">' + b('gioca', '← Indietro', 'back') + '</div>',
     locale: () => {
@@ -64,7 +96,7 @@
         <label>Umidità <select id="hum"><option value="0">Bassa</option><option value="1">Medio bassa</option><option value="2" selected>Media</option><option value="3">Medio alta</option><option value="4">Alta</option></select></label>
         <label>Temperatura <select id="tmp"><option value="0">Calda</option><option value="1">Medio calda</option><option value="2" selected>Media</option><option value="3">Medio fredda</option><option value="4">Fredda</option></select></label>
         <label>Varietà dei biomi <select id="cmp"><option value="0">Semplicissima</option><option value="1">Semplice</option><option value="2" selected>Media</option><option value="3">Estrema</option><option value="4">Estremissima</option></select></label>
-        <label>Numero mappa <input type="number" id="seed" min="1" inputmode="numeric" placeholder="a caso"></label>
+        <label>Numero mappa <input type="number" id="seed" min="0" inputmode="numeric" placeholder="a caso"></label>
       </div><small>Stesse opzioni e stesso numero danno la stessa mappa.</small></div>` +
       '<div class="stack">' + b('inizia', 'Inizia', 'go') + b('locale', '← Indietro', 'back') + '</div>',
     regole: () => '<div class="stack">' + b('home', '← Menu', 'back') + '</div><h2>Regolamento</h2>' +
@@ -101,7 +133,10 @@
 
   function start() {
     const opts = { isl: +$('isl').value, hum: +$('hum').value, temp: +$('tmp').value, comp: +$('cmp').value };
-    const seed = Math.floor(+$('seed').value) || Math.floor(Math.random() * 9999) + 1;
+    // numero mappa: vuoto = a caso; lo 0 vale (mappe segrete)
+    const raw = $('seed').value.trim(), seed = raw !== '' && isFinite(+raw) ? Math.max(0, Math.floor(+raw)) : Math.floor(Math.random() * 9999) + 1;
+    // il 6 dà la mappa originale solo dopo aver trovato tutte le mappe segrete (resta scritto nella partita salvata)
+    if (seed === 6 && raw !== '' && DM.Secrets.allFound()) opts.orig = 1;
     $('menuBody').innerHTML = title + '<p class="msg center">Creo la mappa…</p>';
     setTimeout(() => {
       const G = DM.newGame(opts, seed);
@@ -109,13 +144,23 @@
       for (let i = 0; i < np; i++) if (who[i]) DM.setBot(G, i, who[i]);
       const slot = DM.Slots.create(DM.serialize(G));
       DM.playGame(G, slot);
+      if (G.map.secret) {   // mappa segreta trovata!
+        const s2 = DM.secretInfo(G.map.secret), first = DM.Secrets.found(G.map.secret), n = DM.Secrets.list().length;
+        if (G.map.secret === 'originale') DM.ui.msg = `${s2.emoji} Hai trovato ${s2.name}!` + (first ? ' Premi sbloccati: la sigla epica 🎺 e la capitale dorata ⭐. Accendili nelle Impostazioni ⚙️' : '');
+        else {
+          const k = n - (DM.Secrets.hasOrig() ? 1 : 0), tot = DM.SECRETS.length;
+          DM.ui.msg = `${s2.emoji} Hai trovato una mappa segreta: ${s2.name}!` + (first ? ` Mappe segrete trovate: ${k} di ${tot} ${DM.Secrets.medal(k)}` + (k === tot ? ' Hai sbloccato qualcosa: guarda nell’Esploratore 🧭' : '') : '');
+        }
+        if (DM.Sfx) DM.Sfx.play('capNew');
+        DM.redraw();
+      }
       if (!slot) { DM.ui.msg = 'Attenzione: qui non riesco a salvare la partita nel telefono. Usa "Scarica file" in Salvataggi.'; DM.redraw(); }
     }, 30);
   }
 
   const ACT = {
     home: () => DM.showMenu('home'), gioca: () => DM.showMenu('gioca'), multi: () => DM.showMenu('multi'),
-    locale: () => DM.showMenu('locale'), regole: () => DM.showMenu('regole'),
+    locale: () => DM.showMenu('locale'), regole: () => DM.showMenu('regole'), segreti: () => DM.showMenu('segreti'),
     nuova: () => { np = 2; DM.showMenu('nuova'); },
     np: n => { np = +n; document.querySelectorAll('[data-m=np]').forEach(x => { x.classList.toggle('on', +x.dataset.arg === np); x.setAttribute('aria-pressed', +x.dataset.arg === np); }); redrawWho(); },
     who: a => { const [i, lvl] = a.split(':'); who[+i] = lvl; if (lvl) lastLvl[+i] = lvl; redrawWho(); },

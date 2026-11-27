@@ -147,6 +147,62 @@
   }
   const sectionOf = bar => Math.floor((bar % LOOP) / 16);
 
+  // ---------- la versione epica (premio della mappa originale) ----------
+  // La stessa melodia, più lenta e solenne (76 battiti): coro di archi grave, ottoni in ottava,
+  // ostinato di archi a sedicesimi, timpani e tamburi grandi, piatti che si gonfiano ogni 4 battute.
+  const EBPM = 76, EBEAT = 60 / EBPM, EBAR = 4 * EBEAT;
+  function stab(c, out, m, t, vol) {            // archi gravi staccati (ostinato)
+    const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 650;
+    const g = c.createGain(); env(c, g, t, .008, vol, .04, .12);
+    o.connect(f); f.connect(g); g.connect(out); o.start(t); o.stop(t + .25);
+  }
+  function brass(c, out, m, t, dur, vol) {      // ottoni: due seghe aperte, il filtro si apre all'attacco
+    const f = c.createBiquadFilter(); f.type = 'lowpass';
+    f.frequency.setValueAtTime(400, t); f.frequency.linearRampToValueAtTime(1600, t + .12); f.frequency.linearRampToValueAtTime(1000, t + dur);
+    const g = c.createGain(); env(c, g, t, .07, vol, Math.max(0, dur - .2), .35);
+    f.connect(g); g.connect(out);
+    [-8, 8].forEach(d => { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m); o.detune.value = d; o.connect(f); o.start(t); o.stop(t + dur + .5); });
+  }
+  function cymbal(c, out, t, len, vol) {        // piatto che si gonfia (rullo) fino al tempo t + len
+    const s = c.createBufferSource(); s.buffer = noise(c); s.loop = true;
+    const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3500;
+    const g = c.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + len); g.gain.exponentialRampToValueAtTime(.0001, t + len + 1.8);
+    s.connect(f); f.connect(g); g.connect(out); s.start(t); s.stop(t + len + 1.9);
+  }
+  function playEpic(c, out, bar, t, sec, quiet) {
+    const i = bar % 16, chord = CH[PROG[i]], root = chord[0], B = EBEAT, k = quiet ? .6 : 1;
+    // coro di archi: accordo pieno su tre ottave
+    pad(c, out, chord.map(m => m + 12).concat(root - 12), t, EBAR - .1);
+    if (sec > 0) pad(c, out, chord.map(m => m + 24), t, EBAR - .1);
+    // basso lungo e ostinato a sedicesimi (non nella pausa)
+    bass(c, out, root - 12, t, EBAR - .1);
+    if (sec !== 3) for (let j = 0; j < 16; j++) stab(c, out, (j % 4 === 2 ? chord[2] : root) - (j % 8 < 4 ? 0 : 12), t + j * B / 4, (j % 4 ? .028 : .045) * k);
+    // la melodia: ottoni (sezione 1), ottoni in ottava + flauto (sezione 2); frammenti nella pausa
+    if (sec === 1 || sec === 2) {
+      let b = 0;
+      MEL[i].forEach(([m, d]) => {
+        if (m !== null) {
+          brass(c, out, m - 12, t + b * B, d * B * .92, sec === 2 ? .05 : .045);
+          if (sec === 2) { brass(c, out, m, t + b * B, d * B * .92, .03); flute(c, out, m + 12, t + b * B, d * B * .9, .05); }
+        }
+        b += d;
+      });
+    } else if (sec === 3) { if (i % 2 === 0) bell(c, out, MEL[i][0][0] + 12, t); }
+    else if (i % 4 === 0) brass(c, out, root + 12, t, 3.5 * B, .03);   // apertura: un richiamo di corni
+    // timpani e tamburi grandi
+    if (sec === 0) { drum(c, out, t, 70, 40, .3 * k, .9); if (i % 2) drum(c, out, t + 2 * B, 70, 40, .22 * k, .9); }
+    if (sec === 1 || sec === 2) {
+      drum(c, out, t, 65, 35, .4 * k, 1); drum(c, out, t + 1.5 * B, 80, 45, .2 * k, .6); drum(c, out, t + 2 * B, 65, 35, .34 * k, 1);
+      if (sec === 2) [3, 3.5].forEach(x => drum(c, out, t + x * B, 110, 60, .2 * k, .4));
+      if (i % 4 === 3) { [3, 3.25, 3.5, 3.75].forEach((x, n) => drum(c, out, t + x * B, 90 + n * 8, 50, (.14 + n * .04) * k, .45)); cymbal(c, out, t + 2 * B, 2 * B, .05 * k); }
+      if (sec === 2 && !quiet) for (let j = 0; j < 8; j++) shaker(c, out, t + j * B / 2, j % 2 ? .02 : .035);
+    }
+    if (sec === 3 && i === 15) { for (let j = 0; j < 12; j++) drum(c, out, t + 2 * B + j * B / 6, 75, 45, .05 + j * .02, .3); cymbal(c, out, t + 2 * B, 2 * B, .06 * k); }
+  }
+  // quale sigla suona: la classica, o l'epica se è stata sbloccata e scelta nelle Impostazioni
+  const epic = () => P.get('theme') === 'epica' && !!(DM.Secrets && DM.Secrets.hasOrig());
+
   // ---------- riproduzione nel sito ----------
   // Un solo contesto audio per musica ed effetti sonori (js/sfx.js); le impostazioni stanno in DM.Prefs.
   const P = DM.Prefs;
@@ -168,8 +224,9 @@
     if (!ctx || ctx.state !== 'running' || !P.get('music')) return;
     if (nextTime < ctx.currentTime - .05) nextTime = ctx.currentTime + .1;   // dopo una pausa non recupera le battute perse
     while (nextTime < ctx.currentTime + 1.2) {
-      playBar(ctx, out, nextBar, nextTime, sectionOf(nextBar), scene === 'game');
-      nextBar = (nextBar + 1) % LOOP; nextTime += BAR;
+      const e = epic();
+      (e ? playEpic : playBar)(ctx, out, nextBar, nextTime, sectionOf(nextBar), scene === 'game');
+      nextBar = (nextBar + 1) % LOOP; nextTime += e ? EBAR : BAR;
     }
   }
   const wanted = () => P.get('music') || P.get('sfx');
@@ -187,6 +244,11 @@
     setEnabled(on) { P.set({ music: !!on }); if (on) context(); apply(); },
     setVolume(v) { P.set({ volume: Math.max(0, Math.min(1, +v)) }); apply(); },
     setScene(s) { scene = s; apply(); },
+    // cambia sigla: si riparte dall'inizio (con una piccola pausa)
+    setTheme(t) {
+      P.set({ theme: t === 'epica' ? 'epica' : 'classica' });
+      if (ctx) { master.gain.cancelScheduledValues(ctx.currentTime); master.gain.setValueAtTime(.0001, ctx.currentTime); nextBar = 0; nextTime = ctx.currentTime + 1.6; apply(); }
+    },
     // contesto audio pronto (dopo il primo tocco), per gli effetti sonori
     get ctx() { return ctx && ctx.state === 'running' ? ctx : null; },
     lib: { env, noise, drum, reverb, hz },
@@ -204,11 +266,11 @@
     },
     // "Registra" la sigla in un file (per i video): durata in secondi, colpi forti ai secondi indicati, sfumata finale.
     // order: sezione di ogni battuta (per il video si parte più in fretta con la melodia).
-    async render(seconds, hits, order) {
+    async render(seconds, hits, order, epicTheme) {
       const rate = 48000, c = new OfflineAudioContext(2, Math.ceil(seconds * rate), rate);
       const m = c.createGain(); m.gain.value = .9; m.connect(c.destination);
       const o = chain(c, m);
-      for (let b = 0, t = 0; t < seconds; b++, t += BAR) playBar(c, o, b, t, order ? order(b) : sectionOf(b), false);
+      for (let b = 0, t = 0; t < seconds; b++, t += epicTheme ? EBAR : BAR) (epicTheme ? playEpic : playBar)(c, o, b, t, order ? order(b) : sectionOf(b), false);
       (hits || []).forEach(t => boom(c, o, t, .9));
       m.gain.setValueAtTime(.9, Math.max(0, seconds - 3)); m.gain.linearRampToValueAtTime(0.0001, seconds - .05);
       return c.startRendering();

@@ -89,7 +89,7 @@
     }
     if (G.phase === 'num') { f.innerHTML = '<b>Quanti giocatori?</b>' + row([2, 3, 4, 5, 6].map(n => btn('players', n, n)).join('')); return; }
     if (G.phase === 'kit') {
-      f.innerHTML = `<b style="color:${pcol(G.p)}">${G.names[G.p]}</b>: scegli il kit` +
+      f.innerHTML = (ui.msg ? `<p class="msg">${ui.msg}</p>` : '') + `<b style="color:${pcol(G.p)}">${G.names[G.p]}</b>: scegli il kit` +
         row(DM.KITS.map((k, i) => btn('kit', k.name, i)).join('')) + `<small>${kitHelp()}</small>`;
       return;
     }
