@@ -765,6 +765,7 @@ test('mappe segrete: numero 0 = la Terra di oggi, messaggio e Esploratore', asyn
   await page.waitForSelector('[data-act=kit]');
   assert.equal(await ev(() => DM.game.map.secret), 'oggi');
   assert.match(await info(), /Hai trovato una mappa segreta: la Terra di oggi!.*1 di 14/s);
+  assert.match(await info(), /Lo sapevi\? Circa il 71%/);
   // il Sahara è deserto anche nella pagina
   assert.equal(await ev(() => { const v = DM.SECRET_MASKS.mondo.view; return DM.bAt(DM.game, (10 - v[0]) / (v[1] - v[0]) * 60, (23 - v[2]) / (v[3] - v[2]) * 42); }), 'D');
   await page.click('#toMenu');
@@ -773,6 +774,7 @@ test('mappe segrete: numero 0 = la Terra di oggi, messaggio e Esploratore', asyn
   const list = await page.locator('#menu').innerText();
   assert.match(list, /Esploratore[\s\S]*1 di 14[\s\S]*la Terra di oggi[\s\S]*\?\?\?/);
   assert.equal(await page.locator('ul.secrets li.no').count(), 13);
+  assert.match(list, /la Terra di oggi\s*💡 Circa il 71%/);
   assert.match(list, /Trova tutte le 14 mappe segrete \(1 di 14\)/);
   await page.locator('[data-m=home]').first().click();
   assert.deepEqual(errors, []);

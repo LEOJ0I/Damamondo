@@ -62,12 +62,12 @@
       const step = (ok, open, html) => `<li class="${ok ? 'ok' : open ? 'open' : 'no'}">${html}</li>`;
       const chain = '<ol class="chain">' +
         step(all, true, all ? '🥇 Tutte le mappe segrete trovate' : `🗺️ Trova tutte le ${tot} mappe segrete (${n} di ${tot})`) +
-        step(orig, all, orig ? `${O.emoji} Trovata ${O.name}!` : all ? '📜 Sbloccata: <b>la mappa originale</b>. Il suo numero? Il numero preferito di chi ha inventato il gioco, ed era anche il numero dei giocatori…' : '🔒 ??? (si sblocca con tutte le mappe segrete)') +
+        step(orig, all, orig ? `${O.emoji} Trovata ${O.name}!<small class="fact">💡 ${O.fact}</small>` : all ? '📜 Sbloccata: <b>la mappa originale</b>. Il suo numero? Il numero preferito di chi ha inventato il gioco, ed era anche il numero dei giocatori…' : '🔒 ??? (si sblocca con tutte le mappe segrete)') +
         step(orig, false, orig ? '🎺 Premi: la <b>sigla epica</b> e la <b>capitale dorata</b> (si accendono nelle Impostazioni ⚙️)' : '🔒 ??? (due premi)') +
         (orig ? step(true, false, '⭐ La mappa del simbolo si è spostata: ora è al numero più grande fatto di soli 9') : '') + '</ol>';
       return '<h2>🧭 Esploratore</h2><div class="card"><p class="center"><b>' + n + ' di ' + tot + '</b> mappe segrete trovate ' + md + '</p>' +
         '<p class="note"><small>🥉 con 3 · 🥈 con 7 · 🥇 con tutte. Si trovano scegliendo certi numeri mappa e certe opzioni in “Nuova partita”…</small></p>' +
-        '<ul class="secrets">' + DM.SECRETS.map(s2 => got.includes(s2.id) ? `<li>${s2.emoji} ${s2.name}</li>` : '<li class="no">❔ ???</li>').join('') + '</ul></div>' +
+        '<ul class="secrets">' + DM.SECRETS.map(s2 => got.includes(s2.id) ? `<li>${s2.emoji} ${s2.name}<small class="fact">💡 ${s2.fact}</small></li>` : '<li class="no">❔ ???</li>').join('') + '</ul></div>' +
         '<div class="card"><b>E dopo?</b>' + chain + '</div>' +
         '<div class="stack">' + b('home', '← Menu', 'back') + '</div>';
     },
@@ -146,7 +146,8 @@
       const slot = DM.Slots.create(DM.serialize(G));
       DM.playGame(G, slot);
       if (G.map.symbol) {   // la mappa del simbolo (sfondo dell'icona e del menu)
-        DM.ui.msg = '⭐ Hai trovato la mappa del simbolo di Damamondo: è quella dietro la stella dell’icona e sullo sfondo del menu!';
+        DM.ui.msg = '⭐ Hai trovato la mappa del simbolo di Damamondo: è quella dietro la stella dell’icona e sullo sfondo del menu!' +
+          '<br><small class="fact">💡 Lo sapevi? È la mappa numero 7 con tutte le opzioni medie: in Damamondo ogni numero è come un seme, e dallo stesso seme nasce sempre lo stesso mondo.</small>';
         DM.redraw();
       }
       if (G.map.secret) {   // mappa segreta trovata!
@@ -156,6 +157,7 @@
           const k = n - (DM.Secrets.hasOrig() ? 1 : 0), tot = DM.SECRETS.length;
           DM.ui.msg = `${s2.emoji} Hai trovato una mappa segreta: ${s2.name}!` + (first ? ` Mappe segrete trovate: ${k} di ${tot} ${DM.Secrets.medal(k)}` + (k === tot ? ' Hai sbloccato qualcosa: guarda nell’Esploratore 🧭' : '') : '');
         }
+        if (s2.fact) DM.ui.msg += `<br><small class="fact">💡 Lo sapevi? ${s2.fact}</small>`;
         // fanfara: grande per la mappa originale e quando le hai trovate tutte, normale per una nuova, piccola se l'avevi già trovata
         if (DM.Sfx) DM.Sfx.play(!first ? 'capNew' : G.map.secret === 'originale' || (DM.Secrets.allFound() && !DM.Secrets.hasOrig()) ? 'secretBig' : 'secret');
         DM.redraw();

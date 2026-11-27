@@ -145,3 +145,8 @@ test('la mappa del simbolo (sfondo dell’icona e del menu): numero 6 prima dell
   assert.equal(H.seed, 6); assert.equal(H.map.symbol, true);
   assert.deepEqual(Array.from(H.map.cells), Array.from(G.map.cells));
 });
+
+test('ogni mappa segreta ha la sua curiosità', () => {
+  for (const s of DM.SECRETS.concat(DM.SECRET_ORIGINAL)) assert.ok(s.fact && s.fact.length > 40 && s.fact.length < 260, s.id + ': ' + s.fact);
+  assert.equal(new Set(DM.SECRETS.map(s => s.fact)).size, DM.SECRETS.length, 'tutte diverse');
+});
