@@ -143,10 +143,15 @@ test('partita completa sul telefono', async (t) => {
     assert.match(await info(), /Troppo lontano/);
     await page.selectOption('#sp', 'S');
     await tapCm(A[0] + 1.5, A[1]);
-    assert.match(await info(), /Soldato schierato/);
-    await page.selectOption('#sp', 'S');
+    assert.match(await info(), /Soldato schierato.*Nella riserva: ancora \d+/s);
+    // resta selezionato: se ne mette subito un altro, poi "Deseleziona"
+    assert.equal(await page.inputValue('#sp'), 'S');
+    assert.equal(await page.locator('#sp option').first().innerText(), '✕ Deseleziona');
     await tapCm(A[0] + 1.5, A[1] + .6);
     assert.match(await info(), /Soldato schierato/);
+    await act('Deseleziona');
+    assert.equal(await ev(() => DM.ui.spawn), '');
+    assert.equal(await page.locator('#sp option').first().innerText(), 'Schiera o costruisci dalla riserva…');
     await tapCm(A[0] + 1.5, A[1]);
     assert.match(await info(), /Tocca la destinazione.*Soldato su/s);
     const before = await ev(() => { const u = DM.ui.sel; return [u.id, u.x, u.y]; });
@@ -275,6 +280,7 @@ test('partita completa sul telefono', async (t) => {
     await page.selectOption('#sp', 'acc');
     await tapCm(P[0], P[1]);
     assert.match(await info(), /Accampamento costruito/);
+    await page.selectOption('#sp', '');   // anche la prima voce della riserva deseleziona
     await selectAt(A[0], A[1], /^Capitale/m);
     await act('Collega con strada');
     await tapCm(P[0], P[1]);
@@ -394,6 +400,7 @@ test('pulsanti dei pannelli: pozioni, bacche, Superbomba, dado dei Maghi, edific
     await act('5');
     await page.waitForFunction(() => /Miniera costruita: dado 5/.test(document.getElementById('info').innerText), null, { timeout: 5000 });
     assert.equal(await ev(() => DM.cur(DM.game).dice), 1);
+    await act('Deseleziona');
   });
 
   await t.test('pozioni dalla Capitale', async () => {
@@ -831,5 +838,25 @@ test('mappa originale: si sblocca con tutte le mappe segrete (numero 6), poi sig
   await page.click('#toMenu'); await page.click('.explorer');
   await ev(() => { localStorage.removeItem('damamondo-segreti'); DM.Prefs.set({ theme: 'classica', gold: false }); });
   await page.locator('[data-m=home]').first().click();
+  assert.deepEqual(errors, []);
+});
+
+test('computer: la mappa si trascina col mouse, e il trascinamento non conta come clic', async () => {
+  await newFromMenu(2);
+  for (let i = 0; i < 3; i++) await page.click('#zi');
+  const box = await page.locator('#vp').boundingBox();
+  const before = await ev(() => [document.getElementById('vp').scrollLeft, document.getElementById('vp').scrollTop, DM.ui.msg]);
+  const cx = box.x + box.width / 2, cy = box.y + box.height * .35;
+  await page.mouse.move(cx, cy); await page.mouse.down();
+  await page.mouse.move(cx - 60, cy - 40, { steps: 5 }); await page.mouse.move(cx - 120, cy - 80, { steps: 5 });
+  await page.mouse.up();
+  const after = await ev(() => [document.getElementById('vp').scrollLeft, document.getElementById('vp').scrollTop, DM.ui.msg, DM.game.phase]);
+  assert.ok(Math.abs(after[0] - before[0] - 120) < 3 && Math.abs(after[1] - before[1] - 80) < 3, 'spostata: ' + before + ' → ' + after);
+  assert.equal(after[2], before[2], 'nessun clic sulla mappa');
+  // un clic normale (senza trascinare) funziona ancora: dopo il kit, il clic prova a mettere la Capitale
+  await act('Tribù');
+  await ev(() => { DM.ui.msg = 'prima'; });
+  await page.mouse.click(cx, cy);
+  assert.notEqual(await ev(() => DM.game.phase === 'cap' && DM.game.sites.length === 0 ? DM.ui.msg : 'capitale messa'), 'prima');
   assert.deepEqual(errors, []);
 });
