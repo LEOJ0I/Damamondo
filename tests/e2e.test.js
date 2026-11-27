@@ -645,3 +645,51 @@ test('schermata di gioco: mappa a tutto schermo, tendina, riquadro, zoom con due
   assert.ok(await ev(() => DM.ui.Z) < z1, 'Ctrl + rotellina rimpicciolisce');
   assert.deepEqual(errors, []);
 });
+
+test('bot: si sceglie nel menu, gioca da solo il suo turno, poi tocca di nuovo a te', async () => {
+  if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
+  await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  while ((await page.locator('[data-m=elimina]').count()) >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
+  await page.click('[data-m=nuova]');
+  await page.click('[data-m=np][data-arg="3"]');
+  assert.match(await page.locator('#whoCard').innerText(), /Giocatore 1[\s\S]*Giocatore 2[\s\S]*Giocatore 3/);
+  await page.click('[data-m=who][data-arg="1:normale"]');
+  await page.click('[data-m=who][data-arg="2:normale"]');
+  await page.selectOption('[data-lvl="2"]', 'facile');
+  await page.click('[data-m=who][data-arg="2:"]');          // ci ripenso: il 3 è una persona…
+  await page.click('[data-m=who][data-arg="2:facile"]');    // …no, bot facile
+  assert.match(await page.locator('#whoCard').innerText(), /Ammiraglia Blu[\s\S]*Barone Verde/);
+  await page.fill('#seed', '7'); await page.click('[data-m=inizia]');
+  await page.waitForSelector('[data-act=kit]');
+  assert.deepEqual(await ev(() => DM.game.bots), [null, 'normale', 'facile']);
+  await act('Tribù');
+  const A = await findSpot(); await tapCm(A[0], A[1]);
+  // i due bot scelgono kit e Capitale da soli
+  await page.waitForFunction(() => DM.game.phase === 'play' && DM.game.p === 0 && !DM.botRunning(), null, { timeout: 20000 });
+  assert.equal(await ev(() => DM.game.sites.filter(s => s.k === 'cap').length), 3);
+  assert.match(await hud(), /Giocatore 1/);
+  // fine turno: gioca Ammiraglia Blu; intanto non si può fare niente (solo guardare)
+  await page.click('#end');
+  await page.waitForFunction(() => DM.game.p === 1);
+  assert.match(await hud(), /Ammiraglia Blu/);
+  assert.equal(await page.isDisabled('#end'), true);
+  assert.match(await info(), /Ammiraglia Blu 🤖 sta giocando/);
+  await page.waitForFunction(() => DM.game.p === 0 && !DM.botRunning(), null, { timeout: 60000 });
+  assert.match(await hud(), /Giocatore 1.*Giro 2/s);
+  assert.ok(await ev(() => DM.game.units.filter(u => u.o === 1).length) > 0, 'il bot ha schierato truppe');
+  assert.equal(await page.isDisabled('#end'), false);
+  // "Più veloce"
+  await page.click('#end');
+  await page.waitForFunction(() => DM.game.p === 1);
+  await act('Più veloce');
+  await page.waitForFunction(() => DM.game.p === 0 && !DM.botRunning(), null, { timeout: 60000 });
+  // si esce al menu mentre gioca un bot: rientrando, il bot finisce il suo turno
+  await page.click('#end');
+  await page.waitForFunction(() => DM.game.p === 1);
+  await page.click('#toMenu');
+  await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  await page.locator('.card.slot', { hasText: 'tocca a Ammiraglia Blu' }).first().locator('[data-m=continua]').click();
+  await page.waitForFunction(() => DM.game.p === 0 && !DM.botRunning(), null, { timeout: 60000 });
+  assert.match(await hud(), /Giocatore 1.*Giro 4/s);
+  assert.deepEqual(errors, []);
+});

@@ -15,7 +15,7 @@ function loadDM() {
 }
 
 const INTRO = 'Damamondo (Damamondo Classico) è un gioco di strategia da tavolo per 2 o più giocatori ' +
-  'che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo. ' +
+  'che si gioca su carta (4 fogli A4 con righello, dadi e perline) oppure sul telefono, a turni sullo stesso dispositivo, anche contro avversari guidati dal computer (bot, in tre livelli). ' +
   'Ogni giocatore guida un popolo: costruisce città, porti e miniere, vende i minerali al Banco, addestra Soldati, Navi, ' +
   'Elicotteri e Carrarmati e conquista territori su una mappa di 60 × 42 cm con biomi, fiumi e vulcani.';
 const FACTS = 'Non si gioca a caselle: la mappa ha biomi con confini morbidi, le truppe si muovono liberamente e le distanze si misurano in centimetri con il righello. ' +
