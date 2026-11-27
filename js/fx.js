@@ -540,7 +540,11 @@
         const cellsNew = [], Z = DM.BIOMES.indexOf('Z'), V = DM.BIOMES.indexOf('V');
         for (let i = 0; i < G.map.cells.length; i++) if (G.map.cells[i] !== a.cells[i] && (G.map.cells[i] === Z || G.map.cells[i] === V)) cellsNew.push(i);
         const volc = G.map.erupt.slice(a.erupt).map(z => G.map.volc[z.v]).filter(Boolean);
-        if (volc.length) await eruption(R, G, volc, cellsNew);
+        if (volc.length) {
+          if (FX.on && DM.focusMap) DM.focusMap(volc[0][0], volc[0][1]);   // si guarda il vulcano mentre erutta
+          await eruption(R, G, volc, cellsNew);
+          if (FX.on && DM.focusMap) DM.focusMap();                       // poi la Capitale di chi gioca
+        }
       } else if (ch.bridges.length || ch.roads.length) {
         // ponte o strada che si allunga
         const segs = ch.bridges.map(b => [b.x1, b.y1, b.x2, b.y2, b.lv === 2 ? '#444' : '#8a6b3b', .3]).concat(ch.roads.map(r => [r.x1, r.y1, r.x2, r.y2, '#5b4a3a', .24]));

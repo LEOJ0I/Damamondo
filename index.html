@@ -50,54 +50,83 @@
     </nav>
   </section>
 
+  <!-- Partita: la mappa occupa tutto lo schermo; sopra la barra del giocatore, sotto i comandi, a lato la tendina -->
   <div id="game" class="game" hidden>
-  <header class="w panel" id="hud"></header>
-  <div class="w vpw" id="vpw">
-    <div id="vp"><canvas id="c" aria-label="Mappa di gioco"></canvas></div>
+  <div class="vpw" id="vpw">
+    <div id="vp"><div id="vpin"><canvas id="c" aria-label="Mappa di gioco"></canvas></div></div>
     <!-- animazioni sopra la mappa: non prendono i tocchi -->
     <canvas id="fxc" aria-hidden="true"></canvas>
     <div id="dice" hidden aria-hidden="true"></div>
     <div id="banner" aria-hidden="true"></div>
   </div>
-  <section class="w panel" id="info" aria-live="polite"></section>
-
-  <nav class="w r" aria-label="Comandi">
-    <button type="button" class="go playonly" id="end">Fine turno</button>
-    <button type="button" class="playonly" id="undo">Annulla mossa</button>
-    <button type="button" class="playonly" id="army">Forma esercito</button>
-    <button type="button" class="playonly" id="shoot">Spara</button>
-    <button type="button" class="playonly" id="ced">Cedi territorio</button>
-    <button type="button" id="zi">Zoom +</button>
-    <button type="button" id="zo">Zoom −</button>
-  </nav>
-  <div class="w r">
-    <select id="sp" class="playonly" aria-label="Riserva"><option value="">Schiera o costruisci dalla riserva…</option></select>
+  <header id="hud" class="hud"></header>
+  <div class="zoom">
+    <button type="button" id="zi" aria-label="Ingrandisci">+</button>
+    <button type="button" id="zo" aria-label="Rimpicciolisci">−</button>
   </div>
 
-  <details class="w panel" id="ecoP">
-    <summary>Risorse, Banco e acquisti</summary>
-    <div id="ecoT"></div>
-    <div class="r"><select id="bm" aria-label="Materiale da vendere"></select><input type="number" id="bq" value="1" min="1" inputmode="numeric" aria-label="Lotti"><button type="button" id="bs" class="playonly">Vendi al Banco</button></div>
-    <div class="r"><select id="by" aria-label="Cosa comprare"></select><button type="button" id="bb" class="playonly">Compra</button></div>
-  </details>
+  <div class="dock">
+    <div class="sheet" id="sheet">
+      <button type="button" class="grip" id="grip" aria-label="Riduci o allarga il riquadro" aria-expanded="true"><i></i></button>
+      <section id="info" aria-live="polite"></section>
+    </div>
+    <nav class="bar" aria-label="Comandi">
+      <label class="tool playonly-wrap" id="spT"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>Riserva</span><b class="badge" id="spN"></b>
+        <select id="sp" class="playonly" aria-label="Riserva: schiera o costruisci"><option value="">Schiera o costruisci dalla riserva…</option></select></label>
+      <button type="button" class="tool playonly" id="army"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span>Esercito</span></button>
+      <button type="button" class="tool playonly" id="shoot"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg><span>Spara</span></button>
+      <button type="button" class="tool playonly" id="undo"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6L4 11l5 5"/><path d="M4 11h10a5 5 0 0 1 0 10h-2"/></svg><span>Annulla</span></button>
+      <button type="button" class="tool playonly" id="ced"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/></svg><span>Cedi</span></button>
+      <button type="button" class="tool go playonly" id="end"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l10 8-10 8z"/><path d="M19 4v16"/></svg><span>Fine turno</span></button>
+    </nav>
+  </div>
 
-  <details class="w panel" id="opt">
-    <summary>Visualizza</summary>
-    <label><input type="checkbox" id="oS">Righe e nomi dei fogli</label>
-    <label><input type="checkbox" id="oG">Quadretti (1 cm)</label>
-    <label><input type="checkbox" id="oB" checked>Biomi</label>
-    <label><input type="checkbox" id="oR">Territori</label>
-    <label><input type="checkbox" id="oU" checked>Truppe</label>
-    <div id="leg"></div>
-  </details>
-
-  <details class="w panel" id="saveP">
-    <summary>Salvataggi</summary>
-    <div id="saveT"></div>
-    <small id="seedInfo"></small>
-  </details>
-
-  <p class="w help"><small>Tocca una tua truppa, poi dove muoverla. Tocca un tuo edificio per vedere cosa contiene e cosa puoi fare. Le truppe del kit sono nella riserva: schierale vicino a Capitale, Città o Accampamenti (navi nei Porti, Aereo Carro negli Aeroporti). Le distanze sono in cm come sul foglio.</small></p>
+  <!-- tendina: Banco e acquisti, vista, partita, aiuto -->
+  <aside id="side" class="drawer" hidden aria-label="Risorse e opzioni">
+    <div class="scrim" data-side-close></div>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sideTitle">
+      <div class="phead"><h2 id="sideTitle">Risorse e opzioni</h2><button type="button" class="x" data-side-close aria-label="Chiudi">✕</button></div>
+      <nav class="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="ecoP">Banco</button>
+        <button type="button" role="tab" data-tab="opt">Vista</button>
+        <button type="button" role="tab" data-tab="saveP">Partita</button>
+        <button type="button" role="tab" data-tab="helpP">Aiuto</button>
+      </nav>
+      <section class="tab" id="ecoP" role="tabpanel">
+        <p class="msg" id="ecoMsg"></p>
+        <div id="ecoT"></div>
+        <h3>Vendi al Banco</h3>
+        <div class="r"><select id="bm" aria-label="Materiale da vendere"></select><input type="number" id="bq" value="1" min="1" inputmode="numeric" aria-label="Lotti"><button type="button" id="bs" class="playonly">Vendi</button></div>
+        <h3>Compra nell’edificio</h3>
+        <div class="r"><select id="by" aria-label="Cosa comprare"></select><button type="button" id="bb" class="playonly go">Compra</button></div>
+        <small id="byCost"></small>
+      </section>
+      <section class="tab" id="opt" role="tabpanel">
+        <label class="row"><span>Biomi</span><input type="checkbox" id="oB" class="switch" checked></label>
+        <label class="row"><span>Territori</span><input type="checkbox" id="oR" class="switch"></label>
+        <label class="row"><span>Truppe</span><input type="checkbox" id="oU" class="switch" checked></label>
+        <label class="row"><span>Quadretti (1 cm)</span><input type="checkbox" id="oG" class="switch"></label>
+        <label class="row"><span>Righe e nomi dei fogli</span><input type="checkbox" id="oS" class="switch"></label>
+        <h3>Legenda</h3>
+        <div id="leg"></div>
+      </section>
+      <section class="tab" id="saveP" role="tabpanel">
+        <div id="saveT"></div>
+        <small id="seedInfo"></small>
+      </section>
+      <section class="tab" id="helpP" role="tabpanel">
+        <ul class="help">
+          <li><b>Muovere:</b> tocca una tua truppa, poi dove vuoi portarla. Il cerchio bianco è fin dove arriva.</li>
+          <li><b>Edifici:</b> tocca un tuo edificio per vedere cosa contiene e cosa puoi fare.</li>
+          <li><b>Riserva:</b> le truppe e gli edifici del kit. Le truppe si schierano vicino a Capitale, Città o Accampamenti (navi nei Porti, Aereo Carro negli Aeroporti).</li>
+          <li><b>Mappa:</b> trascina con un dito per spostarti, allarga o stringi con due dita (o usa + e −).</li>
+          <li><b>Animazioni:</b> un tocco le salta. Si spengono dalle Impostazioni (ingranaggio).</li>
+          <li>Le distanze sono in cm, come sul foglio.</li>
+        </ul>
+        <p><a href="regole.html" target="_blank" rel="noopener">Regole complete</a></p>
+      </section>
+    </div>
+  </aside>
   </div>
 
   <!-- Impostazioni (si aprono con l'ingranaggio, nel menu e in partita) -->

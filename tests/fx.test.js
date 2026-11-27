@@ -3,7 +3,8 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const path = require('path');
 const { chromium, devices } = require('playwright');
-const URL = 'file://' + path.join(__dirname, '..', 'index.html');
+const { serve } = require('./server');
+let URL, srv;
 
 let browser, page, errors = [], A;
 const ev = (fn, arg) => page.evaluate(fn, arg);
@@ -15,7 +16,7 @@ const idle = () => page.waitForFunction(() => !DM.FX.busy && !DM.FX.hidden.u.siz
 const fxInk = () => ev(() => { const c = document.getElementById('fxc'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i]) n++; return n; });
 
 async function tapCm(x, y) {
-  await ev(([x, y]) => { const v = document.getElementById('vp'), Z = DM.ui.Z; v.scrollLeft = x * Z - v.clientWidth / 2; v.scrollTop = y * Z - v.clientHeight / 2; }, [x, y]);
+  await ev(([x, y]) => { const v = document.getElementById('vp'), Z = DM.ui.Z; const c = document.getElementById('c'); v.scrollLeft = c.offsetLeft + x * Z - v.clientWidth / 2; v.scrollTop = c.offsetTop + y * Z - v.clientHeight * .4; }, [x, y]);
   await page.locator('#vp').scrollIntoViewIfNeeded();
   const box = await page.locator('#c').boundingBox(), Z = await ev(() => DM.ui.Z);
   await page.touchscreen.tap(box.x + x * Z, box.y + y * Z);
@@ -23,6 +24,7 @@ async function tapCm(x, y) {
 const unsel = () => ev(() => { DM.ui.sel = null; DM.ui.selB = null; DM.ui.mode = ''; DM.redraw(); });
 
 test.before(async () => {
+  srv = await serve(); URL = srv.url;
   browser = await chromium.launch();
   const ctx = await browser.newContext({ ...devices['iPhone 13'] });
   page = await ctx.newPage();
@@ -53,7 +55,7 @@ test.before(async () => {
   });
   for (let i = 0; i < 4; i++) await page.click('#zi');
 });
-test.after(async () => { await browser.close(); });
+test.after(async () => { await browser.close(); srv.close(); });
 
 // punto di Pianura libero vicino a c
 const land = (c, rmin, rmax) => ev(([c, rmin, rmax]) => {

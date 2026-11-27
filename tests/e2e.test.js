@@ -3,7 +3,8 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const path = require('path');
 const { chromium, devices } = require('playwright');
-const URL = 'file://' + path.join(__dirname, '..', 'index.html');
+const { serve } = require('./server');
+let URL, srv;
 const SHOTS = process.env.SHOTS;
 
 let browser, page, errors = [];
@@ -14,7 +15,7 @@ const shot = async name => { if (SHOTS) await page.screenshot({ path: path.join(
 
 // Tocca il punto (x, y) in cm della mappa, come farebbe un dito.
 async function tapCm(x, y) {
-  await ev(([x, y]) => { const v = document.getElementById('vp'), Z = DM.ui.Z; v.scrollLeft = x * Z - v.clientWidth / 2; v.scrollTop = y * Z - v.clientHeight / 2; }, [x, y]);
+  await ev(([x, y]) => { const v = document.getElementById('vp'), Z = DM.ui.Z; const c = document.getElementById('c'); v.scrollLeft = c.offsetLeft + x * Z - v.clientWidth / 2; v.scrollTop = c.offsetTop + y * Z - v.clientHeight * .4; }, [x, y]);
   await page.locator('#vp').scrollIntoViewIfNeeded();
   const box = await page.locator('#c').boundingBox(), Z = await ev(() => DM.ui.Z);
   await page.touchscreen.tap(box.x + x * Z, box.y + y * Z);
@@ -45,6 +46,9 @@ async function newFromMenu(np, seed) {
   await page.click('[data-m=inizia]');
   await page.waitForSelector('[data-act=kit]');
 }
+// la tendina (Banco, Vista, Partita, Aiuto)
+const side = async tab => { await page.click('#hud [data-side]'); await page.click(`#side [data-tab=${tab}]`); };
+const closeSide = () => page.click('#side .x');
 const act = async (text) => { await page.locator('#info button', { hasText: text }).first().click(); };
 
 // Punto di Pianura con tanta Pianura intorno, lontano da "lontano"
@@ -62,6 +66,7 @@ const findSpot = (far, minD) => ev(([far, minD]) => {
 }, [far, minD]);
 
 test.before(async () => {
+  srv = await serve(); URL = srv.url;
   browser = await chromium.launch();
   const ctx = await browser.newContext({ ...devices['iPhone 13'] });
   // in queste prove le animazioni sono spente (tutto subito); le animazioni hanno la loro prova (fx.test.js)
@@ -74,7 +79,7 @@ test.before(async () => {
   await page.goto(URL);
   await page.waitForSelector('[data-m=gioca]');
 });
-test.after(async () => { await browser.close(); });
+test.after(async () => { await browser.close(); srv.close(); });
 
 test('partita completa sul telefono', async (t) => {
   let A, B;
@@ -126,8 +131,10 @@ test('partita completa sul telefono', async (t) => {
     assert.equal(big[0], 48);
     assert.ok(big[1] <= 8.1e6, 'canvas troppo grande per un telefono: ' + big[1]);
     for (let i = 0; i < 20; i++) await page.click('#zo');
-    assert.equal(await ev(() => DM.ui.Z), z0);
-    for (let i = 0; i < 5; i++) await page.click('#zi');   // circa 20 px per cm
+    const zmin = await ev(() => DM.ui.Z);
+    assert.ok(zmin < z0, 'all’inizio la mappa riempie lo schermo; rimpicciolendo si vede tutta');
+    assert.ok(zmin * 60 <= 390 && zmin * 42 <= 844, 'tutta la mappa sta nello schermo');
+    while (await ev(() => DM.ui.Z) < 19) await page.click('#zi');   // circa 20 px per cm
   });
 
   await t.test('schierare dalla riserva, muovere, annullare', async () => {
@@ -176,7 +183,7 @@ test('partita completa sul telefono', async (t) => {
     assert.match(await info(), /Capitale.*vita 20000\/20000.*250\.000 soldi/s);
     await act('Schiera Carro');
     assert.match(await info(), /Carro schierato/);
-    await page.click('#ecoP summary');
+    await side('ecoP');
     await page.selectOption('#by', 'S');
     await page.click('#bb');
     assert.match(await info(), /Non hai abbastanza risorse/);
@@ -191,13 +198,14 @@ test('partita completa sul telefono', async (t) => {
     await page.fill('#bq', '1');
     await page.click('#bs');
     assert.match(await info(), /un solo tipo di materiale/);
+    assert.match(await page.locator('#ecoMsg').innerText(), /un solo tipo di materiale/, 'il messaggio si legge anche nella tendina');
+    await closeSide();
     await page.fill('#cq', '1500');
     await act('Carica soldi');
     assert.match(await info(), /Caricati 1000 soldi/);
     assert.match(await info(), /Carro.*1000 soldi/s);
     await act('Scarica tutto');
     assert.match(await info(), /Scaricato in Capitale/);
-    await page.click('#ecoP summary');
   });
 
   await t.test('Aeroporto dentro la Capitale: si vede e si apre', async () => {
@@ -252,17 +260,19 @@ test('partita completa sul telefono', async (t) => {
   });
 
   await t.test('costruire un Accampamento, una strada e provare il ponte', async () => {
+    // un punto di Pianura nel proprio territorio, vicino alla Capitale (lì accanto c'è un fiume)
+    const P = await freeSpot(A, 1.3, 1.9, true);
     await page.selectOption('#sp', 'acc');
-    await tapCm(A[0] + 1.5, A[1] + 1.2);
+    await tapCm(P[0], P[1]);
     assert.match(await info(), /Accampamento costruito/);
     await selectAt(A[0], A[1], /^Capitale/m);
     await act('Collega con strada');
-    await tapCm(A[0] + 1.5, A[1] + 1.2);
+    await tapCm(P[0], P[1]);
     assert.match(await info(), /Servono \(in totale nei due edifici\)/);
     await ev(() => { const c = DM.capitalOf(DM.game, 0); c.inv.mat.ferro = 5000; c.inv.mat.oro = 500; });
     await selectAt(A[0], A[1], /^Capitale/m);
     await act('Collega con strada');
-    await tapCm(A[0] + 1.5, A[1] + 1.2);
+    await tapCm(P[0], P[1]);
     assert.match(await info(), /Strada costruita/);
     // il ponte si posa dalla riserva con due tocchi (qui non c'è acqua, quindi non si può)
     await page.selectOption('#sp', 'ponte1');
@@ -321,13 +331,15 @@ test('partita completa sul telefono', async (t) => {
   });
 
   await t.test('opzioni di visualizzazione e legenda', async () => {
-    await page.click('#opt summary');
+    await side('opt');
     await page.uncheck('#oB');
     assert.equal(await page.isChecked('#oR'), true);
     assert.match(await page.locator('#leg').innerText(), /Terra.*Mare.*Territorio Giocatore 1/s);
     await page.uncheck('#oU');
+    await closeSide();
     await tapCm(B[0], B[1]);
     assert.match(await info(), /Truppe nascoste/);
+    await side('opt');
     assert.equal(await page.isChecked('#oS'), false, 'i fogli sono nascosti di partenza');
     await page.check('#oS'); await page.uncheck('#oS');
     await page.check('#oU'); await page.check('#oB');
@@ -335,6 +347,7 @@ test('partita completa sul telefono', async (t) => {
     assert.equal(await page.locator('#oD').count(), 0, '"Dettagli quando ingrandisci" è passato nelle Impostazioni');
     assert.match(await page.locator('#leg').innerText(), /✈\s*Aeroporto/);
     await shot('06-vista');
+    await closeSide();
   });
 
   await t.test('Menu e ritorno: la partita resta in Locale e si continua', async () => {
@@ -514,13 +527,14 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
     const card = page.locator('.card.slot', { hasText: 'tocca a Giocatore 2' }).first();
     await card.locator('[data-m=continua]').click();
     assert.match(await hud(), /Giocatore 2.*Giro 1/s);
-    await page.click('#saveP summary');
   });
 
   await t.test('scarica il file e riaprilo', async () => {
+    await side('saveP');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#saveT [data-act=download]')]);
     assert.match(dl.suggestedFilename(), /^damamondo-giro1-.*\.json$/);
     const file = await dl.path();
+    await closeSide();
     await page.click('#end'); await page.click('#end');
     assert.match(await hud(), /Giro 2/);
     await page.setInputFiles('#openfile', file);
@@ -533,8 +547,10 @@ test('salvataggi: ricaricare la pagina e riprendere, copie, file', async (t) => 
   });
 
   await t.test('Apri da file dal menu: diventa una partita nuova', async () => {
+    await side('saveP');
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#saveT [data-act=download]')]);
     const file = await dl.path();
+    await closeSide();
     await page.click('#toMenu'); await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
     const n = await page.locator('.card.slot').count();
     if (n >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
@@ -575,5 +591,57 @@ test('impostazioni: ingranaggio nel menu e in partita, musica sì/no e volume ri
   await page.waitForFunction(() => DM.Music.playing, null, { timeout: 3000 });   // riaccesa in partita
   await page.keyboard.press('Escape');
   assert.equal(await page.isHidden('#settings'), true);
+  assert.deepEqual(errors, []);
+});
+
+test('schermata di gioco: mappa a tutto schermo, tendina, riquadro, zoom con due dita', async () => {
+  if (await page.locator('#game').isHidden()) {
+    await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+    await page.locator('[data-m=continua]').first().click();
+  }
+  // la mappa occupa tutto lo schermo; niente pagina che scorre
+  const vp = await page.locator('#vp').boundingBox(), vw = page.viewportSize();
+  assert.ok(vp.width >= vw.width - 1 && vp.height >= vw.height - 1, 'mappa a tutto schermo');
+  assert.equal(await ev(() => document.scrollingElement.scrollHeight <= innerHeight + 1), true);
+  // tendina: si apre dalla borsa, cambia scheda, si chiude con la X e toccando fuori
+  await page.click('#hud [data-side]');
+  assert.equal(await page.isVisible('#ecoP'), true);
+  for (const tab of ['opt', 'saveP', 'helpP']) {
+    await page.click(`#side [data-tab=${tab}]`);
+    assert.equal(await page.isVisible('#' + tab), true, tab);
+    assert.equal(await page.isVisible('#ecoP'), false);
+  }
+  assert.match(await page.locator('#helpP').innerText(), /due dita/);
+  await page.click('#side .x');
+  assert.equal(await page.isHidden('#side'), true);
+  await page.click('#hud [data-side]');
+  await page.mouse.click(20, 400);   // fuori dal pannello
+  assert.equal(await page.isHidden('#side'), true);
+  // dal pannello di un edificio: "Banco e acquisti" apre la tendina sul Banco
+  await ev(() => { DM.ui.selB = DM.game.sites.find(s => s.o === DM.game.p && s.k === 'cap'); DM.redraw(); });
+  await act('Banco e acquisti');
+  assert.equal(await page.isVisible('#ecoP'), true);
+  assert.match(await page.locator('#ecoT').innerText(), /Edificio scelto: Capitale/);
+  await page.click('#side .x');
+  // il riquadro delle informazioni si riduce e si riallarga
+  await page.click('#grip');
+  assert.equal(await ev(() => document.getElementById('sheet').classList.contains('min')), true);
+  await page.click('#grip');
+  assert.equal(await ev(() => document.getElementById('sheet').classList.contains('min')), false);
+  // riserva: il numero sul pulsante
+  assert.match(await page.locator('#spN').innerText(), /^\d+$/);
+  // zoom con due dita (allargando) e con Ctrl + rotellina (stringendo)
+  const z0 = await ev(() => DM.ui.Z);
+  await ev(() => {
+    const v = document.getElementById('vp'), t = (id, x, y) => new Touch({ identifier: id, target: v, clientX: x, clientY: y });
+    const fire = (type, ts) => v.dispatchEvent(new TouchEvent(type, { touches: ts, targetTouches: ts, changedTouches: ts, bubbles: true, cancelable: true }));
+    fire('touchstart', [t(1, 150, 300), t(2, 230, 300)]);
+    fire('touchmove', [t(1, 110, 300), t(2, 270, 300)]);   // dita due volte più lontane
+    v.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t(1, 110, 300)], bubbles: true }));
+  });
+  const z1 = await ev(() => DM.ui.Z);
+  assert.ok(Math.abs(z1 / z0 - 2) < .05 || z1 === 48, 'con due dita la mappa si ingrandisce: ' + z0 + ' → ' + z1);
+  await ev(() => document.getElementById('vp').dispatchEvent(new WheelEvent('wheel', { deltaY: 140, ctrlKey: true, clientX: 190, clientY: 300, bubbles: true, cancelable: true })));
+  assert.ok(await ev(() => DM.ui.Z) < z1, 'Ctrl + rotellina rimpicciolisce');
   assert.deepEqual(errors, []);
 });

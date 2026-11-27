@@ -43,23 +43,34 @@
   }
   DM.redraw = render;
 
+  const ICON = d => `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const GEAR = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>';
   function hud() {
     $('seedInfo').textContent = 'Mappa attuale: numero ' + G.seed + ' (stesse opzioni + stesso numero = stessa mappa).';
-    const menu = '<button type="button" class="hudbtn" id="toMenu" data-act="tomenu" aria-label="Torna al menu">☰ Menu</button>';
-    const gear = '<button type="button" class="hudbtn gearbtn" data-settings aria-label="Impostazioni"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.7 7.7 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.6a7.7 7.7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>';
-    if (G.phase !== 'play') { $('hud').innerHTML = menu + `<b>Preparazione</b><span>${G.phase === 'num' ? '' : G.names[G.p]}</span>` + gear; return; }
-    const q = DM.cur(G);
-    $('hud').innerHTML = menu + `<b style="color:${pcol(G.p)}">${G.names[G.p]}</b><span>Giro <b>${G.round}</b></span>` +
-      `<span>Mosse ${G.moved}/${DM.moveLimit(G.round)} · Spari ${G.shots}/${DM.shotLimit(G.round)}</span>` +
-      (q.noCap ? '<span class="warn">Senza Capitale!</span>' : '') + gear;
+    const menu = `<button type="button" class="hb" id="toMenu" data-act="tomenu" aria-label="Torna al menu">${ICON('<path d="M4 7h16M4 12h16M4 17h16"/>')}</button>`;
+    const side = `<button type="button" class="hb side" data-side="ecoP" aria-label="Risorse, Banco e opzioni">${ICON('<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>')}</button>`;
+    const gear = `<button type="button" class="hb gearbtn" data-settings aria-label="Impostazioni">${GEAR}</button>`;
+    let who;
+    if (G.phase !== 'play') who = `<b>Preparazione</b><small>${G.phase === 'num' ? 'Quanti giocatori?' : G.names[G.p]}</small>`;
+    else {
+      const q = DM.cur(G);
+      who = `<b style="color:${pcol(G.p)}"><i style="background:${pcol(G.p)}"></i>${G.names[G.p]}</b>` +
+        `<small>Giro ${G.round} · Mosse ${G.moved}/${DM.moveLimit(G.round)} · Spari ${G.shots}/${DM.shotLimit(G.round)}` +
+        (q.noCap ? ' · <span class="warn">Senza Capitale!</span>' : '') + '</small>';
+    }
+    $('hud').innerHTML = menu + `<div class="who">${who}</div>` + side + gear;
   }
 
   function buttons() {
     const play = G.phase === 'play';
     document.querySelectorAll('.playonly').forEach(b => { b.disabled = !play; });
-    $('army').textContent = ui.mode === 'army' ? 'Conferma esercito' : 'Forma esercito';
-    $('ced').textContent = ui.mode === 'cede' ? 'Conferma linea' : (ui.mode === 'cedeside' || ui.mode === 'cedeto') ? 'Annulla cessione' : 'Cedi territorio';
-    $('shoot').textContent = ui.mode === 'shoot' ? 'Annulla sparo' : 'Spara';
+    const label = (id, t, on) => { $(id).querySelector('span').textContent = t; $(id).classList.toggle('on', !!on); };
+    label('army', ui.mode === 'army' ? 'Conferma' : 'Esercito', ui.mode === 'army');
+    label('ced', ui.mode === 'cede' ? 'Conferma' : (ui.mode === 'cedeside' || ui.mode === 'cedeto') ? 'Annulla' : 'Cedi', ui.mode.startsWith('cede'));
+    label('shoot', ui.mode === 'shoot' ? 'Annulla' : 'Spara', ui.mode === 'shoot');
+    $('army').title = ui.mode === 'army' ? 'Conferma esercito' : 'Forma esercito';
+    $('ced').title = 'Cedi territorio'; $('shoot').title = ui.mode === 'shoot' ? 'Annulla sparo' : 'Spara';
+    $('undo').title = 'Annulla mossa'; $('end').title = 'Fine turno';
   }
 
   function info() {
@@ -152,6 +163,7 @@
     if (I.mat.superbomba > 0 && DM.BOMB.superbomba.from.includes(s.k)) b.push(btn('bombmode', 'Lancia Superbomba (' + I.mat.superbomba + ')', 'superbomba'));
     if (DM.BERRY_RANGE[s.k]) Object.keys(DM.BERRIES).filter(k => I.mat['bacca_' + k] > 0).forEach(k => b.push(btn('berrymode', 'Bacca ' + k + ' (' + I.mat['bacca_' + k] + ')', k)));
     Object.keys(DM.POTIONS).filter(k => I.mat[k] > 0).forEach(k => b.push(btn('potion', 'Usa ' + DM.POTIONS[k] + ' (' + I.mat[k] + ')', k)));
+    if (DM.isCityLike(s) || s.k === 'porto' || s.k === 'aer' || s.k === 'min') b.push(btn('bank', 'Banco e acquisti'));
     if (s.k !== 'cap') b.push(btn('cedeb', 'Cedi edificio'));
     h += row(b.join(''));
     if (ui.cedeBTo) h += row('<small>Cedi a:</small>' + G.names.map((n, o) => o !== G.p && !G.players[o].out ? btn('cedebto', n, o) : '').join('') + btn('cancel', 'Annulla'));
@@ -184,9 +196,10 @@
   function eco() {
     const s = ui.selB;
     const k = $('by').value;
-    $('ecoT').innerHTML = (s ? `<b>${DM.nameOf(s.k)}</b>: ${DM.fmtInv(s.inv)}` : '<small>Seleziona un tuo edificio: si vende e si compra con quello che c’è dentro.</small>') +
-      (G.phase === 'play' ? `<br><small>Miniere: ${G.sites.filter(z => z.k === 'min' && z.o === G.p).length} · soldi totali: ${DM.fmtN(DM.moneyOf(G, G.p))}${DM.cur(G).sold ? ' · venduto in questo turno: ' + DM.cur(G).sold : ''}</small>` : '') +
-      `<br><small>Costo ${DM.nameOf(k)}: ${DM.costsText(k)}</small>`;
+    $('ecoMsg').textContent = ui.msg && !/[<]/.test(ui.msg) ? ui.msg : '';
+    $('ecoT').innerHTML = (s ? `Edificio scelto: <b style="color:${pcol(s.o)}">${DM.nameOf(s.k)}</b><br>Contiene: ${DM.fmtInv(s.inv)}` : '<small>Prima tocca un tuo edificio sulla mappa: si vende e si compra con quello che c’è dentro.</small>') +
+      (G.phase === 'play' ? `<br><small>Miniere: ${G.sites.filter(z => z.k === 'min' && z.o === G.p).length} · soldi totali: ${DM.fmtN(DM.moneyOf(G, G.p))}${DM.cur(G).sold ? ' · venduto in questo turno: ' + DM.cur(G).sold : ''}</small>` : '');
+    $('byCost').textContent = 'Costo ' + DM.nameOf(k) + ': ' + DM.costsText(k);
   }
 
   function reserveMenu() {
@@ -200,6 +213,10 @@
         k.startsWith('ponte') ? 'Costruisci ponte liv. ' + k.slice(5) + ' (' + r[k] + (r[k] > 1 ? ' pezzi)' : ' pezzo)') : 'Costruisci ' + DM.nameOf(k) + ' (' + r[k] + ')', k)));
     }
     sp.value = ui.spawn;
+    const n = keys.reduce((t, k) => t + r[k], 0);
+    $('spN').textContent = n ? (n > 99 ? '99+' : String(n)) : '';
+    $('spT').classList.toggle('off', !n || G.phase !== 'play');
+    $('spT').classList.toggle('on', !!ui.spawn);
   }
 
   function legend() {
@@ -397,7 +414,8 @@
     opensite: id => { ui.selB = DM.siteById(G, id); ui.sel = null; ui.msg = ''; ui.cedeBTo = false; },
     board: a => { const [v, u] = a.split(':'); ui.msg = DM.board(G, DM.unitById(G, v), DM.unitById(G, u)); },
     unboard: a => { const [v, u] = a.split(':'); ui.msg = DM.unboard(G, DM.unitById(G, v), DM.unitById(G, u)); },
-    done: () => { resetModes(); ui.msg = ''; }
+    done: () => { resetModes(); ui.msg = ''; },
+    bank: () => { openSide('ecoP'); }
   };
 
   // azioni dei pulsanti che mostrano un'animazione (le altre: solo pannelli)
@@ -463,18 +481,77 @@
     else { resetModes(); ui.mode = 'cede'; ui.cede = { pts: [] }; ui.sel = null; ui.selB = null; ui.msg = 'Tocca i punti della linea di cessione, poi premi "Conferma linea".'; $('oR').checked = true; }
     draw();
   }
-  function zoom(f) {
-    const v = $('vp'), cx = (v.scrollLeft + v.clientWidth / 2) / ui.Z, cy = (v.scrollTop + v.clientHeight / 2) / ui.Z;
+  // Zoom tenendo fermo il punto (px, py) dello schermo (di solito il centro, oppure tra le due dita)
+  function zoomAt(f, px, py) {
+    const v = $('vp'), r = v.getBoundingClientRect(), c = $('c').getBoundingClientRect();
+    if (px === undefined) { px = r.left + v.clientWidth / 2; py = r.top + v.clientHeight * .45; }
+    const mx = (px - c.left) / ui.Z, my = (py - c.top) / ui.Z;   // punto della mappa sotto le dita (cm)
     ui.Z = Math.min(48, Math.max(minZoom(), ui.Z * f));
-    draw();
-    v.scrollLeft = cx * ui.Z - v.clientWidth / 2; v.scrollTop = cy * ui.Z - v.clientHeight / 2;
+    render();
+    const c2 = $('c').getBoundingClientRect();
+    v.scrollLeft += (c2.left + mx * ui.Z) - px; v.scrollTop += (c2.top + my * ui.Z) - py;
   }
-  const minZoom = () => Math.max(3, Math.min(($('vp').clientWidth - 2) / W, 48));
-  function focus() {
-    const c = G.phase === 'play' && DM.capitalOf(G, G.p), v = $('vp');
+  const zoom = f => zoomAt(f);
+  // più piccolo: tutta la mappa sullo schermo; all'inizio: la mappa riempie lo schermo
+  // spazio libero (senza la barra in alto, i comandi e i margini)
+  const free = () => { const v = $('vp'), st = getComputedStyle($('vpin')), px = k => parseFloat(st[k]) || 0;
+    return [v.clientWidth - px('paddingLeft') - px('paddingRight'), v.clientHeight - px('paddingTop') - px('paddingBottom')]; };
+  const fitZoom = () => { const [w, h] = free(); return Math.max(3, Math.min(w / W, h / H, 48)); };
+  const coverZoom = () => { const v = $('vp'); return Math.max(fitZoom(), Math.min(48, Math.max(v.clientWidth / W, v.clientHeight / H))); };
+  const minZoom = fitZoom;
+  // porta la Capitale (o il punto x, y) un po' sopra il centro, dove non c'è il riquadro in basso
+  function focus(x, y) {
+    const c = x === undefined ? G.phase === 'play' && DM.capitalOf(G, G.p) : { x, y }, v = $('vp');
     if (!c) return;
-    v.scrollLeft = c.x * ui.Z - v.clientWidth / 2; v.scrollTop = c.y * ui.Z - v.clientHeight / 2;
+    const cv = $('c'), ox = cv.offsetLeft, oy = cv.offsetTop;
+    v.scrollLeft = ox + c.x * ui.Z - v.clientWidth / 2; v.scrollTop = oy + c.y * ui.Z - v.clientHeight * .4;
   }
+  DM.focusMap = focus;
+
+  // Due dita: si allarga e si stringe la mappa (durante il gesto si ingrandisce l'immagine, alla fine si ridisegna)
+  function pinch() {
+    const v = $('vp'), cv = $('c');
+    let p0 = null;
+    const mid = t => [(t[0].clientX + t[1].clientX) / 2, (t[0].clientY + t[1].clientY) / 2];
+    const dist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    v.addEventListener('touchstart', e => {
+      if (e.touches.length !== 2) return;
+      const r = cv.getBoundingClientRect(), m = mid(e.touches);
+      p0 = { d: dist(e.touches), m, ox: m[0] - r.left, oy: m[1] - r.top, s: 1 };
+      cv.style.transformOrigin = p0.ox + 'px ' + p0.oy + 'px';
+    }, { passive: true });
+    v.addEventListener('touchmove', e => {
+      if (!p0 || e.touches.length !== 2) return;
+      e.preventDefault();
+      const lo = minZoom() / ui.Z, hi = 48 / ui.Z;
+      p0.s = Math.min(hi, Math.max(lo, dist(e.touches) / p0.d));
+      cv.style.transform = `scale(${p0.s})`;
+    }, { passive: false });
+    const end = e => {
+      if (!p0 || e.touches.length >= 2) return;
+      const s = p0.s, m = p0.m; p0 = null;
+      cv.style.transform = ''; cv.style.transformOrigin = '';
+      if (Math.abs(s - 1) > .02) zoomAt(s, m[0], m[1]);
+    };
+    v.addEventListener('touchend', end); v.addEventListener('touchcancel', end);
+    // computer: Ctrl + rotellina (o due dita sul trackpad)
+    v.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); zoomAt(Math.exp(-e.deltaY / 200), e.clientX, e.clientY); }, { passive: false });
+  }
+
+  // ---------- Tendina: Banco, Vista, Partita, Aiuto ----------
+  function openSide(tab) {
+    const d = $('side');
+    d.hidden = false;
+    showTab(tab || d.dataset.tab || 'ecoP');
+    const t = d.querySelector('[aria-selected="true"]'); if (t) t.focus();
+  }
+  function closeSide() { $('side').hidden = true; }
+  function showTab(tab) {
+    $('side').dataset.tab = tab;
+    document.querySelectorAll('#side [data-tab]').forEach(b => { b.setAttribute('aria-selected', String(b.dataset.tab === tab)); });
+    document.querySelectorAll('#side .tab').forEach(p => { p.hidden = p.id !== tab; });
+  }
+  DM.openSide = openSide;
 
   // ---------- Salvataggi: la partita sta in uno dei 3 posti (vedi menu.js) ----------
   let lastAuto = '';
@@ -504,9 +581,10 @@
     Object.assign(ui, { sel: null, selB: null, msg: '', slot: slot || null, autoOk: undefined });
     resetModes();
     lastAuto = '';
-    $('menu').hidden = true; $('game').hidden = false;
+    $('menu').hidden = true; $('game').hidden = false; closeSide();
+    document.body.classList.add('ingame');
     if (DM.Music) DM.Music.setScene('game');
-    ui.Z = minZoom();
+    ui.Z = coverZoom();
     draw(); focus();
   };
   DM.leaveGame = function () { DM.FX.stopAll(); if (G) autosave(); };
@@ -537,6 +615,16 @@
     document.addEventListener('input', e => { if (e.target.id === 'cq') ui.cargoQty = Math.max(0, Math.floor(+e.target.value) || 0); });
     $('end').onclick = endTurn; $('undo').onclick = undo; $('army').onclick = army; $('shoot').onclick = shoot; $('ced').onclick = cede;
     $('zi').onclick = () => zoom(1.25); $('zo').onclick = () => zoom(.8);
+    pinch();
+    // tendina
+    document.addEventListener('click', e => {
+      const o = e.target.closest('[data-side]'); if (o) { openSide(o.dataset.side); return; }
+      if (e.target.closest('[data-side-close]')) { closeSide(); return; }
+      const t = e.target.closest('#side [data-tab]'); if (t) showTab(t.dataset.tab);
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('side').hidden && $('settings').hidden) closeSide(); });
+    // riquadro delle informazioni: si riduce e si allarga
+    $('grip').onclick = () => { const m = $('sheet').classList.toggle('min'); $('grip').setAttribute('aria-expanded', String(!m)); };
     document.addEventListener('change', e => {
       if (e.target.id !== 'openfile' || !e.target.files[0]) return;
       if (!G) return;
@@ -551,6 +639,6 @@
     $('bs').onclick = () => { if (G.phase !== 'play') return; begin('act'); ui.msg = DM.sell(G, ui.selB, $('bm').value, +$('bq').value); draw(); };
     $('bb').onclick = () => { if (G.phase !== 'play') return; begin('act'); ui.msg = DM.buy(G, ui.selB, $('by').value); draw(); };
     let rt = 0;
-    addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (!$('game').hidden) draw(); }, 150); });
+    addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (!$('game').hidden) { ui.Z = Math.max(ui.Z, minZoom()); render(); } }, 150); });
   };
 })(globalThis.DM = globalThis.DM || {});
