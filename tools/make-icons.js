@@ -1,4 +1,4 @@
-// Damamondo – disegna le icone dell'app (la stella della Capitale su una mappa del gioco).
+// Damamondo – disegna le icone dell'app (la stella dorata della Capitale su una mappa del gioco).
 // Avvio: node tools/make-icons.js   (serve Playwright; le icone si rifanno solo se cambia il disegno)
 const path = require('path');
 const { chromium } = require('playwright');
@@ -8,7 +8,8 @@ const SIZES = [
   { file: 'icon-192.png', size: 192, pad: 0 },
   { file: 'apple-touch-icon.png', size: 180, pad: 0 },
   { file: 'icon-maskable-512.png', size: 512, pad: .12 },   // la stella resta dentro la zona sicura (Android ritaglia i bordi)
-  { file: 'favicon-32.png', size: 32, pad: 0 }
+  { file: 'favicon-32.png', size: 32, pad: 0 },
+  { file: 'profilo-social.png', size: 1024, pad: 0 }   // foto profilo per i social (Instagram, YouTube… la ritagliano in un cerchio)
 ];
 (async () => {
   const b = await chromium.launch();
@@ -35,9 +36,16 @@ const SIZES = [
       }
       g.closePath();
       g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = size * .04; g.shadowOffsetY = size * .015;
-      g.fillStyle = '#c0392b'; g.fill();
+      // stella dorata (come la capitale dorata, il premio della mappa originale): sfumatura d'oro e bordo bianco
+      const gr = g.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+      gr.addColorStop(0, '#fff3b0'); gr.addColorStop(.45, '#f2c230'); gr.addColorStop(1, '#a8740c');
+      g.fillStyle = gr; g.fill();
       g.shadowColor = 'transparent';
       g.lineJoin = 'round'; g.lineWidth = Math.max(1.5, size * .045); g.strokeStyle = '#ffffff'; g.stroke();
+      // riflesso di luce sulla metà alta
+      g.save(); g.clip();
+      const l = g.createLinearGradient(cx, cy - r, cx, cy); l.addColorStop(0, 'rgba(255,255,255,.35)'); l.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = l; g.fillRect(cx - r, cy - r, 2 * r, r * .9); g.restore();
       return c.toDataURL('image/png');
     }, s);
     require('fs').writeFileSync(path.join(ROOT, 'icons', s.file), Buffer.from(data.split(',')[1], 'base64'));
