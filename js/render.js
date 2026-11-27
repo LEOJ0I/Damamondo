@@ -2,7 +2,8 @@
 (function (DM) {
   'use strict';
   const { W, H, MR, TR } = DM;
-  const MAX_PIXELS = 8e6;   // i telefoni non reggono canvas troppo grandi (iPhone ~16 milioni di pixel)
+  // i telefoni non reggono canvas troppo grandi (iPhone ~16 milioni di pixel); i computer (mouse) sì
+  const MAX_PIXELS = typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches ? 24e6 : 8e6;
   const cache = { ver: -1, map: null, bio: null, plain: null };
 
   const rgb = hex => { const v = parseInt(hex.slice(1), 16); return [v >> 16, v >> 8 & 255, v & 255]; };

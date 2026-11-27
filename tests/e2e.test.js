@@ -128,7 +128,7 @@ test('partita completa sul telefono', async (t) => {
     const z0 = await ev(() => DM.ui.Z);
     for (let i = 0; i < 20; i++) await page.click('#zi');
     const big = await ev(() => { const c = document.getElementById('c'); return [DM.ui.Z, c.width * c.height]; });
-    assert.equal(big[0], 48);
+    assert.equal(big[0], 96, 'si può ingrandire fino a 96 px per cm');
     assert.ok(big[1] <= 8.1e6, 'canvas troppo grande per un telefono: ' + big[1]);
     for (let i = 0; i < 20; i++) await page.click('#zo');
     const zmin = await ev(() => DM.ui.Z);
@@ -392,13 +392,17 @@ test('pulsanti dei pannelli: pozioni, bacche, Superbomba, dado dei Maghi, edific
   await page.selectOption('#sp', 'S'); await tapCm(S1[0], S1[1]);
   assert.match(await info(), /Soldato schierato/);
 
-  await t.test('miniera: i Maghi scelgono il dado', async () => {
+  await t.test('miniera: i Maghi scelgono il minerale', async () => {
     const M = await freeSpot(S1, 1.2, 1.9, true);
     await page.selectOption('#sp', 'min');
     await tapCm(M[0], M[1]);
-    assert.match(await info(), /scegli il risultato del dado.*ancora 2/s);
-    await act('5');
-    await page.waitForFunction(() => /Miniera costruita: dado 5/.test(document.getElementById('info').innerText), null, { timeout: 5000 });
+    assert.match(await info(), /scegli il minerale.*ancora 2/s);
+    const mats = await ev(([x, y]) => DM.MINE_TABLE[DM.bAt(DM.game, x, y)].split(' '), M);
+    const want = mats[4];   // un minerale del bioma (quello del 5 sul dado)
+    assert.equal(await page.locator('#info button[data-act=minedie]').count(), new Set(mats).size + 1, 'un pulsante per minerale, più "Tira il dado"');
+    await page.locator('#info button[data-act=minedie]', { hasText: new RegExp('^' + want + '$', 'i') }).click();
+    await page.waitForFunction(w => new RegExp('Miniera costruita: scelto ' + w).test(document.getElementById('info').innerText), want, { timeout: 5000 });
+    assert.equal(await ev(() => DM.game.sites.filter(s => s.k === 'min').pop().mt), want);
     assert.equal(await ev(() => DM.cur(DM.game).dice), 1);
     await act('Deseleziona');
   });
@@ -853,6 +857,16 @@ test('computer: la mappa si trascina col mouse, e il trascinamento non conta com
   const after = await ev(() => [document.getElementById('vp').scrollLeft, document.getElementById('vp').scrollTop, DM.ui.msg, DM.game.phase]);
   assert.ok(Math.abs(after[0] - before[0] - 120) < 3 && Math.abs(after[1] - before[1] - 80) < 3, 'spostata: ' + before + ' → ' + after);
   assert.equal(after[2], before[2], 'nessun clic sulla mappa');
+  // la rotellina ingrandisce (senza Ctrl) e rimpicciolisce
+  const z1 = await ev(() => DM.ui.Z);
+  await page.mouse.move(cx, cy); await page.mouse.wheel(0, -200); await page.waitForTimeout(100);
+  const z2 = await ev(() => DM.ui.Z);
+  assert.ok(z2 > z1 * 1.1, 'rotellina in su: ingrandisce ' + z1 + ' → ' + z2);
+  await page.mouse.wheel(0, 200); await page.waitForTimeout(100);
+  assert.ok(Math.abs(await ev(() => DM.ui.Z) - z1) < .5, 'rotellina in giù: torna com’era');
+  const t0 = Date.now(); for (let i = 0; i < 25; i++) await page.mouse.wheel(0, -200);
+  assert.equal(await ev(() => DM.ui.Z), 96);
+  assert.ok(Date.now() - t0 < 8000, 'ingrandire al massimo non è lento: ' + (Date.now() - t0) + ' ms');
   // un clic normale (senza trascinare) funziona ancora: dopo il kit, il clic prova a mettere la Capitale
   await act('Tribù');
   await ev(() => { DM.ui.msg = 'prima'; });

@@ -107,6 +107,7 @@
 
   // ---- Edifici (8) ----
   DM.BUILDING_HP = { cap: 2e4, citta: 1e4, acc: 5e3, porto: 5e3, aer: 5e3, col: 5e3, min: 5e3 };
+  DM.SPAWN_R = { cap: 2, citta: 1, acc: 1, aer: 1 };   // fin dove si schierano le truppe di terra (cm)
   DM.SPAWNS = { cap: 'STCE', citta: 'STCE', acc: 'STCE', porto: 'NX', aer: 'AE', col: '', min: '' };
   DM.INCOME = { cap: 40000, citta: 20000 };
   DM.CITY_MIN_MONEY = 5000;   // 7.2

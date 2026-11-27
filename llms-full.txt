@@ -37,12 +37,12 @@ Pezzi di ponte liv. 1 | 1 | – | – | – | –
 Materiali | – | 1 punto di ogni materiale | – | – | –
 Pozioni | – | – | – | – | 2 di ogni tipo (1 di Stipendio+)
 
-(*) Il giocatore sceglie il risultato del dado per ciascuna delle due miniere. Tribù è il kit standard.
+(*) Per ciascuna delle due miniere il giocatore sceglie il minerale, tra quelli che il bioma può dare (al posto del dado). Tribù è il kit standard.
 - Ogni kit comprende la Capitale e 1 Carro.
 - La prima Città o Capitale ha un Aeroporto gratis dentro.
 - La Capitale non si può mettere in Mare, Giungla, Palude, Alta montagna, fiumi e laghi, Lavico e Banchisa.
 - Distanza minima tra Capitali: 15 cm con 2 giocatori, 10 cm con 3 o più.
-- Le truppe del kit restano in riserva: il giocatore le schiera dentro o vicino a un edificio adatto.
+- Le truppe del kit restano in riserva: il giocatore le schiera entro 2 cm dalla Capitale o entro 1 cm da Città e Accampamenti (le Navi dentro un Porto, l'Aereo Carro dentro un Aeroporto).
 
 ## 3. Il turno
 
