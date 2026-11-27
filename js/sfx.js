@@ -38,6 +38,26 @@
   const ting = (c, o, t, f, vol) => { tone(c, o, t, { f0: f, vol, rel: .5 }); tone(c, o, t, { f0: f * 2.76, vol: vol * .35, rel: .25 }); };
   const knock = (c, o, t, f, vol) => { tone(c, o, t, { f0: f, f1: f * .6, vol, rel: .09 }); hiss(c, o, t, { dur: .05, vol: vol * .6, f: 1800, q: .8 }); };
   const D = [62, 65, 69, 74, 77, 81];   // re minore, come la sigla
+  // fanfara di vittoria (Re maggiore: dopo la sigla in re minore suona come una "luce" che si accende)
+  function brass(c, o, t, m, dur, vol) {   // squillo: quadra + triangolo un'ottava sotto, attacco rapido
+    tone(c, o, t, { f0: hz(m), type: 'square', vol: vol * .35, a: .015, hold: dur, rel: .18 });
+    tone(c, o, t, { f0: hz(m), type: 'triangle', vol, a: .01, hold: dur, rel: .25 });
+    tone(c, o, t, { f0: hz(m - 12), type: 'triangle', vol: vol * .6, a: .02, hold: dur, rel: .3 });
+  }
+  function fanfare(c, o, t, big) {
+    hiss(c, o, t, { dur: .38, vol: .09, f: 500, f1: 7000, q: .7, a: .3 });                       // fruscio che sale
+    let s = t + .34;
+    if (big) {   // prima una scala che sale
+      [62, 66, 69, 74, 78, 81].forEach((m, i) => brass(c, o, s + i * .07, m, .04, .05)); s += .5;
+    }
+    brass(c, o, s, 69, .07, .09); brass(c, o, s + .13, 69, .07, .09);                          // ta-ta
+    [62, 66, 69, 74].forEach(m => brass(c, o, s + .26, m + 12 * (m < 66 ? 1 : 0), big ? 1.1 : .75, .07));   // taaa: accordo pieno
+    tone(c, o, s + .26, { f0: hz(50), type: 'sine', vol: .25, a: .005, hold: .1, rel: 1 });        // basso
+    L().drum(c, o, s + .26, 110, 45, .35, .8);                                                  // timpano
+    hiss(c, o, s + .26, { dur: 1.4, vol: .05, type: 'highpass', f: 6000, a: .01 });               // piatto
+    [86, 90, 93, 98, big ? 102 : 0].forEach((m, i) => { if (m) ting(c, o, s + .45 + i * .09, hz(m), .045); });   // scintille
+    if (big) { brass(c, o, s + 1.45, 74, .05, .06); brass(c, o, s + 1.55, 78, .05, .06); brass(c, o, s + 1.65, 81, .9, .075); ting(c, o, s + 1.7, hz(105), .05); }
+  }
   const hz = m => L().hz(m);
 
   // ---------- gli effetti ----------
@@ -136,13 +156,17 @@
       L().drum(c, o, t + .32, 110, 55, .18, .3);
     },
     capLost: (c, o, t) => { [69, 67, 65, 62].forEach((m, i) => tone(c, o, t + i * .22, { f0: hz(m), type: 'triangle', vol: .11, a: .02, hold: .1, rel: .35 })); L().drum(c, o, t + .66, 70, 35, .3, 1); },
+    // mappa segreta trovata: fruscio che sale, squilli di fanfara (ta-ta-taaa), accordo pieno con colpo di timpano e scintille
+    secret: (c, o, t) => fanfare(c, o, t, false),
+    // la mappa originale (o tutte le 14): la fanfara più lunga, con una seconda salita
+    secretBig: (c, o, t) => fanfare(c, o, t, true),
     capNew: (c, o, t) => { [62, 66, 69, 74].forEach((m, i) => tone(c, o, t + i * .11, { f0: hz(m), type: 'triangle', vol: .11, rel: i === 3 ? .7 : .2 })); ting(c, o, t + .33, hz(86), .07); }
   };
 
   // Bilanciamento: quanto alzare ogni effetto (misurato registrandoli: così si sentono tutti a un volume simile)
   const GAIN = { click: 1.6, move: 7, berryThrow: 9, death: 3.2, road: 3.2, upgrade: 3.2, diceRoll: 3.6, coins: 3.4, potion: 3.2, cargo: 3.2,
     select: 3, error: 2.6, deploy: 2.8, board: 2.8, berryGrow: 3.2, bombFly: 2.6, superFly: 2.6, berrySplat: 2.6, shot: 2.4, impact: 2.2,
-    conquer: 2.4, build: 2.2, crumble: 2.4, diceStop: 2.2, mine: 2.2, capNew: 2.4, army: 2, turn: 1.8, capLost: 1.4, bombBoom: 1.15, superBoom: 1, erupt: .95 };
+    conquer: 2.4, build: 2.2, crumble: 2.4, diceStop: 2.2, mine: 2.2, capNew: 2.4, secret: .7, secretBig: .65, army: 2, turn: 1.8, capLost: 1.4, bombBoom: 1.15, superBoom: 1, erupt: .95 };
   function voice(c, name) { const g = c.createGain(); g.gain.value = GAIN[name] || 2; g.connect(output(c)); return g; }
 
   // Vibrazione (millisecondi: vibra, pausa, vibra…)
