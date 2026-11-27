@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test tests/secret.test.js tests/bot.test.js tests/setup.test.js tests/troops.test.js tests/combat.test.js tests/economy.test.js tests/territory.test.js tests/transport.test.js tests/save.test.js tests/pages.test.js",
     "test:browser": "node --test tests/e2e.test.js tests/fx.test.js tests/pwa.test.js",
-    "pagine": "node tools/build-pages.js"
+    "pagine": "node tools/build-pages.js",
+    "pdf": "node tools/make-pdf.js"
   }
 }

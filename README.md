@@ -34,6 +34,7 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/settings.js` | la finestra Impostazioni (ingranaggio): musica, effetti sonori, animazioni, vibrazione, dettagli quando ingrandisci |
 | `js/main.js` | avvio |
 | `tools/build-pages.js` | crea `regole.html`, `llms.txt` e `llms-full.txt` dalle regole del gioco (`npm run pagine`) |
+| `tools/make-pdf.js` | crea il regolamento in PDF (`Damamondo_Regolamento_Classico.pdf`) dalle stesse regole (`npm run pdf`, da rifare quando cambiano le regole) |
 | `regole.html` | il regolamento come pagina normale: da leggere, stampare, e per Google e le AI |
 | `llms.txt`, `llms-full.txt` | cos'è Damamondo e le regole in testo, per le AI |
 | `manifest.webmanifest`, `icons/`, `sw.js` | app installabile (PWA): nome, icona con la stella, a tutto schermo, funziona senza internet. `sw.js` lo crea `npm run pagine`; le icone `node tools/make-icons.js` |

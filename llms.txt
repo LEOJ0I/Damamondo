@@ -6,13 +6,14 @@ Non si gioca a caselle: la mappa ha biomi con confini morbidi, le truppe si muov
 
 Damamondo non è il gioco della campana (o "mondo"), non è la dama e non ha niente a che fare con i mobili "Dama" di Mondo Convenienza: è un nome proprio inventato per questo gioco.
 
-Per vincere bisogna sconfiggere gli avversari: chi resta senza Capitale e senza una Città in cui trasferirla perde. I giocatori possono anche decidere di giocare all'infinito.
+Vince chi sconfigge tutti gli avversari: un giocatore è eliminato quando perde la Capitale e non ha una Città in cui trasferirla. In alternativa i giocatori possono accordarsi per una partita aperta, senza vincitore.
 
 ## Pagine
 
 - [Gioca a Damamondo](https://leoj0i.github.io/Damamondo/): il gioco nel browser, pensato per il telefono (menu: Gioca → Locale, Regole)
 - [Regole complete](https://leoj0i.github.io/Damamondo/regole.html): il regolamento ufficiale con tutte le tabelle
 - [Regole in testo semplice](https://leoj0i.github.io/Damamondo/llms-full.txt): lo stesso regolamento, in testo
+- [Regolamento in PDF](https://leoj0i.github.io/Damamondo/Damamondo_Regolamento_Classico.pdf): lo stesso regolamento, da stampare
 
 ## In breve
 
@@ -20,5 +21,5 @@ Per vincere bisogna sconfiggere gli avversari: chi resta senza Capitale e senza 
 - 5 kit di partenza: Tribù, Minatori, Mercanti, Navigatori, Maghi.
 - 7 truppe: Soldato, Nave, Elicottero, Carrarmato, Carro, Nave Carro, Aereo Carro; eserciti e flotte fino a 100 punti.
 - Niente caselle: biomi con confini morbidi, movimento libero, distanze in cm (i quadretti sono solo un aiuto per misurare).
-- Economia: soldi e materiali dentro gli edifici, miniere con il dado, Carri per trasportare. Il Banco compra solo i minerali; tutto il resto si compra negli edifici.
+- Economia: soldi e materiali custoditi negli edifici, miniere con il dado (con il kit Maghi il minerale si sceglie), Carri per trasportare. Il Banco compra solo i minerali; tutto il resto si compra negli edifici.
 - Armi e oggetti: Bombe, Superbombe, bacche e pozioni.

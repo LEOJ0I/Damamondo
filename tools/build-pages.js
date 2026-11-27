@@ -33,7 +33,7 @@ function htmlToText(html) {
     .replace(/<h4>(.*?)<\/h4>/g, '\n\n### $1\n')
     .replace(/<tr>/g, '\n').replace(/<\/t[hd]><t[hd]>/g, ' | ')
     .replace(/<li>/g, '\n- ')
-    .replace(/<p>/g, '\n\n').replace(/<br>/g, '\n')
+    .replace(/<p[^>]*>/g, '\n\n').replace(/<br>/g, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&amp;/g, '&')
     .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n')
@@ -73,7 +73,7 @@ function build() {
   </script>
 </head>
 <body>
-  <div class="top"><b>DAMAMONDO</b><a class="play" href="index.html">Gioca a Damamondo</a></div>
+  <div class="top"><b>DAMAMONDO</b><span><a href="Damamondo_Regolamento_Classico.pdf">Regolamento in PDF</a> &nbsp; <a class="play" href="index.html">Gioca a Damamondo</a></span></div>
   <h1>Regole di Damamondo Classico</h1>
   <p class="intro">${INTRO}</p>
   <p class="intro">${FACTS}</p>
@@ -93,13 +93,14 @@ ${FACTS}
 
 ${NOT}
 
-Per vincere bisogna sconfiggere gli avversari: chi resta senza Capitale e senza una Città in cui trasferirla perde. I giocatori possono anche decidere di giocare all'infinito.
+Vince chi sconfigge tutti gli avversari: un giocatore è eliminato quando perde la Capitale e non ha una Città in cui trasferirla. In alternativa i giocatori possono accordarsi per una partita aperta, senza vincitore.
 
 ## Pagine
 
 - [Gioca a Damamondo](${SITE}): il gioco nel browser, pensato per il telefono (menu: Gioca → Locale, Regole)
 - [Regole complete](${SITE}regole.html): il regolamento ufficiale con tutte le tabelle
 - [Regole in testo semplice](${SITE}llms-full.txt): lo stesso regolamento, in testo
+- [Regolamento in PDF](${SITE}Damamondo_Regolamento_Classico.pdf): lo stesso regolamento, da stampare
 
 ## In breve
 
@@ -107,7 +108,7 @@ Per vincere bisogna sconfiggere gli avversari: chi resta senza Capitale e senza 
 - 5 kit di partenza: Tribù, Minatori, Mercanti, Navigatori, Maghi.
 - 7 truppe: Soldato, Nave, Elicottero, Carrarmato, Carro, Nave Carro, Aereo Carro; eserciti e flotte fino a 100 punti.
 - Niente caselle: biomi con confini morbidi, movimento libero, distanze in cm (i quadretti sono solo un aiuto per misurare).
-- Economia: soldi e materiali dentro gli edifici, miniere con il dado, Carri per trasportare. Il Banco compra solo i minerali; tutto il resto si compra negli edifici.
+- Economia: soldi e materiali custoditi negli edifici, miniere con il dado (con il kit Maghi il minerale si sceglie), Carri per trasportare. Il Banco compra solo i minerali; tutto il resto si compra negli edifici.
 - Armi e oggetti: Bombe, Superbombe, bacche e pozioni.
 `;
   const full = `# Regole di Damamondo Classico\n\n${INTRO}\n\n${FACTS}\n\n${NOT}\n\nFonte: ${SITE}regole.html\n\n${htmlToText(rules)}\n`;
