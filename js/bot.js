@@ -11,9 +11,10 @@
   DM.BOT_LEVELS = { facile: 'Facile', normale: 'Normale', difficile: 'Difficile' };
   // Come gioca ogni livello
   const LEVEL = {
-    facile: { moves: .5, aggro: 5, armies: false, bombs: false, superbomb: false, buy: ['min', 'S', 'acc'], buys: 1, keep: 60000, shootP: .6, defend: false, campaign: 99 },
-    normale: { moves: 1, aggro: 9, armies: true, bombs: true, superbomb: false, buy: ['min', 'acc', 'S', 'E', 'T', 'bomba'], buys: 2, keep: 30000, shootP: 1, defend: true, campaign: 14 },
-    difficile: { moves: 1, aggro: 14, armies: true, bombs: true, superbomb: true, buy: ['min', 'T', 'E', 'acc', 'S', 'bomba', 'superbomba'], buys: 3, keep: 15000, shootP: 1, defend: true, campaign: 8 }
+    // wants: le truppe e le armi che il bot vuole comprare (in ordine): i loro materiali non si vendono
+    facile: { moves: .5, aggro: 5, armies: false, bombs: false, superbomb: false, wants: ['S'], buys: 2, keep: 60000, shootP: .6, defend: false, campaign: 99 },
+    normale: { moves: 1, aggro: 9, armies: true, bombs: true, superbomb: false, wants: ['S', 'T', 'E', 'bomba'], buys: 4, keep: 30000, shootP: 1, defend: true, campaign: 14 },
+    difficile: { moves: 1, aggro: 14, armies: true, bombs: true, superbomb: true, wants: ['T', 'S', 'E', 'bomba', 'superbomba'], buys: 6, keep: 15000, shootP: 1, defend: true, campaign: 8 }
   };
 
   DM.isBot = (G, o) => !!(G.bots && G.bots[o]);
@@ -53,6 +54,13 @@
     return r && typeof r === 'object' ? r : { msg: r || '' };
   }
   const value = m => DM.BANK[m] ? DM.BANK[m][1] / DM.BANK[m][0] : 0;   // soldi per unità di materiale
+  // Lista della spesa: per ogni materiale, quanto ne serve per comprare una delle cose volute (la richiesta più alta)
+  function needsOf(L) {
+    const n = {};
+    L.wants.concat(['C']).forEach(k => DM.COST[k].forEach(o => Object.keys(o.r).forEach(m => { n[m] = Math.max(n[m] || 0, o.r[m]); })));
+    return n;
+  }
+  const SHOPS = ['cap', 'citta', 'acc'];   // dove si comprano le truppe (le bombe solo in Capitale e Città... e Accampamento per la Bomba)
   const enemyOf = (G, o) => x => x.o !== o && x.o >= 0 && !(G.players[x.o] && G.players[x.o].out);
 
   // ---------- preparazione ----------
@@ -93,7 +101,8 @@
 
   // ---------- il turno ----------
   DM.botTurn = function* (G) {
-    const o = G.p, q = G.players[o], L = LEVEL[(G.bots || [])[o]] || LEVEL.normale;
+    const o = G.p, q = G.players[o];
+    let L = LEVEL[(G.bots || [])[o]] || LEVEL.normale;
     const saveR = G.tapR; G.tapR = .6;
     const mine = s => s.o === o, foe = enemyOf(G, o);
     const cap = () => DM.capitalOf(G, o);
@@ -103,31 +112,48 @@
     // 0) senza Capitale: una Città con metà dei soldi diventa Capitale
     if (q.noCap) for (const s of G.sites.filter(s => mine(s) && s.k === 'citta')) if ((r = attempt(G, () => DM.chooseCapital(G, s)))) { yield say(r, 'act', [s.x, s.y]); break; }
 
-    // 1) Banco: si vende il materiale che rende di più (un solo tipo per turno)
+    // 1) Banco: si vende solo quello che avanza (i materiali della lista della spesa si tengono, fino a 15 volte il bisogno)
+    // nemici oltre il mare (la linea dritta tra le Capitali passa sul mare): servono Elicotteri e Navi
+    const myCap = DM.capitalOf(G, o);
+    const overseas = !!myCap && G.sites.filter(z => z.k === 'cap' && foe(z)).every(e => {
+      const n = Math.ceil(dist(e, myCap) / .5);
+      for (let i = 1; i < n; i++) { const b = DM.bAt(G, myCap.x + (e.x - myCap.x) * i / n, myCap.y + (e.y - myCap.y) * i / n); if (b === 'S') return true; }
+      return false;
+    });
+    if (overseas && L.wants.length > 1) L = Object.assign({}, L, { wants: ['E', 'N'].concat(L.wants.filter(k => k !== 'E')) });
+    const need = needsOf(L);
     {
-      const tot = {};
-      G.sites.filter(mine).forEach(s => DM.MATERIALS.forEach(m => { const n = Math.floor((s.inv.mat[m] || 0) / DM.BANK[m][0]); if (n > 0) tot[m] = (tot[m] || 0) + n * DM.BANK[m][1]; }));
-      // i materiali che servono per comprare truppe si tengono (rame, piombo; titanio e petrolio per i più forti)
-      const keepMat = ['rame', 'piombo'].concat(L.buy.includes('T') ? ['titanio', 'petrolio'] : []).concat(L.bombs ? ['uranio'] : []);
-      const m = q.sold || Object.keys(tot).filter(k => !keepMat.includes(k) || tot[k] > 60000).sort((a, b) => tot[b] - tot[a])[0];
-      if (m) for (const s of G.sites.filter(mine)) {
-        const n = Math.floor((s.inv.mat[m] || 0) / DM.BANK[m][0]);
-        if (n > 0 && (r = attempt(G, () => DM.sell(G, s, m, n)))) yield say(r, 'act', [s.x, s.y]);
+      const have = {};
+      G.sites.filter(mine).forEach(s => DM.MATERIALS.forEach(m => { have[m] = (have[m] || 0) + (s.inv.mat[m] || 0); }));
+      const spare = m => Math.max(0, (have[m] || 0) - (need[m] || 0) * 15);   // abbastanza per tante truppe
+      const m = q.sold || DM.MATERIALS.filter(k => Math.floor(spare(k) / DM.BANK[k][0]) > 0).sort((a, b) => spare(b) * value(b) - spare(a) * value(a))[0];
+      let left = m ? spare(m) : 0;
+      // si vende prima dalle miniere (lontane), poi dalle città
+      if (m) for (const s of G.sites.filter(mine).sort((a, b) => (SHOPS.includes(a.k) ? 1 : 0) - (SHOPS.includes(b.k) ? 1 : 0))) {
+        const n = Math.floor(Math.min(s.inv.mat[m] || 0, left) / DM.BANK[m][0]);
+        if (n > 0 && (r = attempt(G, () => DM.sell(G, s, m, n)))) { left -= n * DM.BANK[m][0]; yield say(r, 'act', [s.x, s.y]); }
       }
     }
 
-    // 2) acquisti nei propri edifici (tenendo da parte qualche soldo)
+    // 2) acquisti nei propri edifici (Capitale, Città e Accampamenti), tenendo da parte qualche soldo:
+    //    miniere e Accampamenti per crescere, un Carro ogni 4 miniere, poi le truppe e le armi della lista
     {
       let n = 0;
-      const shops = G.sites.filter(s => mine(s) && (s.k === 'cap' || s.k === 'citta')).sort((a, b) => b.inv.mon - a.inv.mon);
-      for (const s of shops) for (const k of L.buy) {
+      const nCarts = G.units.filter(u => u.o === o && u.t === 'C').length, nMines = G.sites.filter(z => mine(z) && z.k === 'min').length;
+      const list = ['min', 'acc'].concat(nCarts < 1 + Math.floor(nMines / 4) ? ['C'] : [], L.wants);
+      const shops = G.sites.filter(s => mine(s) && SHOPS.includes(s.k)).sort((a, b) => b.inv.mon - a.inv.mon);
+      for (const k of list) for (const s of shops) {
         if (n >= L.buys) break;
         if ((k === 'bomba' || k === 'superbomba') && !(k === 'bomba' ? L.bombs : L.superbomb)) continue;
         if ((k === 'bomba' || k === 'superbomba') && (s.inv.mat[k] || 0) >= 1) continue;
         if ((k === 'acc' || k === 'min') && (q.res[k] || 0) >= 2) continue;
-        const c = DM.COST[k] && DM.COST[k][0];
-        if (!c || s.inv.mon - c.m < L.keep) continue;
-        if ((r = attempt(G, () => DM.buy(G, s, k)))) { n++; yield say(r, 'act', [s.x, s.y]); }
+        const ok = DM.COST[k] && DM.COST[k].some(c => s.inv.mon - c.m >= (k === 'min' || k === 'acc' ? 0 : L.keep) && DM.canPay([s.inv], c));
+        if (!ok) continue;
+        // le truppe: più volte nello stesso turno, finché ci sono soldi e materiali
+        for (let k2 = 0; k2 < (T[k] ? 3 : 1) && n < L.buys; k2++) {
+          if (!DM.COST[k].some(c => s.inv.mon - c.m >= (T[k] ? L.keep : 0) && DM.canPay([s.inv], c))) break;
+          if ((r = attempt(G, () => DM.buy(G, s, k)))) { n++; yield say(r, 'act', [s.x, s.y]); } else break;
+        }
       }
     }
 
@@ -139,23 +165,52 @@
       bases.forEach(b => ring(b.x, b.y, r0, r1, .6).forEach(p => out.push(p)));
       return out;
     };
+    // quanto vale un minerale per questo bot: se è nella lista della spesa vale di più (soprattutto se ne manca)
+    const stock = m => G.sites.filter(mine).reduce((t, s) => t + (s.inv.mat[m] || 0), 0);
+    const c0 = cap();
+    // un materiale della lista che manca (o che nessuna miniera produce ancora) vale più di qualsiasi minerale prezioso
+    const made = m => G.sites.some(z => mine(z) && z.k === 'min' && z.mt === m);
+    const worth = m => value(m) * DM.QTY[m] + (need[m] ? (!made(m) ? 300000 : stock(m) < need[m] * 5 ? 120000 : 20000) : 0);
     for (let i = 0; i < 3 && q.res.min > 0; i++) {
-      const ok = homeSpots(1, 2).filter(([x, y]) => !DM.mineError(G, x, y) && !G.sites.some(s => Math.hypot(s.x - x, s.y - y) < 1));
+      // vicino ai propri negozi (Capitale, Città, Accampamenti): così i Carri fanno viaggi corti
+      // meglio a 1–2 cm dalla Capitale: un Carro fermo in mezzo carica e scarica senza muoversi
+      const free = ([x, y]) => !DM.mineError(G, x, y) && !G.sites.some(s => Math.hypot(s.x - x, s.y - y) < 1);
+      const close = c0 ? ring(c0.x, c0.y, 1.2, 1.9, .35).filter(free) : [];
+      const near = G.sites.filter(z => mine(z) && SHOPS.includes(z.k)).flatMap(b => ring(b.x, b.y, 1, 3.5, .5));
+      const ok = close.length ? close : near.concat(homeSpots(1, 2)).filter(free);
       if (!ok.length) break;
-      // i Maghi scelgono il dado: quello del minerale che vale di più qui
-      const [x, y] = pick(ok.slice(0, 20));
+      // il posto migliore: il bioma che in media dà i minerali più utili (i Maghi poi scelgono il dado)
+      // (un po' meno se è lontana dalla Capitale: il Carro deve fare più strada)
+      const score = ([x, y]) => { const tab = DM.MINE_TABLE[DM.bAt(G, x, y)].split(' '); return (q.dice > 0 ? Math.max(...tab.map(worth)) : tab.reduce((t, m) => t + worth(m), 0) / 6) * (1 + rnd() * .2) / (1 + (c0 ? Math.hypot(x - c0.x, y - c0.y) : 0) * .04); };
+      const [x, y] = ok.slice(0, 120).map(p => [p, score(p)]).sort((a, b) => b[1] - a[1])[0][0];
       let die;
-      if (q.dice > 0) { const tab = DM.MINE_TABLE[DM.bAt(G, x, y)].split(' '); die = 1 + tab.map((m, j) => [value(m) * DM.QTY[m], j]).sort((a, b) => b[0] - a[0])[0][1]; }
+      if (q.dice > 0) { const tab = DM.MINE_TABLE[DM.bAt(G, x, y)].split(' '); die = 1 + tab.map((m, j) => [worth(m), j]).sort((a, b) => b[0] - a[0])[0][1]; }
       const res = DM.buildMine(G, x, y, die);
       if (res.err) break;
       yield { kind: 'mine', msg: G.names[o] + ' costruisce una Miniera: dado ' + res.die + ', ' + res.mat + '.', at: [x, y], x: { die: res.die } };
     }
+    // missione: se in riserva c'è ancora una miniera ma vicino alle truppe non c'è posto, il posto migliore del territorio
+    // (a meno di 12 cm dalla Capitale) dove manca solo una truppa: ci si manderà un soldato
+    let mission = null;
+    if (q.res.min > 0 && c0) {
+      let best = -1;
+      for (let y = Math.max(1, c0.y - 12); y < Math.min(DM.H - 1, c0.y + 12); y += 1) for (let x = Math.max(1, c0.x - 12); x < Math.min(DM.W - 1, c0.x + 12); x += 1) {
+        const px = x + rnd() * .6, py = y + rnd() * .6, e = DM.mineError(G, px, py);
+        if (e && !/truppa/.test(e)) continue;
+        const tab = DM.MINE_TABLE[DM.bAt(G, px, py)].split(' ');
+        const sc = tab.reduce((t, m) => t + worth(m), 0) / 6 / (1 + Math.hypot(px - c0.x, py - c0.y) * .08);
+        if (sc > best) { best = sc; mission = [px, py]; }
+      }
+    }
     for (const k of ['citta', 'acc']) for (let i = 0; i < 3 && q.res[k] > 0; i++) {
       const c = cap();
-      const ok = homeSpots(.8, 1.9).filter(([x, y]) => !DM.NO_BUILD.includes(DM.bAt(G, x, y) || 'S') && DM.terrAt(G, x, y) === o &&
-        !(k === 'citta' && DM.NO_CITY.includes(DM.bAt(G, x, y))) && !G.sites.some(s => Math.hypot(s.x - x, s.y - y) < 2.5) && DM.troopNear(G, o, x, y, 2));
+      const ok = homeSpots(.6, 1.9).filter(([x, y]) => !DM.NO_BUILD.includes(DM.bAt(G, x, y) || 'S') && DM.terrAt(G, x, y) === o &&
+        !(k === 'citta' && DM.NO_CITY.includes(DM.bAt(G, x, y))) && !G.sites.some(s => Math.hypot(s.x - x, s.y - y) < (SHOPS.includes(s.k) ? 2 : 1)) && DM.troopNear(G, o, x, y, 2));
       if (!ok.length) break;
-      ok.sort((a, b) => c ? Math.hypot(b[0] - c.x, b[1] - c.y) - Math.hypot(a[0] - c.x, a[1] - c.y) : 0);   // lontano dalla Capitale: il regno si allarga
+      // sul confine: dove intorno ci sono più terre di nessuno (e lontano dalla Capitale), il regno si allarga
+      const free = ([x, y]) => ring(x, y, 2, 4, 1, 12).filter(([a, b]) => land(G, a, b) && DM.terrAt(G, a, b) === -1).length;
+      ok.splice(80);
+      ok.sort((a, b) => (free(b) - free(a)) * 3 + (c ? Math.hypot(b[0] - c.x, b[1] - c.y) - Math.hypot(a[0] - c.x, a[1] - c.y) : 0));
       const [x, y] = ok[0];
       if ((r = attempt(G, () => DM.buildSite(G, k, x, y)))) yield say(r, 'act', [x, y]); else break;
     }
@@ -186,14 +241,15 @@
     const goods = s => s.inv.mon + DM.MATERIALS.reduce((t, m) => t + (s.inv.mat[m] || 0) * value(m), 0);
     for (const c of carts()) {
       const here = G.sites.filter(s => mine(s) && dist(s, c) <= 1);
-      const home = here.find(s => s.k === 'cap');
-      if (home && c.cg && DM.cargoPts(c.cg) > 0) { if ((r = attempt(G, () => DM.unloadCargo(G, c, home)))) yield say(r, 'act', [home.x, home.y]); continue; }
-      for (const s of here.filter(s => s.k !== 'cap' && goods(s) > 5000)) {
-        for (const m of ['mon'].concat(DM.MATERIALS.slice().sort((a, b) => value(b) - value(a)))) {
+      const home = here.find(s => s.k === 'cap') || (!cap() ? here.find(s => SHOPS.includes(s.k)) : null);   // si scarica tutto in Capitale
+      for (const s of here.filter(s => !SHOPS.includes(s.k) && goods(s) > 0)) {
+        // prima i materiali della lista della spesa, poi i soldi, poi il resto (il più prezioso)
+        for (const m of DM.MATERIALS.filter(m => need[m]).concat(['mon'], DM.MATERIALS.filter(m => !need[m]).sort((a, b) => value(b) - value(a)))) {
           if ((m === 'mon' ? s.inv.mon : (s.inv.mat[m] || 0)) <= 0) continue;
           if ((r = attempt(G, () => DM.loadCargo(G, c, s, m, 0)))) yield say(r, 'act', [s.x, s.y]);
         }
       }
+      if (home && c.cg && DM.cargoPts(c.cg) > 0 && (r = attempt(G, () => DM.unloadCargo(G, c, home)))) yield say(r, 'act', [home.x, home.y]);
     }
 
     // 6) eserciti: truppe di terra vicine, ancora ferme, si uniscono
@@ -204,7 +260,7 @@
         if (used.has(u)) continue;
         const grp = [u];
         for (const v of free) if (v !== u && !used.has(v) && dist(u, v) <= 1 && !DM.pickError(G, grp, v)) grp.push(v);
-        if (grp.length >= 3 && !DM.pickError(G, [], u)) {
+        if (grp.length >= (G.round >= L.campaign ? 2 : 3) && !DM.pickError(G, [], u)) {
           grp.forEach(v => used.add(v));
           if ((r = attempt(G, () => { const f = DM.formArmy(G, grp); return f.err ? '' : f.msg; }))) yield say(r, 'army', [u.x, u.y]);
         }
@@ -230,14 +286,33 @@
       for (const u of movers().filter(u => !skip.has(u.id))) {
         const A = DM.armyOf(G, u), kind = T[u.t].kind, st = DM.stat(G, u), strong = A.reduce((t, v) => t + v.hp, 0);
         let goal = null, score = 0;
-        if (u.t === 'C' && A.length === 1) {   // Carro: verso casa se carico, altrimenti verso la miniera più ricca
-          if (c && u.cg && DM.cargoPts(u.cg) > 0) { goal = [c.x, c.y]; score = 5; }
-          else {
-            const s = G.sites.filter(z => mine(z) && z.k !== 'cap' && goods(z) > 20000).sort((a, b) => goods(b) - goods(a))[0];
-            if (s && dist(s, u) > .8) { goal = [s.x, s.y]; score = 4; }
+        const onlyCarts = !own().some(v => T[v.t].kind === 'land' && v.t !== 'C');
+        if (u.t === 'C' && A.length === 1 && onlyCarts && mission && !mission.taken && Math.hypot(u.x - mission[0], u.y - mission[1]) > 1.2 && !(u.cg && DM.cargoPts(u.cg) > 0)) {
+          goal = mission; score = 25;   // senza soldati, è il Carro ad aprire la strada alle miniere
+        } else if (u.t === 'C' && A.length === 1) {   // Carro: verso casa se carico, altrimenti verso la miniera più ricca
+          if (u.cg && DM.cargoPts(u.cg) > 0) {   // carico: al negozio più vicino (meglio la Capitale, se non è molto più lontana)
+            // tutto in un posto solo (per comprare servono soldi e materiali insieme): la Capitale, se non è troppo lontana
+            const sh = c || G.sites.filter(z => mine(z) && SHOPS.includes(z.k)).sort((a, b) => dist(a, u) - dist(b, u))[0];
+            if (sh) { goal = [sh.x, sh.y]; score = 26; }   // l'economia prima di tutto: senza materiali in Capitale non si compra niente
+          } else {
+            const useful = z => goods(z) + DM.MATERIALS.reduce((t, m) => t + (need[m] ? (z.inv.mat[m] || 0) * value(m) * 3 : 0), 0);
+            const s = G.sites.filter(z => mine(z) && !SHOPS.includes(z.k) && goods(z) > 15000 && !G.units.some(v => v !== u && v.t === 'C' && v.o === o && dist(v, z) < 1.5))
+              .sort((a, b) => useful(b) / (3 + dist(b, u)) - useful(a) / (3 + dist(a, u)))[0];
+            if (s && c && dist(s, c) <= 1.95) {   // miniera vicina alla Capitale: il Carro si ferma in mezzo (entro 1 cm da tutte e due)
+              // un punto di terra entro 1 cm da tutte e due (il primo che si trova vicino al punto di mezzo)
+              const m0 = [(s.x + c.x) / 2, (s.y + c.y) / 2];
+              const mid = [m0].concat(ring(m0[0], m0[1], .2, .6, .2, 10)).find(([x, y]) => land(G, x, y) && Math.hypot(x - s.x, y - s.y) <= .95 && Math.hypot(x - c.x, y - c.y) <= .95);
+              if (mid && Math.hypot(u.x - mid[0], u.y - mid[1]) > .25) { goal = mid; score = 24; }
+              else if (!mid && dist(s, u) > .8) { goal = [s.x, s.y]; score = 22; }
+            } else if (s && dist(s, u) > .8) { goal = [s.x, s.y]; score = 22; }
           }
         } else {
-          // difesa: un nemico vicino alla Capitale
+          // missione di costruzione: il soldato più vicino va dove si può aprire una miniera
+          if (mission && !mission.taken && kind === 'land' && A.length === 1 && (u.t !== 'C' || !own().some(v => T[v.t].kind === 'land' && v.t !== 'C'))) {
+            const d = Math.hypot(u.x - mission[0], u.y - mission[1]);
+            if (d > 1.2) { goal = mission; score = 19 - d * .3; }
+          }
+          // difesa: un nemico vicino alla Capitale (prima della missione)
           const danger = c && L.defend ? E.filter(e => e.hp && !e.k && dist(e, c) < 6).sort((a, b) => dist(a, c) - dist(b, c))[0] : null;
           if (danger && dist(u, c) < 10 && st[0] > 0) { goal = toward(u, danger, st[1] * .8); score = 30 - dist(u, danger); }
           // attacco: il nemico più vicino entro "aggro"
@@ -246,9 +321,13 @@
             if (e && (e.k || strong >= (e.hp || 0) * .6)) { goal = toward(u, e, st[1] * .8); score = 20 - dist(u, e); }
           }
           // campagna: più avanti nella partita gli eserciti (e qualche truppa) marciano verso gli edifici nemici
-          if (!goal && kind !== 'sea' && st[0] > 0 && G.round >= L.campaign && (u.g || rnd() < .35)) {
-            const e = E.filter(e => e.k && reach(kind, e)).sort((a, b) => dist(a, u) - dist(b, u))[0];
-            if (e) { goal = toward(u, e, st[1] * .8); score = (L.campaign < 10 ? 16 : 12) + (u.g ? 4 : 0); }
+          if (!goal && kind !== 'sea' && st[0] > 0 && G.round >= L.campaign && (u.g || u.t === 'T' || rnd() < .35)) {
+            // gli eserciti forti puntano la Capitale nemica più debole (vicina e con poca vita); gli altri l'edificio nemico più vicino
+            const big = A.reduce((t, v) => t + DM.stat(G, v)[0], 0) >= 1500 || G.round >= L.campaign + 25;
+            const caps = E.filter(e => e.k === 'cap' && reach(kind, e));
+            const e = big && caps.length ? caps.sort((a, b) => (a.hp / 1000 + dist(a, u)) - (b.hp / 1000 + dist(b, u)))[0]
+              : E.filter(e => e.k && reach(kind, e)).sort((a, b) => dist(a, u) - dist(b, u))[0];
+            if (e) { goal = toward(u, e, st[1] * .8); score = (L.campaign < 10 ? 16 : 12) + (u.g ? 4 : 0) + (big ? 4 : 0); }
           }
           // conquista: terra di nessuno (o, più avanti, del nemico) vicina
           if (!goal && kind !== 'sea') {
@@ -267,8 +346,12 @@
       }
       if (!best) break;
       const { u, goal } = best;
-      if ((r = attempt(G, () => DM.moveUnit(G, u, goal[0], goal[1])))) { step++; yield say(r, 'act', goal); }
-      else DM.armyOf(G, u).forEach(v => skip.add(v.id));
+      if (goal === mission) mission.taken = true;   // un soldato solo per missione
+      // se la strada è chiusa (acqua, molo, montagne) si prova verso la Capitale o verso la terra libera più vicina
+      const alt = [goal].concat(c ? [[c.x, c.y]] : [], ring(u.x, u.y, 1, 2.5, .75, 10).filter(([x, y]) => land(G, x, y) && !'ZI'.includes(DM.bAt(G, x, y))).slice(0, 4));
+      let moved = false;
+      for (const g of alt) if ((r = attempt(G, () => DM.moveUnit(G, u, g[0], g[1])))) { step++; moved = true; yield say(r, 'act', g); break; }
+      if (!moved) DM.armyOf(G, u).forEach(v => skip.add(v.id));
     }
     // 9) di nuovo spari, con chi si è avvicinato
     yield* shootAll();
