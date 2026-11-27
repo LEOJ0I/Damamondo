@@ -156,7 +156,8 @@
           const k = n - (DM.Secrets.hasOrig() ? 1 : 0), tot = DM.SECRETS.length;
           DM.ui.msg = `${s2.emoji} Hai trovato una mappa segreta: ${s2.name}!` + (first ? ` Mappe segrete trovate: ${k} di ${tot} ${DM.Secrets.medal(k)}` + (k === tot ? ' Hai sbloccato qualcosa: guarda nell’Esploratore 🧭' : '') : '');
         }
-        if (DM.Sfx) DM.Sfx.play('capNew');
+        // fanfara: grande per la mappa originale e quando le hai trovate tutte, normale per una nuova, piccola se l'avevi già trovata
+        if (DM.Sfx) DM.Sfx.play(!first ? 'capNew' : G.map.secret === 'originale' || (DM.Secrets.allFound() && !DM.Secrets.hasOrig()) ? 'secretBig' : 'secret');
         DM.redraw();
       }
       if (!slot) { DM.ui.msg = 'Attenzione: qui non riesco a salvare la partita nel telefono. Usa "Scarica file" in Salvataggi.'; DM.redraw(); }
