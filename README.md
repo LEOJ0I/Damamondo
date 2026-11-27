@@ -1,4 +1,4 @@
-# Damamondo Classico – prototipo
+# Damamondo – prototipo
 
 Gioco da tavolo di strategia, versione digitale da giocare sul telefono (tutti sullo stesso telefono, a turno).
 Si apre `index.html` nel browser: non serve installare niente.
@@ -34,6 +34,8 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/settings.js` | la finestra Impostazioni (ingranaggio): musica, effetti sonori, animazioni, vibrazione, dettagli quando ingrandisci |
 | `js/main.js` | avvio |
 | `tools/build-pages.js` | crea `regole.html`, `llms.txt` e `llms-full.txt` dalle regole del gioco (`npm run pagine`) |
+| `tools/make-pdf.js` | crea il regolamento in PDF (`Damamondo_Regolamento.pdf`) dalle stesse regole (`npm run pdf`, da rifare quando cambiano le regole) |
+| `tools/make-preview.js` | crea `anteprima.png`, l’immagine che compare quando si condivide il link (`node tools/make-preview.js`) |
 | `regole.html` | il regolamento come pagina normale: da leggere, stampare, e per Google e le AI |
 | `llms.txt`, `llms-full.txt` | cos'è Damamondo e le regole in testo, per le AI |
 | `manifest.webmanifest`, `icons/`, `sw.js` | app installabile (PWA): nome, icona con la stella, a tutto schermo, funziona senza internet. `sw.js` lo crea `npm run pagine`; le icone `node tools/make-icons.js` |
@@ -45,7 +47,7 @@ Animazioni e suoni non toccano le regole: prima di un'azione l'interfaccia fa un
 ## Prove
 
 ```
-npm test               # 78 prove delle regole, dei bot (anche partite intere tra bot) e delle mappe segrete (anche che le pagine statiche siano aggiornate) (serve Node 18+)
+npm test               # 79 prove delle regole, dei bot (anche partite intere tra bot) e delle mappe segrete (anche che le pagine statiche siano aggiornate) (serve Node 18+)
 npm run test:browser   # 41 passi giocati (anche contro i bot, sulle mappe segrete e sulla mappa originale), 15 prove di animazioni e suoni, prova dell'app senza internet, in un browser che finge un iPhone (serve Playwright)
 ```
 

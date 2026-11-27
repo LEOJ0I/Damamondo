@@ -13,7 +13,7 @@ test('regole.html e i file per le AI sono aggiornati con le regole del gioco', (
 
 test('le pagine dicono chiaramente cos’è Damamondo e contengono le regole', () => {
   const out = build();
-  assert.match(out['llms.txt'], /^# Damamondo\n\n> Damamondo \(Damamondo Classico\) è un gioco di strategia da tavolo/);
+  assert.match(out['llms.txt'], /^# Damamondo\n\n> Damamondo è un gioco di strategia da tavolo/);
   assert.match(out['llms.txt'], /non è il gioco della campana/);
   assert.match(out['llms.txt'], /\(https:\/\/leoj0i\.github\.io\/Damamondo\/regole\.html\)/);
   assert.match(out['llms-full.txt'], /## 5\. Eserciti e flotte/);

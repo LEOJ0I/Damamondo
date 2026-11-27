@@ -108,13 +108,14 @@ test('miniere: territorio, truppa entro 2 cm, 2 cm dalle altre, biomi validi, da
   const r = DM.buildMine(G, 16.5, 20, 3);
   assert.deepEqual([r.die, r.mat, r.qty], [3, 'rame', 5]);   // Pianura, dado scelto 3
   assert.equal(G.players[0].dice, 1);
-  assert.match(DM.buildMine(G, 15.5, 21).err, /minimo 2 cm/);
+  assert.match(DM.buildMine(G, 16, 20.6).err, /minimo 1 cm/);
+  assert.equal(DM.mineError(G, 15.5, 21), '', 'a 1,4 cm da un’altra miniera si può');
   DM.addUnit(G, 'S', 0, 14, 21);
   const r2 = DM.buildMine(G, 14, 21.6, 1);
   assert.equal(r2.die, 1);
   assert.equal(G.players[0].dice, 0);
   G.players[0].res.min = 1;
-  assert.match(DM.buildMine(G, 15.5, 19).err, /minimo 2 cm/);
+  assert.match(DM.buildMine(G, 16.5, 19.3).err, /minimo 1 cm/);
   // dado casuale per gli altri kit / dopo le scelte
   DM.endTurn(G);
   DM.addUnit(G, 'S', 1, 46, 20);

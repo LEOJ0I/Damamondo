@@ -130,7 +130,7 @@
     if (!b || !DM.MINE_TABLE[b]) return 'Qui non si può scavare (serve terraferma: niente mare, fiumi, Banchisa o Lavico).';
     if (DM.terrAt(G, x, y) !== G.p) return 'Devi costruire dentro il tuo territorio.';
     if (!DM.troopNear(G, G.p, x, y, 2)) return 'Serve una tua truppa entro 2 cm.';
-    if (G.sites.some(s => s.k === 'min' && Math.hypot(s.x - x, s.y - y) < 2)) return 'Troppo vicina a un’altra miniera (minimo 2 cm).';
+    if (G.sites.some(s => s.k === 'min' && Math.hypot(s.x - x, s.y - y) < DM.MINE_GAP)) return 'Troppo vicina a un’altra miniera (minimo ' + DM.MINE_GAP + ' cm).';
     return '';
   };
   // dice: risultato scelto (kit Maghi) oppure undefined per tirare il dado. Restituisce {err} o {die, mat, qty}.

@@ -294,3 +294,30 @@ test('eserciti sui ponti: con un Carrarmato il liv.1 non si passa, il liv.2 sì'
   assert.equal(DM.baseSpeed(G, 'N', 30, 15), 4);
   assert.equal(DM.baseSpeed(G, 'N', 30, 25), 0);
 });
+
+test('mosse per turno: Carro 3, Nave Carro 2, Aereo Carro 1, ognuna con tutta la velocità; una sola conta nel limite', () => {
+  const G = testGame();
+  const c = DM.addUnit(G, 'C', 0, 16, 22), s = DM.addUnit(G, 'S', 0, 17, 22);
+  G.moved = 0;
+  assert.equal(DM.speedAt(G, c, c.x, c.y), 4);   // Pianura
+  assert.match(DM.moveUnit(G, c, 16, 30), /Mossa completata: velocità esaurita\. Può muoversi ancora 2 volte/);
+  near(c.y, 26, .06); assert.equal(G.moved, 1);
+  // seconda e terza mossa: di nuovo 4 cm, e non contano nel limite (al 1° giro si muove 1 sola cosa)
+  assert.match(DM.moveUnit(G, c, 20, 26), /ancora 1 volta/); near(c.x, 20, .06);
+  assert.match(DM.moveUnit(G, c, 20, 22), /Mosse finite/); near(c.y, 22, .06);
+  assert.equal(G.moved, 1);
+  assert.match(DM.moveUnit(G, c, 20, 21), /tutte le sue 3 mosse/);
+  // le altre truppe no
+  assert.match(DM.moveUnit(G, s, 17, 23), /Limite di movimento/);
+  G.moved = 0;
+  DM.moveUnit(G, s, 17, 23);
+  assert.match(DM.moveUnit(G, s, 17, 23.5), /già mosso/);
+  // annulla: si torna indietro una mossa alla volta
+  DM.undoMove(G, c); near(c.x, 20, .06); near(c.y, 26, .06); assert.equal(c.m, true); assert.equal(DM.movesLeft(G, c), 1);
+  DM.undoMove(G, c); DM.undoMove(G, c); near(c.x, 16, .06); near(c.y, 22, .06); assert.equal(c.m, false);
+  // Nave Carro 2, Aereo Carro 1
+  assert.deepEqual(['X', 'A', 'S', 'N'].map(t => DM.movesOf([{ t }])), [2, 1, 1, 1]);
+  // al turno dopo si riparte da capo
+  DM.moveUnit(G, c, 17, 22); DM.endTurn(G); DM.endTurn(G);
+  assert.equal(DM.movesLeft(G, c), 3);
+});
