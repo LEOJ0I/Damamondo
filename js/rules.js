@@ -30,11 +30,11 @@
         ['Miniere', ...DM.KITS.map(k => k.min ? k.min + (k.diceChoice ? ' (*)' : '') : '–')], ['Aeroporti', ...DM.KITS.map(k => k.aer || '–')],
         ['Pezzi di ponte liv. 1', ...DM.KITS.map(k => k.ponte1 || '–')], ['Materiali', ...DM.KITS.map(k => k.materials ? '1 punto di ogni materiale' : '–')],
         ['Pozioni', ...DM.KITS.map(k => k.potions ? '2 di ogni tipo (1 di Stipendio+)' : '–')]]) +
-      `<p>(*) Il giocatore sceglie il risultato del dado per ciascuna delle due miniere. Tribù è il kit standard.</p>` +
+      `<p>(*) Per ciascuna delle due miniere il giocatore sceglie il minerale, tra quelli che il bioma può dare (al posto del dado). Tribù è il kit standard.</p>` +
       ul(['Ogni kit comprende la Capitale e 1 Carro.', 'La prima Città o Capitale ha un <b>Aeroporto gratis</b> dentro.',
         'La Capitale non si può mettere in Mare, Giungla, Palude, Alta montagna, fiumi e laghi, Lavico e Banchisa.',
         'Distanza minima tra Capitali: <b>15 cm con 2 giocatori, 10 cm con 3 o più</b>.',
-        'Le truppe del kit restano in riserva: il giocatore le schiera dentro o vicino a un edificio adatto.']));
+        'Le truppe del kit restano in riserva: il giocatore le schiera entro <b>2 cm dalla Capitale</b> o entro <b>1 cm da Città e Accampamenti</b> (le Navi dentro un Porto, l\'Aereo Carro dentro un Aeroporto).']));
 
     const lim = [[1, 4], [5, 10], [11, 15], [16, 20], [21, null]];
     add('Il turno', `<p>Nel suo turno un giocatore muove e spara con le sue truppe, eserciti e flotte, nei limiti della tabella. Il limite dipende dal giro. Il turno finisce quando il giocatore lo decide (o ha finito mosse e spari). Un giro finisce quando tutti hanno giocato.</p>` +

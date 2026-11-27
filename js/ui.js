@@ -108,7 +108,10 @@
       return;
     }
     if (ui.mode === 'cedeto') s = cedeUI();
-    else if (ui.mineAt) s = '<b>Miniera</b>: scegli il risultato del dado (kit Maghi, ancora ' + DM.cur(G).dice + ')' + row([1, 2, 3, 4, 5, 6].map(d => btn('minedie', DICE[d - 1] + ' ' + d, d)).join('') + btn('minedie', 'Tira il dado', 0) + btn('cancel', 'Annulla'));
+    else if (ui.mineAt) {   // kit Maghi: si sceglie direttamente il minerale (tra quelli del bioma)
+      const tab = DM.MINE_TABLE[DM.bAt(G, ui.mineAt[0], ui.mineAt[1])].split(' '), mats = [...new Set(tab)];
+      s = '<b>Miniera</b>: scegli il minerale (kit Maghi, ancora ' + DM.cur(G).dice + ')' + row(mats.map(m => btn('minedie', m[0].toUpperCase() + m.slice(1), tab.indexOf(m) + 1)).join('') + btn('minedie', 'Tira il dado', 0) + btn('cancel', 'Annulla'));
+    }
     else if (ui.sel) s = unitInfo(ui.sel);
     else if (ui.selB) s = siteInfo(ui.selB);
     if (['road', 'bomb', 'berry', 'pz', 'shoot', 'army'].includes(ui.mode) || ui.spawn) s = row(btn('cancel', ui.mode === 'pz' && !ui.pz.first ? 'Fatto' : ui.spawn && !ui.mode ? 'Deseleziona' : 'Annulla')) + s;
@@ -441,9 +444,10 @@
     const r = DM.buildMine(G, x, y, die);
     ui.mineAt = null; ui.spawn = '';
     if (r.err) { ui.msg = r.err; keepSpawn('min'); draw(); return; }
-    ui.msg = 'Miniera costruita: dado ' + r.die + ', ' + r.mat + '. Prima produzione: ' + DM.fmtN(r.qty) + ' ' + DM.unitOf(r.mat) + '.';
+    ui.msg = 'Miniera costruita: ' + (die ? 'scelto ' : 'dado ' + r.die + ', ') + r.mat + '. Prima produzione: ' + DM.fmtN(r.qty) + ' ' + DM.unitOf(r.mat) + '.';
     ui.selB = r.site; ui.sel = null;
     keepSpawn('min');
+    if (die) { draw(); return; }   // minerale scelto (Maghi): niente dado che gira
     pend.x.die = r.die;
     if (DM.FX.on) $('info').innerHTML = `<span class="dice">${DICE[r.die - 1]}</span> Il dado gira…`;
     draw();
@@ -655,7 +659,7 @@
     const v = $('vp'), r = v.getBoundingClientRect(), c = $('c').getBoundingClientRect();
     if (px === undefined) { px = r.left + v.clientWidth / 2; py = r.top + v.clientHeight * .45; }
     const mx = (px - c.left) / ui.Z, my = (py - c.top) / ui.Z;   // punto della mappa sotto le dita (cm)
-    ui.Z = Math.min(48, Math.max(minZoom(), ui.Z * f));
+    ui.Z = Math.min(MAXZ, Math.max(minZoom(), ui.Z * f));
     render();
     const c2 = $('c').getBoundingClientRect();
     v.scrollLeft += (c2.left + mx * ui.Z) - px; v.scrollTop += (c2.top + my * ui.Z) - py;
@@ -665,8 +669,9 @@
   // spazio libero (senza la barra in alto, i comandi e i margini)
   const free = () => { const v = $('vp'), st = getComputedStyle($('vpin')), px = k => parseFloat(st[k]) || 0;
     return [v.clientWidth - px('paddingLeft') - px('paddingRight'), v.clientHeight - px('paddingTop') - px('paddingBottom')]; };
-  const fitZoom = () => { const [w, h] = free(); return Math.max(3, Math.min(w / W, h / H, 48)); };
-  const coverZoom = () => { const v = $('vp'); return Math.max(fitZoom(), Math.min(48, Math.max(v.clientWidth / W, v.clientHeight / H))); };
+  const MAXZ = 96;    // ingrandimento massimo (pixel per cm)
+  const fitZoom = () => { const [w, h] = free(); return Math.max(3, Math.min(w / W, h / H, MAXZ)); };
+  const coverZoom = () => { const v = $('vp'); return Math.max(fitZoom(), Math.min(MAXZ, Math.max(v.clientWidth / W, v.clientHeight / H))); };
   const minZoom = fitZoom;
   // porta la Capitale (o il punto x, y) un po' sopra il centro, dove non c'è il riquadro in basso
   function focus(x, y) {
@@ -692,7 +697,7 @@
     v.addEventListener('touchmove', e => {
       if (!p0 || e.touches.length !== 2) return;
       e.preventDefault();
-      const lo = minZoom() / ui.Z, hi = 48 / ui.Z;
+      const lo = minZoom() / ui.Z, hi = MAXZ / ui.Z;
       p0.s = Math.min(hi, Math.max(lo, dist(e.touches) / p0.d));
       cv.style.transform = `scale(${p0.s})`;
     }, { passive: false });
@@ -723,8 +728,8 @@
       drag = null;
     };
     v.addEventListener('pointerup', stop); v.addEventListener('pointercancel', stop);
-    // computer: Ctrl + rotellina (o due dita sul trackpad)
-    v.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); zoomAt(Math.exp(-e.deltaY / 200), e.clientX, e.clientY); }, { passive: false });
+    // computer: la rotellina ingrandisce e rimpicciolisce (per spostarsi si trascina la mappa)
+    v.addEventListener('wheel', e => { e.preventDefault(); const d = e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY; zoomAt(Math.exp(-Math.max(-200, Math.min(200, d)) / 300), e.clientX, e.clientY); }, { passive: false });
   }
 
   // ---------- Tendina: Banco, Vista, Partita, Aiuto ----------
@@ -787,7 +792,7 @@
       ui.spawn = k;
       ui.sel = null;
       if (!k) { ui.msg = ''; draw(); return; }   // "Deseleziona"
-      ui.msg = ui.spawn ? (T[ui.spawn] ? 'Tocca la mappa per schierare ' + T[ui.spawn].name + (T[ui.spawn].kind === 'sea' ? ' (dentro un tuo Porto).' : ui.spawn === 'A' ? ' (dentro un tuo Aeroporto).' : ' (entro 2 cm da Capitale, Città o Accampamento).') :
+      ui.msg = ui.spawn ? (T[ui.spawn] ? 'Tocca la mappa per schierare ' + T[ui.spawn].name + (T[ui.spawn].kind === 'sea' ? ' (dentro un tuo Porto).' : ui.spawn === 'A' ? ' (dentro un tuo Aeroporto).' : ' (entro 2 cm dalla Capitale, 1 cm da Città e Accampamenti).') :
         ui.spawn.startsWith('ponte') ? 'Tocca la terra da una parte dell’acqua, poi dall’altra. Ogni cm di ponte usa un pezzo (anche 0,7 cm usa 1 pezzo, 1,3 cm ne usa 2).' :
         'Tocca la mappa per costruire ' + DM.nameOf(ui.spawn) + (ui.spawn === 'porto' ? ' (in acqua, vicino alla tua costa).' : ' (nel tuo territorio, con una tua truppa entro 2 cm).')) : '';
       draw();

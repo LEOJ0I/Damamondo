@@ -245,11 +245,12 @@
     if (!(q.res[t] > 0)) return 'Non hai ' + T[t].name + ' in riserva.';
     const kinds = T[t].kind === 'sea' ? ['porto'] : t === 'A' ? ['aer'] : t === 'E' ? ['cap', 'citta', 'acc', 'aer'] : ['cap', 'citta', 'acc'];
     const inside = T[t].kind === 'sea' || t === 'A';
-    let s = G.sites.filter(z => z.o === G.p && kinds.includes(z.k) && Math.hypot(z.x - x, z.y - y) <= (inside ? G.tapR : 2))
+    // distanza: dentro Porto/Aeroporto per navi e Aereo Carro; 2 cm dalla Capitale; 1 cm da Città, Accampamenti (e Aeroporti per l'Elicottero)
+    let s = G.sites.filter(z => z.o === G.p && kinds.includes(z.k) && Math.hypot(z.x - x, z.y - y) <= (inside ? G.tapR : DM.SPAWN_R[z.k] || 1))
       .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0];
     // 8.1: sui fiumi il Porto non serve se c'è una tua Città entro 1 cm
     const river = !s && T[t].kind === 'sea' && DM.bAt(G, x, y) === 'F' && G.sites.some(z => z.o === G.p && (z.k === 'cap' || z.k === 'citta') && Math.hypot(z.x - x, z.y - y) <= 1);
-    if (!s && !river) return T[t].kind === 'sea' ? 'Le navi nascono dentro un tuo Porto (sui fiumi basta una tua Città entro 1 cm).' : t === 'A' ? 'L’Aereo Carro nasce dentro un tuo Aeroporto: tocca l’Aeroporto.' : 'Troppo lontano da Capitale, Città o Accampamenti (massimo 2 cm).';
+    if (!s && !river) return T[t].kind === 'sea' ? 'Le navi nascono dentro un tuo Porto (sui fiumi basta una tua Città entro 1 cm).' : t === 'A' ? 'L’Aereo Carro nasce dentro un tuo Aeroporto: tocca l’Aeroporto.' : 'Troppo lontano: massimo 2 cm dalla Capitale, 1 cm da Città e Accampamenti.';
     if (s && inside) { x = s.x; y = s.y; }
     if (!DM.canStand(G, t, x, y)) return 'Terreno non valido per ' + T[t].name + '.';
     if (T[t].kind === 'air' && 'ZI'.includes(DM.bAt(G, x, y))) return 'Le truppe aeree non possono atterrare su Lavico o Banchisa.';

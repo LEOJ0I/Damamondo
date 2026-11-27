@@ -4,6 +4,18 @@ const { DM, testGame } = require('./helpers');
 const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) <= eps, a + ' ≠ ' + b);
 const moveDist = (G, u, tx, ty) => { const x0 = u.x, y0 = u.y; const m = DM.moveUnit(G, u, tx, ty); return [Math.hypot(u.x - x0, u.y - y0), m]; };
 
+test('schierare: 2 cm dalla Capitale, solo 1 cm da Città e Accampamenti', () => {
+  const G = testGame();
+  // un Accampamento lontano dalla Capitale (in 15, 20)
+  const acc = DM.addSite(G, 0, 'acc', 25, 20); DM.claim(G, 0, 25, 20);
+  assert.match(DM.deploy(G, 'S', 26.5, 20), /Troppo lontano: massimo 2 cm dalla Capitale, 1 cm da Città e Accampamenti/);
+  assert.match(DM.deploy(G, 'S', 25.9, 20), /schierato/);
+  acc.k = 'citta';
+  assert.match(DM.deploy(G, 'S', 25, 21.5), /Troppo lontano/);
+  assert.match(DM.deploy(G, 'S', 25, 20.9), /schierato/);
+  assert.match(DM.deploy(G, 'S', 16.8, 20), /schierato/, 'dalla Capitale si arriva ancora a 2 cm');
+});
+
 test('schierare: entro 2 cm dalla Capitale, navi solo nel Porto, Aereo Carro solo in Aeroporto', () => {
   const G = testGame();
   assert.match(DM.deploy(G, 'S', 15, 23), /Troppo lontano/);

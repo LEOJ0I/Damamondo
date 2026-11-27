@@ -227,7 +227,7 @@
           for (const s of G.sites.filter(s => mine(s) && s.k === 'porto')) if ((r = attempt(G, () => DM.deploy(G, t, s.x, s.y)))) { yield say(r, 'act', [s.x, s.y]); done = true; break; }
         } else {
           const bases = G.sites.filter(s => mine(s) && ['cap', 'citta', 'acc'].includes(s.k));
-          const spots = bases.flatMap(b => ring(b.x, b.y, .8, 1.8, .5)).filter(([x, y]) => land(G, x, y) && !'ZI'.includes(DM.bAt(G, x, y)) && !G.units.some(u => Math.hypot(u.x - x, u.y - y) < .7));
+          const spots = bases.flatMap(b => ring(b.x, b.y, .5, DM.SPAWN_R[b.k] - .15, .4)).filter(([x, y]) => land(G, x, y) && !'ZI'.includes(DM.bAt(G, x, y)) && !G.units.some(u => Math.hypot(u.x - x, u.y - y) < .7));
           // meglio verso le terre di nessuno
           spots.sort((a, b) => (DM.terrAt(G, b[0], b[1]) === -1 ? 1 : 0) - (DM.terrAt(G, a[0], a[1]) === -1 ? 1 : 0));
           for (const [x, y] of spots.slice(0, 12)) if ((r = attempt(G, () => DM.deploy(G, t, x, y)))) { yield say(r, 'act', [x, y]); done = true; break; }
