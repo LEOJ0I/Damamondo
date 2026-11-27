@@ -121,9 +121,9 @@ oppure 500.000 soldi + 10 t ferro + 2500 l petrolio
 
 4.8 Carro. Trasporta materiali, soldi, bombe, pozioni e bacche. Non ha capacità di attacco e la strada non ne raddoppia la velocità.
 
-4.9 Più mosse per i mezzi da carico. Carro, Nave Carro e Aereo Carro possono essere mossi più volte nello stesso turno, finché non hanno percorso in tutto la loro velocità; solo la prima mossa conta nel limite dei movimenti (art. 3.2).
+4.9 Più mosse per i mezzi da carico. Il Carro può essere mosso fino a 3 volte per turno e la Nave Carro fino a 2 volte, ogni volta con tutta la propria velocità; l'Aereo Carro una sola volta, come le altre truppe. Solo la prima mossa conta nel limite dei movimenti (art. 3.2).
 
-Esempio: Un Carro in Pianura ha velocità 4 cm: può percorrere 1,5 cm per caricare i materiali in una Città e poi altri 2,5 cm per portarli alla Capitale, contando un solo movimento.
+Esempio: Un Carro in Pianura ha velocità 4 cm: può percorrere 4 cm fino a una miniera per caricare i minerali, altri 4 cm verso la Capitale e altri 4 cm ancora, contando un solo movimento.
 
 4.10 Carro in omaggio. L'acquisto di una Nave Carro o di un Aereo Carro comprende un Carro in omaggio, già a bordo.
 

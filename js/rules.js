@@ -73,8 +73,8 @@
       art('Velocità di 4 cm; quando parte da un Aeroporto dispone di 2 cm aggiuntivi, validi solo per quel movimento.', 'Elicottero') +
       art('Decolla e atterra soltanto negli Aeroporti, dove carica e scarica truppe e materiali.', 'Aereo Carro') +
       art('Trasporta materiali, soldi, bombe, pozioni e bacche. Non ha capacità di attacco e la strada non ne raddoppia la velocità.', 'Carro') +
-      art('Carro, Nave Carro e Aereo Carro possono essere mossi più volte nello stesso turno, finché non hanno percorso in tutto la loro velocità; solo la prima mossa conta nel limite dei movimenti (art. 3.2).', 'Più mosse per i mezzi da carico') +
-      box('ex', 'Un Carro in Pianura ha velocità 4 cm: può percorrere 1,5 cm per caricare i materiali in una Città e poi altri 2,5 cm per portarli alla Capitale, contando un solo movimento.') +
+      art('Il Carro può essere mosso fino a <b>' + DM.MOVES_PER_TURN.C + ' volte</b> per turno e la Nave Carro fino a <b>' + DM.MOVES_PER_TURN.X + ' volte</b>, ogni volta con tutta la propria velocità; l\'Aereo Carro una sola volta, come le altre truppe. Solo la prima mossa conta nel limite dei movimenti (art. 3.2).', 'Più mosse per i mezzi da carico') +
+      box('ex', 'Un Carro in Pianura ha velocità 4 cm: può percorrere 4 cm fino a una miniera per caricare i minerali, altri 4 cm verso la Capitale e altri 4 cm ancora, contando un solo movimento.') +
       art('L\'acquisto di una Nave Carro o di un Aereo Carro comprende un Carro in omaggio, già a bordo.', 'Carro in omaggio'));
 
     add('Eserciti e flotte', () =>

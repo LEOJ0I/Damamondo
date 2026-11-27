@@ -44,7 +44,7 @@
   };
   DM.TROOP_KEYS = 'SNETCXA';
   DM.MINE_GAP = 1;        // distanza minima tra due miniere (cm)
-  DM.MULTI_MOVE = 'CXA';   // Carro, Nave Carro e Aereo Carro si muovono anche più volte per turno (fino alla loro velocità)
+  DM.MOVES_PER_TURN = { C: 3, X: 2, A: 1 };   // mosse per turno (ognuna con tutta la velocità): Carro 3, Nave Carro 2, Aereo Carro 1; le altre truppe 1
 
   // 12.3 danno nei biomi (correzione: Carrarmato 1000 Deserto, 2200 Giungla).
   DM.BIOME_DMG = { S: { D: 50, G: 100 }, E: { D: 350, G: 800 }, T: { D: 1000, G: 2200 } };

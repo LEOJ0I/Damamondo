@@ -37,7 +37,7 @@
     G.players.forEach(q => { q.sold = ''; });
     if (G.p <= q0) { G.round++; msg += DM.tick(G); }
     G.berried = false; G.moved = 0; G.shots = 0;
-    G.units.forEach(u => { u.m = false; u.s = false; delete u.left; delete u.prev; });
+    G.units.forEach(u => { u.m = false; u.s = false; delete u.mc; delete u.prev; });
     // Bruciature del Lavico (3 turni, non si sommano) per le truppe del giocatore di turno
     G.units.filter(u => u.o === G.p && !u.carried).forEach(u => {
       if (DM.bAt(G, u.x, u.y) === 'Z' && DM.TROOPS[u.t].kind !== 'air') u.bn = 3;

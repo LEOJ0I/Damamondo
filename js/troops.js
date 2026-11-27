@@ -131,21 +131,19 @@
     return { dx: to.x - mx, dy: to.y - my, left: budget - dist.get(to.id), path: path.map(id => DM.nodePos(G, id)) };
   };
 
-  // Quanta velocità resta (frazione del turno): 1 se non ha mosso; Carro, Nave Carro e Aereo Carro possono usare il resto
-  DM.multiMove = A => A.every(v => DM.MULTI_MOVE.includes(v.t));
-  DM.moveLeft = (G, u) => {
-    const A = DM.armyOf(G, u);
-    if (!A.some(v => v.m)) return 1;
-    return DM.multiMove(A) ? Math.max(0, Math.min(...A.map(v => v.left === undefined ? 0 : v.left))) : 0;
-  };
+  // Mosse per turno del gruppo: Carro 3, Nave Carro 2, le altre 1 (in un esercito vale la truppa che ne ha meno)
+  DM.movesOf = A => Math.min(...A.map(v => DM.MOVES_PER_TURN[v.t] || 1));
+  DM.movesLeft = (G, u) => { const A = DM.armyOf(G, u); return Math.max(0, DM.movesOf(A) - Math.max(...A.map(v => v.mc || 0))); };
+  // 1 se può ancora muoversi (ogni mossa ha tutta la velocità), altrimenti 0
+  DM.moveLeft = (G, u) => DM.movesLeft(G, u) > 0 ? 1 : 0;
 
   // Muove la truppa o l'esercito di u verso (tx, ty). Restituisce un messaggio.
   DM.moveUnit = function (G, u, tx, ty) {
     if (u.o !== G.p) return 'Non è una tua truppa.';
     if (u.carried) return 'È a bordo di un veicolo: prima falla scendere.';
-    const A = DM.armyOf(G, u), again = A.some(v => v.m), budget = DM.moveLeft(G, u);
-    if (again && !DM.multiMove(A)) return 'Questa truppa ha già mosso in questo turno.';
-    if (again && budget <= .01) return 'Velocità esaurita per questo turno.';
+    const A = DM.armyOf(G, u), again = A.some(v => v.m), budget = 1;
+    if (again && DM.movesOf(A) === 1) return 'Questa truppa ha già mosso in questo turno.';
+    if (again && !DM.movesLeft(G, u)) return 'Ha già fatto tutte le sue ' + DM.movesOf(A) + ' mosse di questo turno.';
     if (!again && G.moved >= DM.moveLimit(G.round)) return 'Limite di movimento raggiunto: puoi muovere al massimo ' + DM.moveLimit(G.round) + ' truppe o eserciti.';
     const [mx, my] = centroid(A);
     const own = s => s.o === G.p;
@@ -166,7 +164,7 @@
       if (here && !here.site) starts.push(here);
       starts.forEach(st => { if (!plan) plan = DM.planRoad(G, A, st, goal, budget); });
     }
-    if (!plan) plan = DM.planStraight(G, A, target ? target.x : tx, target ? target.y : ty, again ? budget : undefined);
+    if (!plan) plan = DM.planStraight(G, A, target ? target.x : tx, target ? target.y : ty);
     const { dx, dy } = plan;
     if (plane && Math.hypot(mx + dx - target.x, my + dy - target.y) > .05) return 'Aeroporto troppo lontano per un turno (' + DM.TROOPS.A.air + ' cm).';
     if (Math.hypot(dx, dy) < .05) return 'Non puoi muoverti verso quel punto.';
@@ -177,18 +175,18 @@
     G.lastPath = plan.path ? { ids: A.map(v => v.id), pts: plan.path.map(s => [s.x, s.y]), off: Object.fromEntries(A.map(v => [v.id, [v.x - mx, v.y - my]])) } : null;
     A.forEach(v => {
       // per annullare l'ultima mossa (anche la seconda o la terza di un Carro)
-      v.prev = (v.prev || []).concat([[v.x, v.y, v.left, v.cl || []]]); v.cl = []; v.px = v.x; v.py = v.y;
+      v.prev = (v.prev || []).concat([[v.x, v.y, v.cl || []]]); v.cl = []; v.px = v.x; v.py = v.y;
       let ox = 0, oy = 0;
       pts.forEach(([qx, qy]) => {
         const n = Math.max(1, Math.ceil(Math.hypot(qx - ox, qy - oy) / .5));
         for (let i = 1; i <= n; i++) v.cl.push(...DM.claim(G, v.o, v.px + ox + (qx - ox) * i / n, v.py + oy + (qy - oy) * i / n));
         ox = qx; oy = qy;
       });
-      v.x += dx; v.y += dy; v.m = true; v.left = plan.left;
+      v.x += dx; v.y += dy; v.m = true; v.mc = (v.mc || 0) + 1;
     });
     if (!again) G.moved++;
     DM.syncCarried(G);
-    const more = DM.multiMove(A) && plan.left > .01 ? ' Può muoversi ancora (' + DM.fmtCm(plan.left * Math.min(...A.map(v => DM.speedAt(G, v, v.x, v.y)))) + ' cm qui).' : '';
+    const n = DM.movesLeft(G, u), more = DM.movesOf(A) > 1 ? (n ? ' Può muoversi ancora ' + (n > 1 ? n + ' volte' : '1 volta') + ' in questo turno.' : ' Mosse finite per questo turno.') : '';
     return (plan.path ? 'Viaggio sulla strada completato (' + (plan.path.length - 1) + ' tratti).' : plan.left > .01 ? 'Mossa completata.' : 'Mossa completata: velocità esaurita.') + more;
   };
 
@@ -198,8 +196,8 @@
     if (A.some(v => v.s)) return 'Ha già sparato dopo la mossa: non si può annullare.';
     A.forEach(v => {
       (v.cl || []).forEach(i => { G.terr[i] = -1; });
-      const p = (v.prev || []).pop() || [v.px, v.py, undefined, []];
-      v.x = p[0]; v.y = p[1]; v.left = p[2]; v.cl = p[3];
+      const p = (v.prev || []).pop() || [v.px, v.py, []];
+      v.x = p[0]; v.y = p[1]; v.cl = p[2]; v.mc = Math.max(0, (v.mc || 1) - 1);
       v.m = !!(v.prev && v.prev.length);   // un Carro torna alla mossa precedente; altrimenti come se non avesse mosso
     });
     if (!A.some(v => v.m)) G.moved--;
