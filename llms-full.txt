@@ -441,7 +441,7 @@ Concime | 25.000 soldi + 1 t carbone + 100 kg ferro | Riduce di 2 turni l'attesa
 Miglioracittà | 25.000 soldi + 50 kg diamanti + 100 kg platino
 oppure 25.000 soldi + 50 kg diamanti + 200 kg argento | Aumenta di 10.000 la rendita e di 5.000 la vita di una Città.
 Curatruppe | 15.000 soldi + 100 kg platino
-oppure 15.000 soldi + 200 kg argento | Ripristina il 50% della vita di una truppa che si trovi in una Città o in un Accampamento (le Navi anche in un Porto; Elicotteri e Aereo Carro anche in un Aeroporto).
+oppure 15.000 soldi + 200 kg argento | Ripristina il 50% della vita di una truppa, ovunque si trovi.
 Ignifuga | 20.000 soldi + 300 kg ossidiana | Protegge un edificio dalle eruzioni finché non viene distrutto.
 
 ## 15. Consigli di gioco

@@ -302,8 +302,8 @@ test('pozioni: Curacittà, Miglioracittà, Ignifuga, Concime, Stipendio+ (3), Ve
   assert.equal(DM.stat(G, u2)[0], 140);
   assert.match(DM.potionOnUnit(G, cap, 'poz_velocita', 16, 20, true).msg, /Velocità/);
   assert.equal(cap.inv.mat.poz_velocita, 1);
-  // Curatruppe: solo dentro l'edificio, 50% della vita
-  const hurt = DM.addUnit(G, 'S', 0, 15, 20); hurt.hp = 10;
-  assert.match(DM.potionOnUnit(G, cap, 'poz_curatruppe', 16, 20, true).err, /Nessuna/);
-  assert.match(DM.potionOnUnit(G, cap, 'poz_curatruppe', 15, 20, true).msg, /vita 60/);
+  // Curatruppe: la truppa ferita si cura dovunque sia, 50% della vita
+  const far = DM.addUnit(G, 'S', 0, 30, 30); far.hp = 10;
+  assert.match(DM.potionOnUnit(G, cap, 'poz_curatruppe', 16, 20, true).err, /ferita/, 'le truppe sane non si curano');
+  assert.match(DM.potionOnUnit(G, cap, 'poz_curatruppe', 30, 30, true).msg, /vita 60/);
 });

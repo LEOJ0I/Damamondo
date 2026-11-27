@@ -478,7 +478,7 @@
       const r = DM.usePotion(G, ui.selB, k);
       if (r.msg) { ui.msg = r.msg; return; }
       resetModes(); ui.mode = 'pz'; ui.pz = { k, left: r.left, first: true };
-      ui.msg = k === 'poz_stipendio' ? 'Tocca fino a 3 tue truppe o eserciti.' : k === 'poz_velocita' ? 'Tocca la truppa o l’esercito.' : 'Tocca la truppa da curare (dentro l’edificio).';
+      ui.msg = k === 'poz_stipendio' ? 'Tocca fino a 3 tue truppe o eserciti.' : k === 'poz_velocita' ? 'Tocca la truppa o l’esercito.' : 'Tocca la truppa da curare (anche lontana).';
     },
     cedeb: () => { ui.cedeBTo = !ui.cedeBTo; },
     cedebto: o => { ui.msg = DM.cedeSite(G, ui.selB, +o); ui.cedeBTo = false; ui.selB = null; },

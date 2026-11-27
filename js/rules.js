@@ -195,7 +195,7 @@
 
     const PZ = { poz_stipendio: 'Tre truppe o eserciti a scelta infliggono danni doppi per 1 turno.', poz_velocita: 'Una truppa o un esercito guadagna 1 cm di movimento; nei biomi che riducono la velocità, la velocità raddoppia (dopo la riduzione).',
       poz_curacitta: 'Ripristina 1.000 punti vita a un Accampamento, 2.000 a una Città, 4.000 a una Capitale.', poz_concime: 'Riduce di 2 turni l\'attesa di una Coltivazione.', poz_miglioracitta: 'Aumenta di 10.000 la rendita e di 5.000 la vita di una Città.',
-      poz_curatruppe: 'Ripristina il 50% della vita di una truppa che si trovi in una Città o in un Accampamento (le Navi anche in un Porto; Elicotteri e Aereo Carro anche in un Aeroporto).', poz_ignifuga: 'Protegge un edificio dalle eruzioni finché non viene distrutto.' };
+      poz_curatruppe: 'Ripristina il 50% della vita di una truppa, ovunque si trovi.', poz_ignifuga: 'Protegge un edificio dalle eruzioni finché non viene distrutto.' };
     add('Le pozioni', () =>
       art('Le pozioni si acquistano negli edifici del giocatore e si usano dall\'edificio in cui sono custodite.', 'Uso') +
       table(['Pozione', 'Costo', 'Effetto'], Object.keys(PZ).map(k => [DM.POTIONS[k], cost(k), PZ[k]])));

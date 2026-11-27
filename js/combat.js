@@ -215,10 +215,10 @@
     if (first && !(I.mat[k] > 0)) return { err: 'Qui non c’è questa pozione.' };
     let c = G.units.filter(v => v.o === G.p && Math.hypot(v.x - x, v.y - y) < G.tapR);
     if (k === 'poz_curatruppe') {
-      c = c.filter(v => Math.hypot(v.x - site.x, v.y - site.y) <= .3 && DM.SPAWNS[site.k].includes(v.t) && v.hp < T[v.t].hp)
-        .sort((a, b) => a.hp / T[a.t].hp - b.hp / T[b.t].hp);
+      // la truppa si cura dovunque sia: si tocca lei (la più vicina al tocco tra le tue ferite)
+      c = c.filter(v => v.hp < T[v.t].hp).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
       const u = c[0];
-      if (!u) return { err: 'Nessuna tua truppa ferita qui dentro adatta a questo edificio.' };
+      if (!u) return { err: 'Tocca una tua truppa ferita.' };
       u.hp = Math.min(T[u.t].hp, u.hp + T[u.t].hp / 2); I.mat[k]--;
       return { msg: T[u.t].name + ' curato: vita ' + u.hp + '.', done: true };
     }
