@@ -32,7 +32,9 @@
   const when = t => new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const b = (m, label, cls, arg) => `<button type="button" class="big${cls ? ' ' + cls : ''}" data-m="${m}"${arg !== undefined ? ` data-arg="${arg}"` : ''}>${label}</button>`;
   const title = '<h1 class="title">DAMAMONDO<small>Classico</small></h1>';
-  let msg = '', np = 2, asking = null;   // asking: partita di cui si chiede conferma per eliminarla
+  let msg = '', np = 2, asking = null;
+  let who = ['', '', '', '', '', ''];   // per ogni giocatore: '' = persona, oppure il livello del bot
+  const lastLvl = ['normale', 'normale', 'normale', 'normale', 'normale', 'normale'];   // il livello si ricorda anche passando a "Persona"   // asking: partita di cui si chiede conferma per eliminarla
 
   const SCREENS = {
     home: () => title + '<div class="stack">' + b('gioca', 'Gioca', 'go') + b('regole', 'Regole') + '</div>',
@@ -56,6 +58,7 @@
     },
     nuova: () => '<h2>Nuova partita</h2>' + (msg ? `<p class="msg">${msg}</p>` : '') +
       '<div class="card"><b>Quanti giocatori?</b><div class="r">' + [2, 3, 4, 5, 6].map(n => `<button type="button" class="np${n === np ? ' on' : ''}" data-m="np" data-arg="${n}" aria-pressed="${n === np}">${n}</button>`).join('') + '</div></div>' +
+      '<div class="card" id="whoCard">' + whoCard() + '</div>' +
       `<div class="card"><b>La mappa</b><div class="opts">
         <label>Isole <select id="isl"><option value="0">Poche</option><option value="1" selected>Medie</option><option value="2">Tante</option></select></label>
         <label>Umidità <select id="hum"><option value="0">Bassa</option><option value="1">Medio bassa</option><option value="2" selected>Media</option><option value="3">Medio alta</option><option value="4">Alta</option></select></label>
@@ -68,6 +71,20 @@
       '<p class="center"><a href="regole.html" target="_blank" rel="noopener">Apri le regole in una pagina a parte (da stampare o condividere)</a></p>' +
       '<div class="rules">' + DM.rulesHTML() + '</div><div class="stack">' + b('home', '← Menu', 'back') + '</div>'
   };
+
+  // Chi gioca: persona o bot (con il livello), per ogni giocatore
+  function whoCard() {
+    const lv = DM.BOT_LEVELS;
+    return '<b>Chi gioca?</b><small class="sub">I bot giocano da soli, con le stesse regole.</small>' + Array.from({ length: np }, (_, i) => {
+      const bot = who[i], name = bot ? DM.BOT_NAMES[i] : 'Giocatore ' + (i + 1);
+      return `<div class="who-row"><span class="pname"><i style="background:${DM.PLAYER_COLORS[i]}"></i>${name}</span>` +
+        `<span class="seg" role="group" aria-label="${name}: persona o bot">` +
+        `<button type="button" data-m="who" data-arg="${i}:" aria-pressed="${!bot}"${!bot ? ' class="on"' : ''}>Persona</button>` +
+        `<button type="button" data-m="who" data-arg="${i}:${bot || lastLvl[i]}" aria-pressed="${!!bot}"${bot ? ' class="on"' : ''}>Bot</button></span>` +
+        (bot ? `<select data-lvl="${i}" aria-label="Livello di ${name}">${Object.keys(lv).map(k => `<option value="${k}"${k === bot ? ' selected' : ''}>${lv[k]}</option>`).join('')}</select>` : '') + '</div>';
+    }).join('');
+  }
+  const redrawWho = () => { const c = $('whoCard'); if (c) c.innerHTML = whoCard(); };
 
   let cur = 'home';
   DM.showMenu = function (screen) {
@@ -89,6 +106,7 @@
     setTimeout(() => {
       const G = DM.newGame(opts, seed);
       DM.setPlayers(G, np);
+      for (let i = 0; i < np; i++) if (who[i]) DM.setBot(G, i, who[i]);
       const slot = DM.Slots.create(DM.serialize(G));
       DM.playGame(G, slot);
       if (!slot) { DM.ui.msg = 'Attenzione: qui non riesco a salvare la partita nel telefono. Usa "Scarica file" in Salvataggi.'; DM.redraw(); }
@@ -99,7 +117,8 @@
     home: () => DM.showMenu('home'), gioca: () => DM.showMenu('gioca'), multi: () => DM.showMenu('multi'),
     locale: () => DM.showMenu('locale'), regole: () => DM.showMenu('regole'),
     nuova: () => { np = 2; DM.showMenu('nuova'); },
-    np: n => { np = +n; document.querySelectorAll('[data-m=np]').forEach(x => { x.classList.toggle('on', +x.dataset.arg === np); x.setAttribute('aria-pressed', +x.dataset.arg === np); }); },
+    np: n => { np = +n; document.querySelectorAll('[data-m=np]').forEach(x => { x.classList.toggle('on', +x.dataset.arg === np); x.setAttribute('aria-pressed', +x.dataset.arg === np); }); redrawWho(); },
+    who: a => { const [i, lvl] = a.split(':'); who[+i] = lvl; if (lvl) lastLvl[+i] = lvl; redrawWho(); },
     inizia: start,
     continua: id => {
       const s = DM.Slots.list().find(z => z.id === id);
@@ -135,6 +154,7 @@
       if (x && ACT[x.dataset.m]) ACT[x.dataset.m](x.dataset.arg);
     });
     $('menuBody').addEventListener('change', e => {
+      if (e.target.dataset.lvl !== undefined) { who[+e.target.dataset.lvl] = lastLvl[+e.target.dataset.lvl] = e.target.value; redrawWho(); return; }
       if (e.target.id !== 'menufile' || !e.target.files[0]) return;
       const r = new FileReader();
       r.onload = () => {

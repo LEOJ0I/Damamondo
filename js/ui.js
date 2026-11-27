@@ -29,8 +29,9 @@
   function begin(kind, x) { if (G) pend = { kind, x: x || {}, before: DM.FX.snap(G, kind) }; return pend; }
   function draw() {
     if (!G) return;
-    if (pend) { const p = pend; pend = null; DM.FX.react(G, p.kind, p.before, p.x, render, ui.msg); return; }
+    if (pend) { const p = pend; pend = null; return DM.FX.react(G, p.kind, p.before, p.x, render, ui.msg); }
     render();
+    return Promise.resolve();
   }
   function render() {
     if (!G) return;
@@ -40,6 +41,7 @@
     DM.draw($('c'), G, ui, view(), ui.Z);
     hud(); info(); eco(); reserveMenu(); legend(); buttons();
     autosave(); savesPanel();
+    if (botNow() && !botBusy) setTimeout(maybeBot, 0);   // tocca a un bot: gioca da solo
   }
   DM.redraw = render;
 
@@ -54,7 +56,7 @@
     if (G.phase !== 'play') who = `<b>Preparazione</b><small>${G.phase === 'num' ? 'Quanti giocatori?' : G.names[G.p]}</small>`;
     else {
       const q = DM.cur(G);
-      who = `<b style="color:${pcol(G.p)}"><i style="background:${pcol(G.p)}"></i>${G.names[G.p]}</b>` +
+      who = `<b style="color:${pcol(G.p)}"><i style="background:${pcol(G.p)}"></i>${G.names[G.p]}${DM.isBot(G, G.p) ? ' <span class="botmark" title="Bot">🤖</span>' : ''}</b>` +
         `<small>Giro ${G.round} · Mosse ${G.moved}/${DM.moveLimit(G.round)} · Spari ${G.shots}/${DM.shotLimit(G.round)}` +
         (q.noCap ? ' · <span class="warn">Senza Capitale!</span>' : '') + '</small>';
     }
@@ -62,7 +64,7 @@
   }
 
   function buttons() {
-    const play = G.phase === 'play';
+    const play = G.phase === 'play' && !botNow();
     document.querySelectorAll('.playonly').forEach(b => { b.disabled = !play; });
     const label = (id, t, on) => { $(id).querySelector('span').textContent = t; $(id).classList.toggle('on', !!on); };
     label('army', ui.mode === 'army' ? 'Conferma' : 'Esercito', ui.mode === 'army');
@@ -76,6 +78,11 @@
   function info() {
     const f = $('info');
     if (ui.rolling) return;
+    if (botNow()) {   // turno di un bot: si guarda (e si può accelerare)
+      f.innerHTML = `<p class="msg"><span style="color:${pcol(G.p)}">${G.names[G.p]}</span> 🤖 sta giocando…</p>` + (ui.msg ? `<p class="botsays">${ui.msg}</p>` : '') +
+        row(btn('botfast', ui.botFast ? 'Velocità normale' : 'Più veloce', '', ui.botFast ? 'on' : ''));
+      return;
+    }
     if (G.phase === 'num') { f.innerHTML = '<b>Quanti giocatori?</b>' + row([2, 3, 4, 5, 6].map(n => btn('players', n, n)).join('')); return; }
     if (G.phase === 'kit') {
       f.innerHTML = `<b style="color:${pcol(G.p)}">${G.names[G.p]}</b>: scegli il kit` +
@@ -213,9 +220,9 @@
         k.startsWith('ponte') ? 'Costruisci ponte liv. ' + k.slice(5) + ' (' + r[k] + (r[k] > 1 ? ' pezzi)' : ' pezzo)') : 'Costruisci ' + DM.nameOf(k) + ' (' + r[k] + ')', k)));
     }
     sp.value = ui.spawn;
-    const n = keys.reduce((t, k) => t + r[k], 0);
+    const n = botNow() ? 0 : keys.reduce((t, k) => t + r[k], 0);
     $('spN').textContent = n ? (n > 99 ? '99+' : String(n)) : '';
-    $('spT').classList.toggle('off', !n || G.phase !== 'play');
+    $('spT').classList.toggle('off', !n || G.phase !== 'play' || botNow());
     $('spT').classList.toggle('on', !!ui.spawn);
   }
 
@@ -231,7 +238,7 @@
   // ---------- Tocchi sulla mappa ----------
   function tap(x, y) {
     if (DM.FX.busy) { DM.FX.skip(); return; }   // un tocco salta l'animazione in corso
-    if (ui.rolling) return;
+    if (ui.rolling || botNow()) return;          // durante il turno di un bot la mappa si guarda soltanto
     begin('act');
     if (G.phase === 'cap') {
       ui.msg = DM.placeCapital(G, x, y);
@@ -415,7 +422,8 @@
     board: a => { const [v, u] = a.split(':'); ui.msg = DM.board(G, DM.unitById(G, v), DM.unitById(G, u)); },
     unboard: a => { const [v, u] = a.split(':'); ui.msg = DM.unboard(G, DM.unitById(G, v), DM.unitById(G, u)); },
     done: () => { resetModes(); ui.msg = ''; },
-    bank: () => { openSide('ecoP'); }
+    bank: () => { openSide('ecoP'); },
+    botfast: () => { ui.botFast = !ui.botFast; DM.FX.quick = ui.botFast && botNow(); if (DM.FX.quick) DM.FX.skip(); }
   };
 
   // azioni dei pulsanti che mostrano un'animazione (le altre: solo pannelli)
@@ -437,14 +445,67 @@
   }
 
   // ---------- Barra dei comandi ----------
-  function endTurn() {
-    if (G.phase !== 'play' || ui.rolling) return;
+  function endTurn(byBot) {
+    if (G.phase !== 'play' || ui.rolling || (botNow() && !byBot)) return Promise.resolve();
     resetModes();
     ui.sel = null; ui.selB = null;
     begin('turn');
     ui.msg = DM.endTurn(G);
-    focus(); draw();
+    DM.FX.quick = false;
+    if (DM.isBot(G, G.p)) focusBotHome(); else focus();
+    return draw();
   }
+
+  // ---------- Bot: giocano da soli, un'azione alla volta, con le animazioni ----------
+  let botSeq = 0, botBusy = false;
+  function botNow() { return !!G && DM.isBot(G, G.p) && ['kit', 'cap', 'play'].includes(G.phase) && DM.alive(G).length > 1; }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const pause = () => ui.botFast ? 40 : 420;
+  function focusBotHome() { const c = DM.capitalOf(G, G.p); if (c) focus(c.x, c.y); }
+  // porta sullo schermo il punto dell'azione, se è fuori dalla parte libera
+  function showSpot([x, y]) {
+    const v = $('vp').getBoundingClientRect(), c = $('c').getBoundingClientRect(), px = c.left + x * ui.Z, py = c.top + y * ui.Z;
+    if (px < v.left + 30 || px > v.right - 70 || py < v.top + 90 || py > v.top + v.height * .55) focus(x, y);
+  }
+  function maybeBot() {
+    if (!botNow() || botBusy || $('game').hidden) return;
+    botBusy = true;
+    const my = ++botSeq, live = () => my === botSeq && !!G && !$('game').hidden;
+    DM.FX.quick = !!ui.botFast;
+    (async () => {
+      try {
+        await sleep(ui.botFast ? 120 : 650);
+        while (live() && botNow() && G.phase !== 'play') {   // preparazione: kit e Capitale
+          begin('act');
+          const r = DM.botSetup(G);
+          ui.msg = r ? r.msg : '';
+          if (r && r.at) { pend.kind = 'act'; focus(r.at[0], r.at[1]); }
+          await draw(); await sleep(pause() * 2);
+        }
+        if (live() && botNow()) {
+          const it = DM.botTurn(G);
+          while (live()) {
+            const before = DM.FX.snap(G, 'act');
+            const r = it.next();
+            if (r.done) break;
+            const a = r.value;
+            ui.msg = a.msg; ui.sel = null; ui.selB = null;
+            if (a.at && !ui.botFast) showSpot(a.at);
+            await DM.FX.react(G, a.kind, before, a.x, render, a.msg);
+            await sleep(pause());
+          }
+          if (live() && botNow()) { await endTurn(true); await sleep(pause()); }
+        }
+      } catch (e) {
+        ui.msg = 'Il bot si è bloccato: ' + e.message;
+        if (live() && G.phase === 'play') await endTurn(true);   // per non fermare la partita
+      } finally {
+        if (my === botSeq) { botBusy = false; DM.FX.quick = false; }
+      }
+      if (live()) { render(); maybeBot(); }
+    })();
+  }
+  DM.botRunning = () => botBusy;
   function undo() {
     begin('undo');
     ui.msg = DM.undoMove(G, ui.sel);
@@ -576,6 +637,7 @@
 
   // Mostra la schermata di gioco con la partita H, salvata nel posto "slot"
   DM.playGame = function (H, slot) {
+    botSeq++; botBusy = false; DM.FX.quick = false;
     DM.FX.stopAll();
     G = DM.game = H;
     Object.assign(ui, { sel: null, selB: null, msg: '', slot: slot || null, autoOk: undefined });
@@ -587,7 +649,7 @@
     ui.Z = coverZoom();
     draw(); focus();
   };
-  DM.leaveGame = function () { DM.FX.stopAll(); if (G) autosave(); };
+  DM.leaveGame = function () { botSeq++; botBusy = false; DM.FX.quick = false; DM.FX.stopAll(); if (G) autosave(); };
 
   DM.startUI = function () {
     $('sp').onchange = e => {

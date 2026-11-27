@@ -20,6 +20,7 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/transport.js` | truppe a bordo dei veicoli, autista, Porti |
 | `js/turn.js` | fine turno, giri, eruzioni, Lavico |
 | `js/save.js` | salvare e riprendere la partita |
+| `js/bot.js` | i bot (Facile, Normale, Difficile): scelgono kit e Capitale, vendono, comprano, costruiscono, schierano, portano i soldi con i Carri, formano eserciti, sparano, lanciano bombe, si espandono e attaccano. Un'azione alla volta, con le stesse regole delle persone |
 | `js/render.js` | disegno della mappa |
 | `js/decor.js` | dettagli quando si ingrandisce (opzione): alberi, montagne, onde, minerali, case, disegni delle truppe |
 | `js/ui.js` | schermata di gioco: tocchi, pannelli, pulsanti |
@@ -43,8 +44,8 @@ Animazioni e suoni non toccano le regole: prima di un'azione l'interfaccia fa un
 ## Prove
 
 ```
-npm test               # 56 prove delle regole (anche che le pagine statiche siano aggiornate) (serve Node 18+)
-npm run test:browser   # 35 passi giocati, 15 prove di animazioni e suoni, prova dell'app senza internet, in un browser che finge un iPhone (serve Playwright)
+npm test               # 65 prove delle regole e dei bot (anche partite intere tra bot) (anche che le pagine statiche siano aggiornate) (serve Node 18+)
+npm run test:browser   # 37 passi giocati (anche contro i bot), 15 prove di animazioni e suoni, prova dell'app senza internet, in un browser che finge un iPhone (serve Playwright)
 ```
 
 ## Regole decise insieme (oltre al PDF)

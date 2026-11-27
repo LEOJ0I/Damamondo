@@ -231,3 +231,15 @@ body.ingame { overflow: hidden; padding: 0; overscroll-behavior: none; }
 @media (prefers-reduced-motion: reduce) { .drawer .panel, .drawer .scrim { animation: none; } }
 /* schermi larghi (tablet in orizzontale, computer): la barra dei comandi resta stretta e al centro */
 @media (min-width: 900px) { .dock { max-width: 620px; } }
+
+/* Nuova partita: persona o bot */
+.card .sub { display: block; margin: 2px 0 6px; }
+.who-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 0; border-top: 1px solid color-mix(in srgb, var(--bd) 50%, transparent); }
+.who-row .pname { flex: 1; min-width: 130px; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.who-row .pname i { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.seg { display: inline-flex; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--fg) 8%, transparent); }
+.seg button { min-height: 38px; padding: 6px 12px; border: 0; border-radius: 9px; background: transparent; font-weight: 600; }
+.seg button.on { background: var(--ac); color: #111; }
+.who-row select { min-height: 40px; padding: 6px 8px; }
+#info .botsays { margin: 0 0 4px; opacity: .85; }
+.botmark { font-size: .85em; }

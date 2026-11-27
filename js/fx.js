@@ -17,7 +17,8 @@
   const FX = DM.FX = {
     hidden: { u: new Set(), s: new Set() },   // truppe ed edifici che la mappa non disegna (li disegna l'animazione)
     busy: false,                               // fase "prima": i tocchi saltano l'animazione
-    get on() { return !!P.get('anim'); },
+    get on() { return !!P.get('anim') && !FX.quick; },
+    quick: false,                              // turno di un bot "più veloce": niente animazioni né suoni
     log: []                                    // ultime animazioni (per le prove)
   };
 
@@ -78,7 +79,7 @@
         return new Promise(done => { anims.push({ t0: now() + (delay || 0) * 1000, dur: dur * 1000, draw, done, run: R }); kick(); });
       },
       wait: s => R.anim(s, null),
-      sfx(name, o, delay) { if (!R.dead && !R.skipping) DM.Sfx.play(name, o, delay); },
+      sfx(name, o, delay) { if (!R.dead && !R.skipping && (!FX.quick || name === 'turn')) DM.Sfx.play(name, o, delay); },
       buzz(name) { if (!R.dead && !R.skipping) DM.Sfx.buzz(name); },
       shake(px, s) {
         if (R.dead || R.skipping || !FX.on) return;
@@ -522,9 +523,9 @@
     const changed = JSON.stringify([G.units, G.sites, G.roads, G.bridges, G.rad, G.moved, G.shots, G.berried, G.p, G.round, G.players, G.phase, G.np]) !== a.sig;
     const ch = changes(G, a);
     FX.log.push(kind); if (FX.log.length > 30) FX.log.shift();
-    if (!changed && kind !== 'tap' && kind !== 'turn') { if (msg) DM.Sfx.play('error'); FX.finish(); commit(); return; }
-    if (!changed) { FX.finish(); commit(); return; }
-    FX.play(async R => {
+    if (!changed && kind !== 'tap' && kind !== 'turn') { if (msg) DM.Sfx.play('error'); FX.finish(); commit(); return Promise.resolve(); }
+    if (!changed) { FX.finish(); commit(); return Promise.resolve(); }
+    return FX.play(async R => {
       const pc = DM.PLAYER_COLORS;
       // ---- fase "prima": la mappa mostra ancora com'era ----
       if (kind === 'shoot' && x.from && x.from.length) {
