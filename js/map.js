@@ -78,7 +78,13 @@
     return moisture(comp, nz(x + 50, y + 50, .09) + HOFF[hum]);
   }
 
+  // La mappa del simbolo (lo sfondo dell'icona e del menu: numero 7 con tutte le opzioni medie).
+  // Si trova col 6 finché non si sblocca la mappa originale, e sempre col 999999999999999 (il numero più grande fatto di soli 9).
+  DM.SYMBOL_SEED = 999999999999999;
+  DM.isSymbolMap = (opts, seed) => ((opts && opts.gen) || 5) >= 5 && ((seed === 6 && !(opts && opts.orig)) || seed === DM.SYMBOL_SEED);
+
   DM.makeMap = function (opts, seed) {
+    if (DM.isSymbolMap(opts, seed)) { const m = DM.makeMap({ gen: (opts && opts.gen) || 5 }, 7); m.symbol = true; return m; }
     // gen: versione del generatore. Le partite salvate prima del 25/11/2026 non ce l'hanno (= 1) e tengono la loro mappa.
     // gen 2 (25/11/2026): più vulcani nelle mappe calde. gen 3: Banchisa lontana dai bordi, nessun minimo nelle mappe fredde.
     // gen 4: niente vulcani con varietà semplice; minimo 1/2/3 con media/estrema/estremissima; lava più estesa.

@@ -774,6 +774,8 @@ test('mappa originale: si sblocca con tutte le mappe segrete (numero 6), poi sig
   await newFromMenu(2, 6);
   assert.equal(await ev(() => DM.game.map.secret), undefined);
   assert.equal(await ev(() => DM.game.map.opts.orig), undefined);
+  assert.equal(await ev(() => DM.game.map.symbol), true, 'prima dello sblocco il 6 è la mappa del simbolo');
+  assert.match(await info(), /mappa del simbolo di Damamondo/);
   // tutte le 14 trovate
   await ev(() => localStorage.setItem('damamondo-segreti', JSON.stringify(DM.SECRETS.map(s => s.id))));
   await page.click('#toMenu');
@@ -822,7 +824,11 @@ test('mappa originale: si sblocca con tutte le mappe segrete (numero 6), poi sig
   assert.ok(peak > .05 && peak < 1, 'picco ' + peak);
   // l'Esploratore mostra la catena completa
   await page.click('#toMenu'); await page.click('.explorer');
-  assert.match(await page.locator('#menu').innerText(), /Trovata la mappa originale[\s\S]*Premi: la sigla epica/);
+  assert.match(await page.locator('#menu').innerText(), /Trovata la mappa originale[\s\S]*Premi: la sigla epica[\s\S]*soli 9/);
+  await page.locator('[data-m=home]').first().click();
+  await newFromMenu(2, 999999999999999);
+  assert.deepEqual(await ev(() => [DM.game.seed, DM.game.map.symbol]), [999999999999999, true]);
+  await page.click('#toMenu'); await page.click('.explorer');
   await ev(() => { localStorage.removeItem('damamondo-segreti'); DM.Prefs.set({ theme: 'classica', gold: false }); });
   await page.locator('[data-m=home]').first().click();
   assert.deepEqual(errors, []);

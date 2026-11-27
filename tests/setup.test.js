@@ -76,6 +76,7 @@ test('generazione: tutte le opzioni, bordo sempre mare, Alta montagna solo vicin
 
 test('vulcani: almeno 1 con varietà media o più (non garantiti nelle mappe fredde), almeno 2 nelle mappe calde con varietà estrema', () => {
   for (let seed = 1; seed <= 25; seed++) {
+    if (seed === 6) continue;   // il 6 è la mappa del simbolo (sempre uguale, qualunque opzione)
     for (const temp of [0, 1]) for (const comp of [3, 4]) assert.ok(DM.makeMap({ temp, comp }, seed).volc.length >= 2, 'calda ' + temp + '/' + comp + ' seme ' + seed);
     for (const temp of [0, 1, 2]) for (const comp of [2, 3, 4]) assert.ok(DM.makeMap({ temp, comp }, seed).volc.length >= 1, 'temp ' + temp + '/' + comp + ' seme ' + seed);
     // gen 2 (partite salvate il 25/11 prima delle 11): il minimo valeva anche per le mappe fredde
@@ -125,6 +126,7 @@ test('vulcani secondo la varietà: nessuno con semplice, minimo 1 / 2 / 3 con me
   const Z = DM.BIOMES.indexOf('Z');
   const lava = [0, 0, 0, 0, 0];
   for (let seed = 1; seed <= 15; seed++) {
+    if (seed === 6) continue;   // il 6 è la mappa del simbolo
     assert.equal(DM.makeMap({ comp: 1, temp: 0 }, seed).volc.length, 0, 'semplice: niente vulcani');
     for (const temp of [0, 1, 2]) for (const comp of [2, 3, 4]) assert.ok(DM.makeMap({ temp, comp }, seed).volc.length >= comp - 1, 'varietà ' + comp + ' temp ' + temp + ' seme ' + seed);
     for (const comp of [2, 3, 4]) {

@@ -63,7 +63,8 @@
       const chain = '<ol class="chain">' +
         step(all, true, all ? '🥇 Tutte le mappe segrete trovate' : `🗺️ Trova tutte le ${tot} mappe segrete (${n} di ${tot})`) +
         step(orig, all, orig ? `${O.emoji} Trovata ${O.name}!` : all ? '📜 Sbloccata: <b>la mappa originale</b>. Il suo numero? Il numero preferito di chi ha inventato il gioco, ed era anche il numero dei giocatori…' : '🔒 ??? (si sblocca con tutte le mappe segrete)') +
-        step(orig, false, orig ? '🎺 Premi: la <b>sigla epica</b> e la <b>capitale dorata</b> (si accendono nelle Impostazioni ⚙️)' : '🔒 ??? (due premi)') + '</ol>';
+        step(orig, false, orig ? '🎺 Premi: la <b>sigla epica</b> e la <b>capitale dorata</b> (si accendono nelle Impostazioni ⚙️)' : '🔒 ??? (due premi)') +
+        (orig ? step(true, false, '⭐ La mappa del simbolo si è spostata: ora è al numero più grande fatto di soli 9') : '') + '</ol>';
       return '<h2>🧭 Esploratore</h2><div class="card"><p class="center"><b>' + n + ' di ' + tot + '</b> mappe segrete trovate ' + md + '</p>' +
         '<p class="note"><small>🥉 con 3 · 🥈 con 7 · 🥇 con tutte. Si trovano scegliendo certi numeri mappa e certe opzioni in “Nuova partita”…</small></p>' +
         '<ul class="secrets">' + DM.SECRETS.map(s2 => got.includes(s2.id) ? `<li>${s2.emoji} ${s2.name}</li>` : '<li class="no">❔ ???</li>').join('') + '</ul></div>' +
@@ -144,6 +145,10 @@
       for (let i = 0; i < np; i++) if (who[i]) DM.setBot(G, i, who[i]);
       const slot = DM.Slots.create(DM.serialize(G));
       DM.playGame(G, slot);
+      if (G.map.symbol) {   // la mappa del simbolo (sfondo dell'icona e del menu)
+        DM.ui.msg = '⭐ Hai trovato la mappa del simbolo di Damamondo: è quella dietro la stella dell’icona e sullo sfondo del menu!';
+        DM.redraw();
+      }
       if (G.map.secret) {   // mappa segreta trovata!
         const s2 = DM.secretInfo(G.map.secret), first = DM.Secrets.found(G.map.secret), n = DM.Secrets.list().length;
         if (G.map.secret === 'originale') DM.ui.msg = `${s2.emoji} Hai trovato ${s2.name}!` + (first ? ' Premi sbloccati: la sigla epica 🎺 e la capitale dorata ⭐. Accendili nelle Impostazioni ⚙️' : '');

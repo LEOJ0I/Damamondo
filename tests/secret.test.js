@@ -102,7 +102,7 @@ test('una partita sulla mappa segreta si salva e si riprende uguale, e ci si gio
 });
 
 test('la mappa originale: il 6 solo dopo tutte le mappe segrete (opts.orig), fatta solo di pianura, mare, acqua e montagne', () => {
-  assert.equal(DM.makeMap({}, 6).secret, undefined, 'senza sblocco il 6 è una mappa normale');
+  assert.equal(DM.makeMap({}, 6).secret, undefined, 'senza sblocco il 6 non è la mappa originale (è la mappa del simbolo)');
   const m = DM.makeMap({ orig: 1 }, 6);
   assert.equal(m.secret, 'originale');
   assert.equal(DM.makeMap({ orig: 1 }, 7).secret, undefined);
@@ -112,7 +112,10 @@ test('la mappa originale: il 6 solo dopo tutte le mappe segrete (opts.orig), fat
   assert.ok(land > .2 && land < .4, 'terra ' + land);
   assert.equal(m.volc.length, 0, 'niente vulcani');
   // il cratere del foglio in alto a sinistra: un'isola di sola montagna con la cima alta (vicino all'angolo in alto a destra del foglio)
-  assert.equal(DM.secretBiome(m, 26.6, 2.75, 1), 'A');
+  assert.equal(DM.secretBiome(m, 26.9, 3.78, 1), 'A');
+  // tutto intorno alla mappa c'è il mare
+  for (let x = .05; x < 60; x += .5) for (const y of [.05, 41.95]) assert.equal(DM.secretBiome(m, x, y, 1), 'S');
+  for (let y = .05; y < 42; y += .5) for (const x of [.05, 59.95]) assert.equal(DM.secretBiome(m, x, y, 1), 'S');
   assert.equal(DM.secretInfo('originale').emoji, '📜');
   assert.equal(DM.SECRETS.length, 14, 'non conta tra le 14');
   // si salva e si riprende uguale, e i bot ci giocano
@@ -124,4 +127,21 @@ test('la mappa originale: il 6 solo dopo tutte le mappe segrete (opts.orig), fat
   const H = DM.deserialize(DM.serialize(G));
   assert.equal(H.map.secret, 'originale');
   assert.equal(H.sites.filter(s => s.k === 'cap').length, 6);
+});
+
+test('la mappa del simbolo (sfondo dell’icona e del menu): numero 6 prima dello sblocco, sempre 999999999999999', () => {
+  const ref = DM.makeMap({}, 7);
+  const same = m => { assert.equal(m.symbol, true); assert.deepEqual(Array.from(m.n.h ? [m.n.h(3, 4), m.n.h(10, 20)] : []), [ref.n.h(3, 4), ref.n.h(10, 20)]); };
+  same(DM.makeMap({}, 6));
+  same(DM.makeMap({ isl: 2, temp: 0 }, 6));
+  same(DM.makeMap({}, DM.SYMBOL_SEED));
+  same(DM.makeMap({ orig: 1 }, DM.SYMBOL_SEED));
+  assert.equal(DM.makeMap({ orig: 1 }, 6).secret, 'originale');
+  assert.equal(DM.makeMap({ gen: 4 }, 6).symbol, undefined, 'le partite vecchie restano com’erano');
+  // stessi biomi della mappa del menu, e la partita si riprende uguale
+  const G = DM.newGame({}, 6), R = DM.newGame({}, 7);
+  assert.deepEqual(Array.from(G.map.cells), Array.from(R.map.cells));
+  const H = DM.deserialize(DM.serialize(G));
+  assert.equal(H.seed, 6); assert.equal(H.map.symbol, true);
+  assert.deepEqual(Array.from(H.map.cells), Array.from(G.map.cells));
 });
