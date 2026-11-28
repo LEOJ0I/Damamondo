@@ -177,10 +177,6 @@
       cx.beginPath(); cx.arc(bx, by, ur * .55, 0, 7); cx.fill(); cx.stroke();
       DM.drawTroopIcon(cx, best.t, bx, by, ur * .45);
     }
-    if (DM.frozen && DM.frozen(G, u)) {   // Classico: congelata
-      cx.strokeStyle = '#8fdcff'; cx.lineWidth = ur * .3; cx.beginPath(); cx.arc(u.x, u.y, (u.g ? ur * 1.3 : ur) + ur * .25, 0, 7); cx.stroke();
-      cx.font = (ur * .9) + 'px sans-serif'; cx.fillText('❄', u.x + ur * .95, u.y + ur * .9);
-    }
     if (u.t === 'U' && !u.rv) {   // il sottomarino nascosto agli avversari: bordo tratteggiato
       cx.setLineDash([ur * .3, ur * .25]); cx.strokeStyle = '#111'; cx.lineWidth = ur * .18; cx.beginPath(); cx.arc(u.x, u.y, ur * 1.15, 0, 7); cx.stroke(); cx.setLineDash([]);
     }
@@ -278,23 +274,6 @@
         cx.strokeStyle = pc[r.o]; cx.lineWidth = .1; cx.stroke();
       });
     });
-    // Classico: le aree congelate, come un incantesimo: bordo luminoso, dentro azzurro trasparente con i fiocchi di neve
-    (G.freezes || []).filter(z => z.until > G.round).forEach(z => {
-      cx.save();
-      const g = cx.createRadialGradient(z.x, z.y, z.r * .1, z.x, z.y, z.r);
-      g.addColorStop(0, 'rgba(200,240,255,.30)'); g.addColorStop(.75, 'rgba(120,205,255,.38)'); g.addColorStop(1, 'rgba(80,180,255,.55)');
-      cx.fillStyle = g; cx.beginPath(); cx.arc(z.x, z.y, z.r, 0, 7); cx.fill();
-      cx.shadowColor = '#bff0ff'; cx.shadowBlur = 12;
-      cx.strokeStyle = '#e8fbff'; cx.lineWidth = Math.max(.07, 3 * px); cx.stroke();
-      cx.shadowBlur = 0; cx.strokeStyle = '#4fb8ff'; cx.lineWidth = Math.max(.03, 1.2 * px); cx.beginPath(); cx.arc(z.x, z.y, z.r - Math.max(.07, 3 * px), 0, 7); cx.stroke();
-      // fiocchi di neve sempre negli stessi posti (dipendono dal punto)
-      cx.fillStyle = 'rgba(255,255,255,.9)'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
-      for (let i = 0; i < 9; i++) {
-        const a = i * 2.39996 + z.x * 3.1, d = z.r * Math.sqrt((i + .5) / 9) * .82, f = z.r * (i % 3 === 0 ? .22 : .14);
-        cx.font = f + 'px sans-serif'; cx.fillText('❄', z.x + Math.cos(a) * d, z.y + Math.sin(a) * d);
-      }
-      cx.restore();
-    });
     // Classico: mura (pezzi da 1 cm) e mine (le vede solo chi le ha posate, nel suo turno)
     (G.walls || []).forEach(w => {
       cx.lineCap = 'butt';
@@ -344,5 +323,22 @@
         DM.drawUnit(cx, G, u, Z, detail, { picked, moved: u.o === G.p && u.m });
       });
     }
+    // Classico: le aree congelate, sopra le truppe (così quelle congelate si vedono "dentro il ghiaccio"), come un incantesimo: bordo luminoso, dentro azzurro trasparente con i fiocchi di neve
+    (G.freezes || []).filter(z => z.until > G.round).forEach(z => {
+      cx.save();
+      const g = cx.createRadialGradient(z.x, z.y, z.r * .1, z.x, z.y, z.r);
+      g.addColorStop(0, 'rgba(200,240,255,.30)'); g.addColorStop(.75, 'rgba(120,205,255,.38)'); g.addColorStop(1, 'rgba(80,180,255,.55)');
+      cx.fillStyle = g; cx.beginPath(); cx.arc(z.x, z.y, z.r, 0, 7); cx.fill();
+      cx.shadowColor = '#bff0ff'; cx.shadowBlur = 12;
+      cx.strokeStyle = '#e8fbff'; cx.lineWidth = Math.max(.07, 3 * px); cx.stroke();
+      cx.shadowBlur = 0; cx.strokeStyle = '#4fb8ff'; cx.lineWidth = Math.max(.03, 1.2 * px); cx.beginPath(); cx.arc(z.x, z.y, z.r - Math.max(.07, 3 * px), 0, 7); cx.stroke();
+      // fiocchi di neve sempre negli stessi posti (dipendono dal punto)
+      cx.fillStyle = 'rgba(255,255,255,.9)'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+      for (let i = 0; i < 9; i++) {
+        const a = i * 2.39996 + z.x * 3.1, d = z.r * Math.sqrt((i + .5) / 9) * .82, f = z.r * (i % 3 === 0 ? .22 : .14);
+        cx.font = f + 'px sans-serif'; cx.fillText('❄', z.x + Math.cos(a) * d, z.y + Math.sin(a) * d);
+      }
+      cx.restore();
+    });
   };
 })(globalThis.DM = globalThis.DM || {});
