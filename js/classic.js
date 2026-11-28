@@ -179,7 +179,8 @@
   DM.freezeAt = function (G, x, y) {
     const hit = G.units.filter(u => Math.hypot(u.x - x, u.y - y) <= C.FREEZE_R + 1e-9);
     hit.forEach(u => { u.fz = Math.max(u.fz || 0, G.round + C.FREEZE_TURNS); });
-    (G.fzFx = G.fzFx || []).push({ x, y, r: C.FREEZE_R, t: Date.now() });   // per il disegno (non si salva)
+    // l'area congelata resta disegnata sulla mappa finché dura (si salva con la partita)
+    (G.freezes = (G.freezes || []).filter(z => z.until > G.round)).push({ x, y, r: C.FREEZE_R, until: G.round + C.FREEZE_TURNS });
     return hit.length ? '❄️ Congelate ' + hit.length + (hit.length === 1 ? ' truppa' : ' truppe') + ' fino al giro ' + (G.round + C.FREEZE_TURNS - 1) + '.' : '❄️ Nessuna truppa nel cerchio.';
   };
   DM.frozenError = (G, A) => A.some(v => DM.frozen(G, v)) ? 'Congelata ❄️: non può fare niente fino al giro ' + (Math.max(...A.map(v => v.fz || 0)) - 1) + '.' : '';

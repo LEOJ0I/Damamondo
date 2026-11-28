@@ -16,7 +16,7 @@
     const G = {
       // il numero mappa 0 vale (mappe segrete)
       seed: seed === 0 ? 0 : seed || 7, phase: 'num', np: 2, names: [], players: [], p: 0, round: 1,
-      moved: 0, shots: 0, berried: false, units: [], sites: [], roads: [], bridges: [], rad: [], events: [], mines: [], walls: [],
+      moved: 0, shots: 0, berried: false, units: [], sites: [], roads: [], bridges: [], rad: [], events: [], mines: [], walls: [], freezes: [],
       uid: 0, gid: 0, sid: 0, tapR: .7
     };
     if (map) G.map = map; else { G.map = DM.makeMap(opts || {}, G.seed); DM.rebuildMap(G.map, 1); }
