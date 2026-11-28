@@ -163,7 +163,11 @@
       (dead.length ? ' (' + dead.length + (dead.length === 1 ? ' distrutta)' : ' distrutte)') : '') + ' e ' + zs.length + (zs.length === 1 ? ' edificio/ponte.' : ' edifici/ponti.');
     // prima gli edifici interni, poi quello principale (che distrutto porta via gli interni)
     zs.sort((a, b) => (b.s && b.s.par ? 1 : 0) - (a.s && a.s.par ? 1 : 0)).forEach(q => { r += hitStructure(G, q, B.dmg, true); });
-    if (sb) { G.rad.push({ x: tx, y: ty, r: B.radius, until: G.round + 3 }); r += ' Area radioattiva per 3 giri.'; }
+    if (sb) {
+      const n = B.radTurns || 3;   // Classico: 5 giri, e brucia 100 a turno chi ci sta dentro
+      G.rad.push({ x: tx, y: ty, r: B.radius, until: G.round + n, dmg: B.radDmg || 0 });
+      r += ' Area radioattiva per ' + n + ' giri' + (B.radDmg ? ' (' + B.radDmg + ' danni a turno a chi ci resta dentro)' : '') + '.';
+    }
     return r + DM.vehicleNote(dead);
   };
   DM.launchBomb = (G, site, k, x, y, pick) => DM.launchBombAt(G, site, k, DM.anyTargets(G, x, y)[pick || 0], x, y);

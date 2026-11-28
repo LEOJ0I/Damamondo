@@ -34,7 +34,7 @@
   DM.saveSummary = function (text) {
     try {
       const o = JSON.parse(text);
-      return { when: o.saved, round: o.round, np: o.np, phase: o.phase, names: o.names, turn: o.names && o.names[o.p] };
+      return { when: o.saved, round: o.round, np: o.np, phase: o.phase, names: o.names, turn: o.names && o.names[o.p], classic: !!(o.map && o.map.opts && o.map.opts.mode === 'classico') };
     } catch (e) { return null; }
   };
 })(globalThis.DM = globalThis.DM || {});

@@ -42,9 +42,11 @@
     G.units.filter(u => u.o === G.p && !u.carried).forEach(u => {
       if (DM.bAt(G, u.x, u.y) === 'Z' && DM.TROOPS[u.t].kind !== 'air') u.bn = 3;
       if (u.bn > 0) { u.hp -= DM.BURN[u.t] || 0; u.bn--; }
+      // Classico: l'area radioattiva fa danni a ogni turno a chi ci sta dentro
+      G.rad.forEach(z => { if (z.dmg && z.until > G.round && Math.hypot(z.x - u.x, z.y - u.y) <= z.r) u.hp -= z.dmg; });
     });
     const burnt = DM.cleanupDead(G);
-    if (burnt.length) msg += ' ' + burnt.length + ' truppe bruciate nel Lavico.' + DM.vehicleNote(burnt);
+    if (burnt.length) msg += ' ' + burnt.length + ' truppe bruciate (Lavico o area radioattiva).' + DM.vehicleNote(burnt);
     const q = DM.cur(G);
     if (q.noCap) { DM.takeMoney(G, G.p, 10000); msg += ' Senza Capitale: −10.000 soldi.'; }
     return 'Turno di ' + G.names[G.p] + '.' + msg;

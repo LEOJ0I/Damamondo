@@ -890,3 +890,65 @@ test('computer: la mappa si trascina col mouse, e il trascinamento non conta com
   assert.notEqual(await ev(() => DM.game.phase === 'cap' && DM.game.sites.length === 0 ? DM.ui.msg : 'capitale messa'), 'prima');
   assert.deepEqual(errors, []);
 });
+
+test('modalità Classico: si sblocca con la mappa originale, 5 biomi, kit unico, niente Banco, soldi da tutte le città', async () => {
+  if (!(await page.locator('#game').isHidden())) await page.click('#toMenu');
+  if (await page.locator('[data-m=gioca]').count() === 0) await page.locator('[data-m=home]').first().click();
+  const go = async () => {
+    await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+    while ((await page.locator('[data-m=elimina]').count()) >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
+    await page.click('[data-m=nuova]');
+  };
+  // prima dello sblocco la scelta non c'è
+  await ev(() => localStorage.removeItem('damamondo-segreti'));
+  await go();
+  assert.equal(await page.locator('[data-m=mode]').count(), 0);
+  await page.locator('[data-m=locale]').first().click(); await page.locator('[data-m=gioca]').first().click().catch(() => {});
+  await page.locator('[data-m=home]').first().click().catch(() => {});
+  await ev(() => localStorage.setItem('damamondo-segreti', JSON.stringify(DM.SECRETS.map(s => s.id).concat('originale'))));
+  await page.reload(); await page.waitForSelector('[data-m=gioca]');
+  await go();
+  await page.click('[data-m=mode][data-arg=classico]');
+  assert.equal(await page.locator('#hum').count(), 0, 'nel Classico niente umidità, temperatura, varietà');
+  assert.match(await page.locator('#whoCard').innerText(), /solo persone/);
+  await page.fill('#seed', '12'); await page.click('[data-m=inizia]');
+  await page.waitForSelector('[data-act=kit]');
+  assert.deepEqual(await ev(() => [DM.mode, DM.game.map.opts.mode, DM.KITS.length]), ['classico', 'classico', 1]);
+  assert.equal(await ev(() => [...new Set(DM.game.map.cells)].map(c => DM.BIOMES[c]).filter(b => !'PSFMA'.includes(b)).length), 0);
+  // kit e Capitale per tutti e due
+  for (let i = 0; i < 2; i++) {
+    await act('Classico');
+    const P = await findSpot(i ? await ev(() => { const c = DM.capitalOf(DM.game, 0); return [c.x, c.y]; }) : null, 16);
+    await tapCm(P[0], P[1]);
+  }
+  await page.waitForFunction(() => DM.game.phase === 'play');
+  // il negozio: niente Banco, niente Carri/miniere/Aeroporti; si compra in Città con i soldi della Capitale
+  const city = await ev(() => { const c = DM.capitalOf(DM.game, 0); const s = DM.addSite(DM.game, 0, 'citta', c.x + 1.4, c.y); DM.ui.selB = s; DM.ui.sel = null; DM.redraw(); return [s.x, s.y]; });
+  await side('ecoP');
+  assert.equal(await page.locator('#ecoTab').innerText(), 'Negozio');
+  assert.equal(await page.locator('#bancoBox').isHidden(), true);
+  const shopTxt = await page.locator('#shop').innerText();
+  assert.doesNotMatch(shopTxt, /Carro|Miniera|Aeroporto|Coltivazione|Ignifuga/);
+  assert.match(shopTxt, /Migliora un pezzo di ponte al liv\. 2/);
+  await page.locator('#shop button[data-arg=S]').click();
+  assert.equal(await ev(() => DM.moneyOf(DM.game, 0)), 29000);
+  await closeSide();
+  // spostare soldi dalla Capitale alla Città
+  await ev(([x, y]) => { DM.ui.selB = DM.game.sites.find(s => s.k === 'citta' && Math.hypot(s.x - x, s.y - y) < .1); DM.redraw(); }, city);
+  await page.fill('#mq', '5000'); await act('Porta qui dalla Capitale');
+  assert.match(await info(), /Spostati 5\.?000 soldi dalla Capitale/);
+  // la partita salvata si riprende in Classico; una partita normale rimette tutto com'era
+  await page.reload(); await page.waitForSelector('[data-m=gioca]');
+  await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  assert.match(await page.locator('.slot').first().innerText(), /Classico/);
+  await page.locator('[data-m=continua]').first().click();
+  assert.equal(await ev(() => DM.mode), 'classico');
+  // le regole del Classico si leggono nel menu Regole
+  await page.click('#toMenu'); await page.locator('[data-m=home]').first().click().catch(() => {});
+  await page.click('[data-m=regole]');
+  assert.match(await page.locator('.rules').innerText(), /Modalità Damamondo Classico[\s\S]*più della metà/);
+  assert.match(await page.locator('.rules').innerText(), /250\.000/, 'il regolamento normale resta normale');
+  await page.locator('[data-m=home]').first().click();
+  await ev(() => { localStorage.removeItem('damamondo-segreti'); });
+  assert.deepEqual(errors, []);
+});

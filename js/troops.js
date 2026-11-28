@@ -25,7 +25,9 @@
     // a terra sull'acqua: nel proprio Porto e sul suo molo fino alla riva
     if (o !== undefined && DM.onPier(G, o, x, y)) return d.land.P;
     // altrimenti solo sui ponti. Il Carrarmato non passa sul liv. 1, il Carro non attraversa i fiumi.
-    return br && t !== 'C' && !(t === 'T' && br.lv === 1) ? d.land.P : 0;
+    if (br && t !== 'C' && !(t === 'T' && br.lv === 1)) return d.land.P;
+    // Classico: fiumi e laghi si attraversano a guado, a velocità dimezzata
+    return DM.isClassic && DM.isClassic() && b === 'F' ? d.land.F || 0 : 0;
   };
   DM.canStand = (G, t, x, y, o) => DM.baseSpeed(G, t, x, y, o) > 0;
 

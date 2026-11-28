@@ -89,7 +89,7 @@
     <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sideTitle">
       <div class="phead"><h2 id="sideTitle">Risorse e opzioni</h2><button type="button" class="x" data-side-close aria-label="Chiudi">✕</button></div>
       <nav class="tabs" role="tablist">
-        <button type="button" role="tab" data-tab="ecoP">Banco</button>
+        <button type="button" role="tab" data-tab="ecoP" id="ecoTab">Banco</button>
         <button type="button" role="tab" data-tab="opt">Vista</button>
         <button type="button" role="tab" data-tab="saveP">Partita</button>
         <button type="button" role="tab" data-tab="helpP">Aiuto</button>
@@ -97,8 +97,8 @@
       <section class="tab" id="ecoP" role="tabpanel">
         <p class="msg" id="ecoMsg"></p>
         <div id="ecoT"></div>
-        <h3>Vendi al Banco</h3>
-        <div class="r"><select id="bm" aria-label="Materiale da vendere"></select><input type="number" id="bq" value="1" min="1" inputmode="numeric" aria-label="Lotti"><button type="button" id="bs" class="playonly">Vendi</button></div>
+        <div id="bancoBox"><h3>Vendi al Banco</h3>
+        <div class="r"><select id="bm" aria-label="Materiale da vendere"></select><input type="number" id="bq" value="1" min="1" inputmode="numeric" aria-label="Lotti"><button type="button" id="bs" class="playonly">Vendi</button></div></div>
         <h3>Negozio dell’edificio</h3>
         <div id="shop"></div>
       </section>
@@ -154,6 +154,7 @@
   </div>
 
   <script src="js/data.js"></script>
+  <script src="js/classic.js"></script>
   <script src="js/map.js"></script>
   <script src="js/secret-data.js"></script>
   <script src="js/secret.js"></script>

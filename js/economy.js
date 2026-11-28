@@ -55,7 +55,14 @@
     if (T[k] && !DM.canStand(G, k, at[0], at[1])) return DM.nameOf(k) + ' non può stare qui.';
     if (k === 'bomba' && !DM.BOMB.bomba.from.includes(site.k)) return 'Le Bombe si creano in Capitale, Città o Accampamento.';
     if (k === 'superbomba' && !DM.BOMB.superbomba.from.includes(site.k)) return 'Le Superbombe si creano in Capitale o Città.';
-    if (!DM.pay([site.inv], DM.COST[k])) return 'Non hai abbastanza risorse in questo edificio per ' + DM.nameOf(k) + '. Serve: ' + DM.costsText(k) + '.';
+    if (!DM.COST[k]) return DM.nameOf(k) + ' non si può comprare in questa modalità.';
+    // Classico: il ponte di liv. 2 è un miglioramento di un pezzo di liv. 1 della riserva
+    const up2 = DM.isClassic && DM.isClassic() && k === 'ponte2';
+    if (up2 && !(q.res.ponte1 > 0)) return 'Per il liv. 2 serve un pezzo di ponte liv. 1 nella riserva da migliorare.';
+    const invs = DM.payInvs ? DM.payInvs(G, site) : [site.inv];
+    if (!DM.pay(invs, DM.COST[k])) return 'Non hai abbastanza risorse ' + (invs.length > 1 ? '' : 'in questo edificio ') + 'per ' + DM.nameOf(k) + '. Serve: ' + DM.costsText(k) + '.';
+    if (DM.balanceMoney) DM.balanceMoney(G, G.p);
+    if (up2) { q.res.ponte1--; q.res.ponte2 = (q.res.ponte2 || 0) + 1; return 'Un pezzo di ponte è passato al liv. 2: lo trovi nella riserva.'; }
     if (T[k]) {
       DM.addUnit(G, k, G.p, at[0], at[1]);
       DM.claim(G, G.p, site.x, site.y);
@@ -80,7 +87,8 @@
     if (!site || site.o !== G.p || site.k !== 'acc') return 'Seleziona un tuo Accampamento.';
     if (DM.NO_CITY.includes(DM.bAt(G, site.x, site.y))) return 'Niente città in Giungla, Palude o Alta montagna.';
     const ops = DM.COST.citta.map(o => ({ m: o.m - DM.COST.acc[0].m, r: o.r }));
-    if (!DM.pay([site.inv], ops)) return 'Servono in questo Accampamento: ' + ops.map(DM.costText).join(' oppure ') + '.';
+    if (!DM.pay(DM.payInvs ? DM.payInvs(G, site) : [site.inv], ops)) return 'Servono in questo Accampamento: ' + ops.map(DM.costText).join(' oppure ') + '.';
+    if (DM.balanceMoney) DM.balanceMoney(G, G.p);
     site.k = 'citta'; site.hp += DM.BUILDING_HP.citta - DM.BUILDING_HP.acc; site.r0 = G.round;
     return 'L’Accampamento ora è una Città.';
   };
@@ -162,5 +170,6 @@
       // Rendita ogni 10 giri dalla costruzione. Una Città con meno di 5.000 soldi conta come Accampamento (7.2).
       if ((s.k === 'cap' || (s.k === 'citta' && s.inv.mon >= DM.CITY_MIN_MONEY)) && age % 10 === 0) s.inv.mon += DM.INCOME[s.k] + (s.up || 0);
     });
+    if (DM.balanceAll) DM.balanceAll(G);   // Classico: la Capitale tiene la maggioranza dei soldi
   };
 })(globalThis.DM = globalThis.DM || {});
