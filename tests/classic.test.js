@@ -20,7 +20,7 @@ test('Classico: tabelle e kit; tornando al normale tutto torna com’era', () =>
   assert.equal(G.phase, 'play');
   assert.deepEqual([DM.COST.S[0].m, DM.COST.N[0].m, DM.COST.E[0].m, DM.COST.T[0].m], [1000, 5000, 7000, 15000]);
   assert.deepEqual([DM.COST.citta[0].m, DM.COST.acc[0].m, DM.COST.porto[0].m, DM.COST.ponte1[0].m, DM.COST.bomba[0].m, DM.COST.superbomba[0].m], [5000, 5000, 5000, 1000, 25000, 100000]);
-  assert.deepEqual(Object.keys(DM.POTIONS), ['poz_stipendio', 'poz_velocita', 'poz_curacitta']);
+  assert.deepEqual(Object.keys(DM.POTIONS), ['poz_stipendio', 'poz_velocita', 'poz_curacitta', 'poz_congela']);
   assert.ok(!DM.COST.C && !DM.COST.min && !DM.COST.aer && !DM.COST.col, 'niente Carri, miniere, Aeroporti, Coltivazioni');
   const T = DM.TROOPS;
   assert.deepEqual([T.S.range, T.S.land.P, T.N.dmg, T.E.dmg, T.E.range, T.E.air, T.T.hp, T.T.range, T.T.land.P], [2, 2, 500, 160, 3, 3, 7000, 3, 1]);
@@ -168,4 +168,108 @@ test('Classico: entrando in Montagna si pesca una carta e la mossa non si annull
   // nel gioco normale niente carte
   const N = DM.newGame({}, 12);
   assert.equal(DM.roundCards(N), '');
+});
+
+test('Classico: congelamento (2 cm, 2 giri, tue e avversarie: niente mosse né spari, si possono colpire)', () => {
+  const G = classic();
+  const cap = DM.capitalOf(G, 0); cap.inv.mon = 50000;
+  assert.match(DM.buy(G, cap, 'poz_congela'), /creata/);
+  const a = DM.addUnit(G, 'S', 0, 30, 20), b = DM.addUnit(G, 'S', 1, 31.5, 20), far = DM.addUnit(G, 'S', 1, 33, 20);
+  const r = DM.potionOnUnit(G, cap, 'poz_congela', 30.5, 20, true);
+  assert.match(r.msg, /Congelate 2 truppe fino al giro 2/);
+  assert.equal(cap.inv.mat.poz_congela, 0);
+  assert.ok(DM.frozen(G, a) && DM.frozen(G, b) && !DM.frozen(G, far));
+  G.round = 5; G.moved = 0; a.fz = 7;
+  assert.match(DM.moveUnit(G, a, 30, 21), /Congelata/);
+  assert.match(DM.shootError(G, a), /Congelata/);
+  G.round = 7;
+  assert.ok(!DM.frozen(G, a), 'dopo 2 giri si scongela');
+});
+
+test('Classico: mine nascoste, l’esercito nemico si ferma e prende 1.000 a truppa; migliorate colpiscono gli Elicotteri', () => {
+  const G = classic();
+  const cap = DM.capitalOf(G, 0); cap.inv.mon = 50000;
+  DM.buy(G, cap, 'mina'); DM.buy(G, cap, 'mina');
+  assert.match(DM.buy(G, cap, 'minaA'), /migliorata/);
+  assert.deepEqual([G.players[0].res.mina, G.players[0].res.minaA], [1, 1]);
+  // una pianura libera per la prova
+  let P = null;
+  for (let y = 4; y < 38 && !P; y += .5) for (let x = 4; x < 56 && !P; x += .5) if ([0, 1, 2, 3, 4].every(i => DM.bAt(G, x + i, y) === 'P')) P = [x, y];
+  DM.addUnit(G, 'S', 0, P[0] + .8, P[1] + .8);
+  assert.match(DM.placeMine(G, 'mina', P[0] + 5, P[1]), /entro 1 cm/);
+  assert.match(DM.placeMine(G, 'mina', P[0] + .8, P[1]), /Mina posata/);
+  // tocca al giocatore 2: un esercito di 2 Carrarmati e 1 Elicottero ci passa sopra
+  DM.endTurn(G); G.moved = 0;
+  const t1 = DM.addUnit(G, 'T', 1, P[0], P[1]), t2 = DM.addUnit(G, 'T', 1, P[0], P[1] + .1);
+  t1.g = t2.g = 99;
+  const msg = DM.moveUnit(G, t1, P[0] + 4, P[1] + .05);   // il Carrarmato fa 1 cm: passa vicino alla mina
+  assert.match(msg, /mina nemica.*1.?000 danni a 2 truppe/);
+  assert.ok(t1.x < P[0] + .5, 'si ferma alla mina: ' + t1.x);
+  assert.deepEqual([t1.hp, t2.hp], [6000, 6000]);
+  assert.equal(G.mines.length, 0);
+  // un Elicottero passa sopra una mina normale, ma non sopra una migliorata
+  DM.endTurn(G); G.moved = 0;
+  DM.addUnit(G, 'S', 0, P[0] + 2, P[1] - 1);
+  DM.placeMine(G, 'minaA', P[0] + 2, P[1] - 1.5);
+  DM.endTurn(G); G.moved = 0;
+  const e = DM.addUnit(G, 'E', 1, P[0], P[1] - 1.5);
+  assert.match(DM.moveUnit(G, e, P[0] + 3, P[1] - 1.5), /mina nemica/);
+  assert.equal(e.hp, 1000);
+});
+
+test('Classico: sottomarino nascosto (si vede quando spara e dalle Navi entro 2 cm), niente flotte, porta 20 punti', () => {
+  const G = classic();
+  const u = DM.addUnit(G, 'U', 0, 2, 2);
+  assert.equal(DM.hiddenFrom(G, u, 1), true);
+  assert.equal(DM.hiddenFrom(G, u, 0), false);
+  // una Nave nemica vicina lo vede
+  const n = DM.addUnit(G, 'N', 1, 3.5, 2);
+  assert.equal(DM.hiddenFrom(G, u, 1), false);
+  n.x = 10;
+  assert.equal(DM.hiddenFrom(G, u, 1), true);
+  // non è un bersaglio finché è nascosto
+  G.p = 1;
+  assert.equal(DM.shootTargets(G, 2, 2).length, 0);
+  // quando spara si scopre fino al suo turno dopo
+  G.p = 0; u.rv = true;
+  assert.equal(DM.hiddenFrom(G, u, 1), false);
+  assert.equal(DM.compatible('U', 'N'), false);
+  assert.equal(DM.TROOP_CAP.U, 20);
+  assert.equal(DM.TROOPS.U.hp, 1500);
+});
+
+test('Classico: muri (bloccano le truppe di terra nemiche, si spara oltre, migliorati congelano quando crollano o col pulsante)', () => {
+  const G = classic();
+  const cap = DM.capitalOf(G, 0); cap.inv.mon = 100000;
+  for (let i = 0; i < 3; i++) DM.buy(G, cap, 'muro');
+  DM.buy(G, cap, 'muroUp');
+  assert.deepEqual([G.players[0].res.muro, G.players[0].res.muroUp], [3, 5]);
+  // un muro verticale di 2 cm in una pianura del territorio
+  let P = null;
+  for (let y = 4; y < 38 && !P; y += .5) for (let xx = 4; xx < 56 && !P; xx += .5) if ([1, 1.5, 2, 2.5, 3, 3.5].every(i => [-1, -.5, 0, .5, 1].every(j => DM.bAt(G, xx + i, y + j) === 'P'))) P = [xx, y];
+  DM.claim(G, 0, P[0] + 2, P[1]);
+  const x = P[0] + 2, y1 = P[1] - 1, y2 = P[1] + 1, cy = P[1];
+  DM.addUnit(G, 'S', 0, x + .5, cy);
+  const r = DM.buildWall(G, x, y1, x, y2);
+  assert.match(r, /2 pezzi/, r);
+  assert.equal(G.walls.length, 2);
+  // un Soldato nemico non lo attraversa, un Elicottero sì
+  DM.endTurn(G); G.moved = 0; G.round = 30;
+  const s = DM.addUnit(G, 'S', 1, x - .5, cy - .5);
+  DM.moveUnit(G, s, x + 1.5, cy - .5);
+  assert.ok(s.x < x, 'il muro lo ferma: ' + s.x);
+  const e = DM.addUnit(G, 'E', 1, x - .5, cy + .5);
+  DM.moveUnit(G, e, x + 1.5, cy + .5);
+  assert.ok(e.x > x, 'l’Elicottero passa sopra');
+  // si spara oltre il muro, e il muro si può colpire
+  assert.ok(DM.shootTargets(G, x, y1 + .5).some(t => t.type === 'wall'));
+  // muro migliorato: il pulsante lo fa crollare e congela tutto entro 2 cm
+  DM.endTurn(G); G.p = 0;
+  const w = G.walls[0];
+  assert.match(DM.upgradeWall(G, w), /migliorato/);
+  assert.equal(w.hp, 2500);
+  const m = DM.triggerWall(G, w);
+  assert.match(m, /congelamento.*Congelate/);
+  assert.equal(G.walls.length, 1);
+  assert.ok(DM.frozen(G, s));
 });

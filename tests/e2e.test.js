@@ -933,6 +933,25 @@ test('modalità Classico: si sblocca con la mappa originale, 5 biomi, kit unico,
   await page.locator('#shop button[data-arg=S]').click();
   assert.equal(await ev(() => DM.moneyOf(DM.game, 0)), 29000);
   await closeSide();
+  assert.match(shopTxt, /Sottomarino[\s\S]*Difese[\s\S]*Mina[\s\S]*Pezzo di muro[\s\S]*Miglioramento mura[\s\S]*Congelamento/i);
+  // mina e muro dalla riserva, poi il muro si tocca e si migliora
+  await ev(() => { const G = DM.game, q = G.players[0]; q.res.mina = 1; q.res.muro = 2; q.res.muroUp = 5; DM.capitalOf(G, 0).inv.mon = 100000; DM.redraw(); });
+  const C0 = await ev(() => { const c = DM.capitalOf(DM.game, 0); return [c.x, c.y]; });
+  const U0 = await ev(([x, y]) => { const u = DM.addUnit(DM.game, 'S', 0, x, y + 1.3); DM.redraw(); return [u.x, u.y]; }, C0);
+  await page.selectOption('#sp', 'mina');
+  await tapCm(U0[0], U0[1] + .7);
+  assert.match(await info(), /Mina posata/);
+  assert.equal(await ev(() => DM.game.mines.length), 1);
+  await page.selectOption('#sp', 'muro');
+  await tapCm(C0[0] - 1, C0[1] - .9); await tapCm(C0[0] - 1, C0[1] + .9);
+  assert.match(await info(), /Muro costruito: 2 pezzi/);
+  await page.selectOption('#sp', '');
+  const W = await ev(() => { const w = DM.game.walls[0]; return [w.x, w.y]; });
+  await tapCm(W[0], W[1]);
+  assert.match(await info(), /Muro · vita 2000/);
+  await act('Migliora');
+  assert.match(await info(), /migliorato/);
+  await shot('classico-difese');
   // spostare soldi dalla Capitale alla Città
   await ev(([x, y]) => { DM.ui.selB = DM.game.sites.find(s => s.k === 'citta' && Math.hypot(s.x - x, s.y - y) < .1); DM.redraw(); }, city);
   await page.fill('#mq', '5000'); await act('Porta qui dalla Capitale');

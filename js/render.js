@@ -168,7 +168,7 @@
     cx.beginPath(); cx.arc(u.x, u.y, u.g ? ur * 1.3 : ur, 0, 7); cx.fill(); cx.stroke();
     cx.fillStyle = '#fff'; cx.font = 'bold ' + ur + 'px sans-serif';
     // ingrandendo, al posto della lettera c'è il disegno della truppa (l'esercito tiene il numero)
-    if (detail && Z >= 14 && !u.g) DM.drawTroopIcon(cx, u.t, u.x, u.y, ur * .9);
+    if (detail && Z >= 14 && !u.g && u.t !== 'U') DM.drawTroopIcon(cx, u.t, u.x, u.y, ur * .9);
     else cx.fillText(u.g ? String(u.an) : DM.TROOPS[u.t].label, u.x, u.y + .02);
     if (detail && Z >= 14 && u.g) {   // nell'esercito: piccolo disegno della truppa più forte
       const best = DM.armyOf(G, u).sort((a, b) => DM.TROOPS[b.t].hp - DM.TROOPS[a.t].hp)[0];
@@ -176,6 +176,13 @@
       cx.fillStyle = pc[u.o]; cx.strokeStyle = '#111'; cx.lineWidth = ur * .12;
       cx.beginPath(); cx.arc(bx, by, ur * .55, 0, 7); cx.fill(); cx.stroke();
       DM.drawTroopIcon(cx, best.t, bx, by, ur * .45);
+    }
+    if (DM.frozen && DM.frozen(G, u)) {   // Classico: congelata
+      cx.strokeStyle = '#8fdcff'; cx.lineWidth = ur * .3; cx.beginPath(); cx.arc(u.x, u.y, (u.g ? ur * 1.3 : ur) + ur * .25, 0, 7); cx.stroke();
+      cx.font = (ur * .9) + 'px sans-serif'; cx.fillText('❄', u.x + ur * .95, u.y + ur * .9);
+    }
+    if (u.t === 'U' && !u.rv) {   // il sottomarino nascosto agli avversari: bordo tratteggiato
+      cx.setLineDash([ur * .3, ur * .25]); cx.strokeStyle = '#111'; cx.lineWidth = ur * .18; cx.beginPath(); cx.arc(u.x, u.y, ur * 1.15, 0, 7); cx.stroke(); cx.setLineDash([]);
     }
     const on = G.units.filter(v => v.carried && DM.armyOf(G, u).some(w => w.id === v.carried)).length;
     if (on) {   // quante truppe a bordo
@@ -271,6 +278,19 @@
         cx.strokeStyle = pc[r.o]; cx.lineWidth = .1; cx.stroke();
       });
     });
+    // Classico: mura (pezzi da 1 cm) e mine (le vede solo chi le ha posate, nel suo turno)
+    (G.walls || []).forEach(w => {
+      cx.lineCap = 'butt';
+      cx.strokeStyle = '#3d3329'; cx.lineWidth = .32; cx.beginPath(); cx.moveTo(w.x1, w.y1); cx.lineTo(w.x2, w.y2); cx.stroke();
+      cx.strokeStyle = w.up ? '#8fdcff' : '#9a8a78'; cx.lineWidth = .2; cx.stroke();
+      cx.strokeStyle = pc[w.o]; cx.lineWidth = .07; cx.stroke();
+      if (ui.selW === w) { cx.strokeStyle = '#ffd54a'; cx.lineWidth = Math.max(.08, 2 * px); cx.beginPath(); cx.arc(w.x, w.y, .7, 0, 7); cx.stroke(); }
+    });
+    (G.mines || []).filter(m => m.o === G.p).forEach(m => {
+      cx.setLineDash([.12, .1]); cx.strokeStyle = 'rgba(200,30,30,.6)'; cx.lineWidth = Math.max(.04, px); cx.beginPath(); cx.arc(m.x, m.y, .5, 0, 7); cx.stroke(); cx.setLineDash([]);
+      cx.fillStyle = '#1b1b1b'; cx.beginPath(); cx.arc(m.x, m.y, .2, 0, 7); cx.fill();
+      cx.fillStyle = m.air ? '#8fdcff' : '#e0372b'; cx.beginPath(); cx.arc(m.x, m.y, .08, 0, 7); cx.fill();
+    });
     // edifici (prima quelli normali, poi quelli dentro le città, sopra); quelli che stanno nascendo li disegna l'animazione
     const hid = DM.FX ? DM.FX.hidden : { u: new Set(), s: new Set() };
     G.sites.filter(s => !s.par).forEach(s => {
@@ -301,6 +321,7 @@
       const drawn = new Set();
       G.units.forEach(u => {
         if (u.carried || hid.u.has(u.id)) return;   // a bordo: non si vede, conta il numero sul veicolo
+        if (DM.hiddenFrom && DM.hiddenFrom(G, u, G.p)) return;   // Classico: sottomarino nascosto a chi gioca adesso
         if (u.g) { if (drawn.has(u.g)) return; drawn.add(u.g); }
         const picked = (sel && (u === sel || (sel.g && u.g === sel.g))) || ui.pick.includes(u);
         DM.drawUnit(cx, G, u, Z, detail, { picked, moved: u.o === G.p && u.m });
