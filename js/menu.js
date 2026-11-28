@@ -138,6 +138,15 @@
     const raw = $('seed').value.trim(), seed = raw !== '' && isFinite(+raw) ? Math.max(0, Math.floor(+raw)) : Math.floor(Math.random() * 9999) + 1;
     // il 6 dà la mappa originale solo dopo aver trovato tutte le mappe segrete (resta scritto nella partita salvata)
     if (seed === 6 && raw !== '' && DM.Secrets.allFound()) opts.orig = 1;
+    // numeri troppo grandi: oltre il limite il numero non sarebbe più preciso. Il più grande fatto di soli 9 si apre più avanti.
+    const tooBig = raw !== '' && (seed > Number.MAX_SAFE_INTEGER ? 'Numero troppo grande.' :
+      seed === DM.SYMBOL_SEED && !DM.Secrets.hasOrig() ? '🔒 Numero troppo grande… per ora. Ritorna più avanti.' : '');
+    if (tooBig) {
+      let m = $('seedMsg');
+      if (!m) { m = document.createElement('p'); m.id = 'seedMsg'; m.className = 'msg'; $('seed').closest('.card').appendChild(m); }
+      m.textContent = tooBig; $('seed').focus();
+      return;
+    }
     $('menuBody').innerHTML = title + '<p class="msg center">Creo la mappa…</p>';
     setTimeout(() => {
       const G = DM.newGame(opts, seed);

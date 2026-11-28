@@ -790,6 +790,15 @@ test('mappa originale: si sblocca con tutte le mappe segrete (numero 6), poi sig
   assert.equal(await ev(() => DM.game.map.symbol), true, 'prima dello sblocco il 6 è la mappa del simbolo');
   assert.match(await info(), /mappa del simbolo di Damamondo/);
   assert.match(await info(), /non ha ancora detto la sua ultima parola/);
+  // il numero dei 9 prima della mappa originale: "troppo grande", e non parte nessuna partita
+  await page.click('#toMenu'); await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
+  while ((await page.locator('[data-m=elimina]').count()) >= 3) { await page.locator('[data-m=elimina]').last().click(); await page.click('[data-m=eliminaSi]'); }
+  await page.click('[data-m=nuova]'); await page.fill('#seed', '999999999999999'); await page.click('[data-m=inizia]');
+  assert.match(await page.locator('#seedMsg').innerText(), /troppo grande… per ora/);
+  assert.equal(await page.locator('#game').isHidden(), true);
+  await page.fill('#seed', '99999999999999999'); await page.click('[data-m=inizia]');
+  assert.equal(await page.locator('#seedMsg').innerText(), 'Numero troppo grande.');
+  await page.fill('#seed', '12'); await page.click('[data-m=inizia]'); await page.waitForSelector('[data-act=kit]');
   // tutte le 14 trovate
   await ev(() => localStorage.setItem('damamondo-segreti', JSON.stringify(DM.SECRETS.map(s => s.id))));
   await page.click('#toMenu');
