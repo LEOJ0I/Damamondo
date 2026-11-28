@@ -82,6 +82,29 @@
     cx.closePath();
   };
 
+  // Capitale dorata: alone d'oro, bordo del colore del giocatore, stella d'oro con riflesso e bordo bianco, tre scintille
+  function goldStar(cx, x, y, r, col) {
+    cx.save();
+    const h = cx.createRadialGradient(x, y, 0, x, y, r * 1.7);
+    h.addColorStop(0, 'rgba(255,215,90,.75)'); h.addColorStop(1, 'rgba(255,215,90,0)');
+    cx.fillStyle = h; cx.beginPath(); cx.arc(x, y, r * 1.7, 0, 7); cx.fill();
+    star(cx, x, y, r); cx.lineJoin = 'round';
+    cx.lineWidth = .3 * r; cx.strokeStyle = col; cx.stroke();
+    const g = cx.createLinearGradient(x - r, y - r, x + r, y + r);
+    g.addColorStop(0, '#fff3b0'); g.addColorStop(.45, '#f2c230'); g.addColorStop(1, '#a8740c');
+    cx.fillStyle = g; cx.fill(); cx.lineWidth = .09 * r; cx.strokeStyle = '#fff'; cx.stroke();
+    cx.save(); star(cx, x, y, r); cx.clip();
+    const l = cx.createLinearGradient(x, y - r, x, y); l.addColorStop(0, 'rgba(255,255,255,.45)'); l.addColorStop(1, 'rgba(255,255,255,0)');
+    cx.fillStyle = l; cx.fillRect(x - r, y - r, 2 * r, r * .9); cx.restore();
+    cx.fillStyle = '#fffbe6';
+    for (const [a, b, k] of [[.95, -.95, .16], [-1.05, -.35, .11], [.75, .85, .1]]) {   // scintille a quattro punte
+      const px = x + a * r, py = y + b * r, q = k * r;
+      cx.beginPath(); cx.moveTo(px, py - q); cx.lineTo(px + q * .3, py); cx.lineTo(px, py + q); cx.lineTo(px - q * .3, py); cx.closePath(); cx.fill();
+      cx.beginPath(); cx.moveTo(px - q, py); cx.lineTo(px, py + q * .3); cx.lineTo(px + q, py); cx.lineTo(px, py - q * .3); cx.closePath(); cx.fill();
+    }
+    cx.restore();
+  }
+
   // ---- un edificio (usato anche dalle animazioni) ----
   const ICON = { porto: 1, aer: 1, col: 1 }, FILL = { porto: '#1e6fd9', aer: '#ffffff', col: '#6ab04c' }, INK = { porto: '#fff', aer: '#111', col: '#fff' };
   // simboli disegnati a mano (i caratteri ✈ ⚓ non ci sono su tutti i telefoni)
@@ -111,11 +134,8 @@
     if (s.k === 'cap') {
       if (detail && Z >= 14) DM.drawBuildingDetail(cx, s, sz, col);
       star(cx, s.x, s.y, .75 * sz);
-      if (DM.goldCap(G, s.o)) {   // la capitale dorata (premio della mappa originale): oro, bordo del colore del giocatore
-        const r = .75 * sz, gr = cx.createLinearGradient(s.x - r, s.y - r, s.x + r, s.y + r);
-        gr.addColorStop(0, '#fff3b0'); gr.addColorStop(.45, '#f2c230'); gr.addColorStop(1, '#a8740c');
-        cx.fillStyle = gr; cx.fill(); cx.lineWidth = .22 * sz; cx.strokeStyle = col; cx.stroke(); cx.lineWidth = .06 * sz; cx.strokeStyle = '#fff8d0'; cx.stroke();
-      } else { cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke(); }
+      if (DM.goldCap(G, s.o)) goldStar(cx, s.x, s.y, .75 * sz, col);   // la capitale dorata (premio della mappa originale)
+      else { cx.fillStyle = col; cx.fill(); cx.strokeStyle = '#fff'; cx.stroke(); }
     } else if (s.k === 'min') {
       cx.beginPath();
       for (let i = 0; i < 6; i++) cx.lineTo(s.x + Math.cos(i * 1.047) * .4 * sz, s.y + Math.sin(i * 1.047) * .4 * sz);
