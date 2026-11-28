@@ -796,8 +796,11 @@ test('mappa originale: si sblocca con tutte le mappe segrete (numero 6), poi sig
   await page.click('[data-m=nuova]'); await page.fill('#seed', '999999999999999'); await page.click('[data-m=inizia]');
   assert.match(await page.locator('#seedMsg').innerText(), /troppo grande… per ora/);
   assert.equal(await page.locator('#game').isHidden(), true);
-  await page.fill('#seed', '99999999999999999'); await page.click('[data-m=inizia]');
-  assert.equal(await page.locator('#seedMsg').innerText(), 'Numero troppo grande.');
+  // più di 15 cifre non si possono scrivere (anche incollando), e le lettere non entrano
+  await page.fill('#seed', ''); await page.locator('#seed').pressSequentially('12345678901234567');
+  assert.equal(await page.inputValue('#seed'), '123456789012345');
+  await page.fill('#seed', '9a9-9999999999999999999');
+  assert.equal(await page.inputValue('#seed'), '999999999999999');
   await page.fill('#seed', '12'); await page.click('[data-m=inizia]'); await page.waitForSelector('[data-act=kit]');
   // tutte le 14 trovate
   await ev(() => localStorage.setItem('damamondo-segreti', JSON.stringify(DM.SECRETS.map(s => s.id))));
