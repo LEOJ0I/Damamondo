@@ -789,6 +789,7 @@ test('mappa originale: si sblocca con tutte le mappe segrete (numero 6), poi sig
   assert.equal(await ev(() => DM.game.map.opts.orig), undefined);
   assert.equal(await ev(() => DM.game.map.symbol), true, 'prima dello sblocco il 6 è la mappa del simbolo');
   assert.match(await info(), /mappa del simbolo di Damamondo/);
+  assert.match(await info(), /il 6 custodisce ancora un segreto/);
   // tutte le 14 trovate
   await ev(() => localStorage.setItem('damamondo-segreti', JSON.stringify(DM.SECRETS.map(s => s.id))));
   await page.click('#toMenu');
@@ -841,6 +842,7 @@ test('mappa originale: si sblocca con tutte le mappe segrete (numero 6), poi sig
   await page.locator('[data-m=home]').first().click();
   await newFromMenu(2, 999999999999999);
   assert.deepEqual(await ev(() => [DM.game.seed, DM.game.map.symbol]), [999999999999999, true]);
+  assert.doesNotMatch(await info(), /custodisce/, 'col numero dei 9 niente indizio');
   await page.click('#toMenu'); await page.click('.explorer');
   await ev(() => { localStorage.removeItem('damamondo-segreti'); DM.Prefs.set({ theme: 'classica', gold: false }); });
   await page.locator('[data-m=home]').first().click();
