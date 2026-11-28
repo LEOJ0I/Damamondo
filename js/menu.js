@@ -149,7 +149,7 @@
         DM.ui.msg = '⭐ Hai trovato la mappa del simbolo di Damamondo: è quella dietro la stella dell’icona e sullo sfondo del menu!' +
           '<br><small class="fact">💡 Lo sapevi? È la mappa numero 7 con tutte le opzioni medie: in Damamondo ogni numero è come un seme, e dallo stesso seme nasce sempre lo stesso mondo.</small>' +
           // col 6 (prima dello sblocco) un indizio: questo numero nasconde ancora qualcosa
-          (G.seed === 6 ? '<br><small class="fact">🔒 Ma il 6 custodisce ancora un segreto… Ritorna qui quando avrai trovato tutte le mappe segrete.</small>' : '');
+          (G.seed === 6 ? '<br><small class="fact">🔒 Questo numero non ha ancora detto la sua ultima parola… Ritorna più avanti.</small>' : '');
         DM.redraw();
       }
       if (G.map.secret) {   // mappa segreta trovata!
