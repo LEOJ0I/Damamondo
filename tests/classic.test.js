@@ -110,3 +110,62 @@ test('Classico: Superbomba (area per 5 giri, 100 danni a turno) e ponte liv. 2 c
   assert.equal(t2.hp, 6900);
   assert.equal(G.rad[0].until, 30);
 });
+
+test('Classico: le carte dei giri (pioggia, meteoriti) e quelle dei biomi', () => {
+  const G = classic();
+  const cap = DM.capitalOf(G, 0);
+  // al 5° giro la grande pioggia: gittata dimezzata per 3 giri
+  const s = DM.addUnit(G, 'S', 0, cap.x + 1, cap.y);
+  assert.equal(DM.stat(G, s)[1], 2);
+  while (G.round < 5) DM.endTurn(G);
+  assert.equal(G.events.length, 1);
+  assert.equal(DM.stat(G, s)[1], 1);
+  assert.equal(G.cardsShown.at(-1).deck, 'giri5');
+  while (G.round < 8) DM.endTurn(G);
+  assert.equal(DM.stat(G, s)[1], 2, 'dopo 3 giri finisce');
+  // al 10° giro: pioggia e meteoriti insieme; Elicotteri, Navi, Carrarmati a metà prezzo
+  while (G.round < 10) DM.endTurn(G);
+  assert.deepEqual(G.cardsShown.slice(-2).map(c => c.deck), ['giri5', 'giri10']);
+  assert.equal(DM.costOf(G, 'T')[0].m, 7500);
+  assert.equal(DM.costOf(G, 'S')[0].m, 1000, 'i Soldati no');
+  G.p = 0; cap.inv.mon = 100000; const before = DM.moneyOf(G, 0);
+  assert.match(DM.buy(G, cap, 'E'), /creato/);
+  assert.equal(before - DM.moneyOf(G, 0), 3500);
+  // carte dei biomi: un esercito di 10 Soldati che entra in Alta montagna (valanga 90%, almeno 6) — con il dado truccato
+  DM.rand = () => .3;   // seconda carta del mazzo "A": la valanga
+  const r = DM.drawCard(G, 'A', Array.from({ length: 10 }, (_, i) => DM.addUnit(G, 'S', 0, 30, 20 + i * .01)));
+  assert.match(r.result, /9 Soldati muoiono/);
+  assert.match(DM.drawCard(G, 'A', [DM.addUnit(G, 'S', 0, 31, 21)]).result, /1 Soldato muore/, 'se sono meno del minimo muoiono tutti');
+  // la multa: 1.000 a ogni altro giocatore
+  DM.rand = () => 0;
+  const m0 = DM.moneyOf(G, 0), m1 = DM.moneyOf(G, 1);
+  assert.match(DM.drawCard(G, 'M', [s]).result, /Pagati 1\.?000/);
+  assert.deepEqual([m0 - DM.moneyOf(G, 0), DM.moneyOf(G, 1) - m1], [1000, 1000]);
+  // flotta di 1 Nave: nessuna affonda; flotta di 3: ne affonda 1, con i Soldati a bordo
+  DM.rand = () => .5;
+  const n1 = DM.addUnit(G, 'N', 0, 2, 2);
+  assert.match(DM.drawCard(G, 'F', [n1]).result, /meno di 2 Navi/);
+  const fl = [0, 1, 2].map(i => DM.addUnit(G, 'N', 0, 2 + i * .1, 3));
+  fl.forEach(v => { DM.addUnit(G, 'S', 0, v.x, v.y).carried = v.id; });
+  const res = DM.drawCard(G, 'F', fl).result;
+  assert.match(res, /1 Nave affonda, annegano 1 truppe/);
+  DM.rand = Math.random;
+});
+
+test('Classico: entrando in Montagna si pesca una carta e la mossa non si annulla più', () => {
+  const G = classic();
+  // un Soldato in Pianura accanto a una Montagna
+  let P = null;
+  for (let y = 3; y < 39 && !P; y += .1) for (let x = 3; x < 57 && !P; x += .1) if (DM.bAt(G, x, y) === 'P' && DM.bAt(G, x + .4, y) === 'M') P = [x, y];
+  assert.ok(P);
+  const u = DM.addUnit(G, 'S', 0, P[0], P[1]);
+  DM.rand = () => 0;   // la prima carta: la multa
+  const msg = DM.moveUnit(G, u, P[0] + 1, P[1]);
+  DM.rand = Math.random;
+  assert.match(msg, /🃏 Pagati/);
+  assert.equal(G.cardsShown.at(-1).deck, 'M');
+  assert.match(DM.undoMove(G, u), /pescato una carta/);
+  // nel gioco normale niente carte
+  const N = DM.newGame({}, 12);
+  assert.equal(DM.roundCards(N), '');
+});

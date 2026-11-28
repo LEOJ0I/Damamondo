@@ -293,3 +293,16 @@ ol.chain li.open { background: color-mix(in srgb, #f2c230 22%, transparent); opa
 ol.chain li.ok { background: color-mix(in srgb, var(--ac) 15%, transparent); opacity: 1; }
 small.fact { display: block; margin-top: 4px; font-size: 13px; line-height: 1.4; opacity: .85; }
 ul.secrets li.no { background: color-mix(in srgb, var(--fg) 6%, transparent); opacity: .7; }
+
+/* Classico: la carta pescata */
+#cardPop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(10, 14, 20, .55); padding: 20px; }
+#cardPop[hidden] { display: none; }
+#cardPop .card-in { width: min(320px, 100%); background: #b08a55; background-image: linear-gradient(160deg, #c9a46d, #9c7444); color: #2b1d0e; border-radius: 16px; padding: 18px 18px 16px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.45), inset 0 0 0 3px rgba(255,255,255,.18); font-family: "Comic Sans MS", "Segoe Print", "Bradley Hand", cursive, sans-serif; animation: cardflip .5s ease-out; }
+#cardPop .deck { font-size: 13px; letter-spacing: .5px; text-transform: uppercase; opacity: .8; margin-bottom: 8px; }
+#cardPop b { display: block; font-size: 19px; margin-bottom: 6px; }
+#cardPop p { margin: 6px 0; font-size: 16px; line-height: 1.4; }
+#cardPop .res { background: rgba(255,255,255,.35); border-radius: 8px; padding: 6px 8px; font-family: Inter, system-ui, sans-serif; font-weight: 600; font-size: 14px; }
+#cardPop button { width: 100%; margin-top: 10px; }
+@keyframes cardflip { from { transform: perspective(600px) rotateY(90deg) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #cardPop .card-in { animation: none; } }

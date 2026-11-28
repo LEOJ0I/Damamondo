@@ -64,6 +64,7 @@
       else d = Math.round((f === 'D' ? t.dmg / 1.5 : t.dmg * 1.5) / 10) * 10;
     }
     if (f === 'T') g = DM.TUNDRA_RANGE.includes(u.t) && b === 'T' ? g + F[2] : t.range * 2;
+    if (DM.eventOn && DM.eventOn(G, 'pioggia')) g = g / 2;   // Classico, carta della grande pioggia: gittata dimezzata
     return [Math.max(0, d) * (u.dd === G.round && u.o === G.p ? 2 : 1), g];
   };
 
@@ -175,6 +176,8 @@
     const pts = plan.path ? plan.path.map(s => [s.x - mx, s.y - my]) : [[dx, dy]];
     // per le animazioni: il percorso sulla strada (non si salva)
     G.lastPath = plan.path ? { ids: A.map(v => v.id), pts: plan.path.map(s => [s.x, s.y]), off: Object.fromEntries(A.map(v => [v.id, [v.x - mx, v.y - my]])) } : null;
+    // Classico: i biomi in cui entra (Montagna, Alta montagna, fiumi e laghi) fanno pescare una carta
+    const entered = DM.isClassic && DM.isClassic() ? DM.biomesEntered(G, A, mx, my, pts) : [];
     A.forEach(v => {
       // per annullare l'ultima mossa (anche la seconda o la terza di un Carro)
       v.prev = (v.prev || []).concat([[v.x, v.y, v.cl || []]]); v.cl = []; v.px = v.x; v.py = v.y;
@@ -188,14 +191,16 @@
     });
     if (!again) G.moved++;
     DM.syncCarried(G);
+    const cards = entered.length ? DM.biomeCards(G, A, entered) : '';
     const n = DM.movesLeft(G, u), more = DM.movesOf(A) > 1 ? (n ? ' Può muoversi ancora ' + (n > 1 ? n + ' volte' : '1 volta') + ' in questo turno.' : ' Mosse finite per questo turno.') : '';
-    return (plan.path ? 'Viaggio sulla strada completato (' + (plan.path.length - 1) + ' tratti).' : plan.left > .01 ? 'Mossa completata.' : 'Mossa completata: velocità esaurita.') + more;
+    return (plan.path ? 'Viaggio sulla strada completato (' + (plan.path.length - 1) + ' tratti).' : plan.left > .01 ? 'Mossa completata.' : 'Mossa completata: velocità esaurita.') + more + cards;
   };
 
   DM.undoMove = function (G, u) {
     if (!u || !u.m || u.o !== G.p) return 'Seleziona una truppa che hai appena mosso.';
     const A = DM.armyOf(G, u);
     if (A.some(v => v.s)) return 'Ha già sparato dopo la mossa: non si può annullare.';
+    if (A.some(v => v.card)) return 'Hai pescato una carta: questa mossa non si può annullare.';
     A.forEach(v => {
       (v.cl || []).forEach(i => { G.terr[i] = -1; });
       const p = (v.prev || []).pop() || [v.px, v.py, []];

@@ -40,8 +40,22 @@
     if (ui.selB && !G.sites.includes(ui.selB)) ui.selB = null;
     DM.draw($('c'), G, ui, view(), ui.Z);
     hud(); info(); eco(); reserveMenu(); legend(); buttons();
-    autosave(); savesPanel(); bubble();
+    autosave(); savesPanel(); bubble(); cardPop();
     if (botNow() && !botBusy) setTimeout(maybeBot, 0);   // tocca a un bot: gioca da solo
+  }
+  // Classico: la carta pescata, in una finestrella che si gira; un tocco la chiude (e mostra la prossima, se ce n'è)
+  const DECK = { giri5: ['⏳', 'Carta 5 giri'], giri10: ['⌛', 'Carta 10 giri'], M: ['⛰️', 'Carta Montagna'], A: ['🏔️', 'Carta Alta montagna'], F: ['🌊', 'Carta Fiume/lago'] };
+  function cardPop() {
+    const el = $('cardPop'), c = G && G.cardsShown && G.cardsShown[0];
+    if (!c) { el.hidden = true; el.dataset.k = ''; return; }
+    const k = c.deck + c.text + G.cardsShown.length;
+    if (el.dataset.k === k) return;
+    el.dataset.k = k;
+    const [ic, name] = DECK[c.deck] || ['🃏', 'Carta'];
+    el.innerHTML = `<div class="card-in"><div class="deck">${ic} ${name}</div><b>${c.title}</b><p>${c.text}</p>` +
+      (c.result ? `<p class="res">${c.result}</p>` : '') + `<button type="button" data-act="cardok" class="go">${G.cardsShown.length > 1 ? 'Avanti (' + (G.cardsShown.length - 1) + ')' : 'OK'}</button></div>`;
+    el.hidden = false;
+    if (DM.Sfx) DM.Sfx.play('cargo');
   }
   DM.redraw = render;
 
@@ -233,14 +247,14 @@
     if (k === 'bomba' && !DM.BOMB.bomba.from.includes(s.k)) return false;
     if (k === 'superbomba' && !DM.BOMB.superbomba.from.includes(s.k)) return false;
     if (k === 'ponte2' && DM.isClassic() && !(DM.cur(G).res.ponte1 > 0)) return false;
-    return DM.COST[k].some(o => DM.canPay(DM.payInvs(G, s), o));
+    return DM.costOf(G, k).some(o => DM.canPay(DM.payInvs(G, s), o));
   }
   function shop(s) {
     const cl = DM.isClassic();
     $('shop').innerHTML = (s && s.o === G.p ? '' : '<small>Tocca un tuo edificio sulla mappa per comprare' + (cl ? '.' : ' con quello che contiene.') + '</small>') +
       SHOP.map(([title, ks]) => [title, (title === 'Pozioni' ? Object.keys(DM.POTIONS) : ks).filter(k => DM.COST[k])]).filter(([, ks]) => ks.length).map(([title, ks]) => `<h4>${title}</h4>` + ks.map(k => {
         const ok = canBuyHere(s, k);
-        return `<div class="item${ok ? '' : ' no'}"><div class="what"><b>${cl && k === 'ponte2' ? 'Migliora un pezzo di ponte al liv. 2' : DM.nameOf(k)}</b><div class="cost">${DM.COST[k].map(costChips).join('<small class="or">oppure</small>')}</div></div>` +
+        return `<div class="item${ok ? '' : ' no'}"><div class="what"><b>${cl && k === 'ponte2' ? 'Migliora un pezzo di ponte al liv. 2' : DM.nameOf(k)}</b><div class="cost">${DM.costOf(G, k).map(costChips).join('<small class="or">oppure</small>')}${DM.costOf(G, k) !== DM.COST[k] ? chip('☄️ metà prezzo', 'gold') : ''}</div></div>` +
           `<button type="button" class="playonly${ok ? ' go' : ''}" data-act="buyk" data-arg="${k}">Compra</button></div>`;
       }).join('')).join('');
   }
@@ -523,6 +537,7 @@
     unboard: a => { const [v, u] = a.split(':'); ui.msg = DM.unboard(G, DM.unitById(G, v), DM.unitById(G, u)); },
     done: () => { resetModes(); ui.msg = ''; },
     bank: () => { openSide('ecoP'); },
+    cardok: () => { if (G.cardsShown) G.cardsShown.shift(); },
     moneyin: () => { ui.msg = DM.moveMoney(G, ui.selB, ui.moneyQty || 1000, true); },
     moneyout: () => { ui.msg = DM.moveMoney(G, ui.selB, ui.moneyQty || 1000, false); },
     buyk: k => { if (G.phase === 'play') ui.msg = DM.buy(G, ui.selB, k); },

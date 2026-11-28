@@ -56,6 +56,113 @@
   // i biomi del Classico: tutto quello che non c'era diventa Pianura, Montagna, Alta montagna o Mare
   DM.CLASSIC_BIOME = { D: 'P', G: 'P', L: 'P', T: 'P', H: 'A', I: 'S', V: 'M', Z: 'M' };
 
+  // ---- le carte del Classico ----
+  // Carte dei giri: ogni 5 giri si pesca dal mazzo "5 giri", ogni 10 dal mazzo "10 giri" (al 10°, 20°… tutte e due).
+  // Carte dei biomi: ogni volta che una truppa (o un esercito) entra in Montagna, Alta montagna o in un fiume/lago, se ne pesca una
+  // del mazzo di quel bioma. Le carte si rimettono nel mazzo: ogni volta se ne pesca una a caso.
+  const soldiers = A => A.filter(u => u.t === 'S');
+  // quanti ne muoiono: la percentuale (per difetto) ma almeno "min" (e non più di quanti ce ne sono)
+  const howMany = (n, pct, min) => Math.min(n, Math.max(min, Math.floor(n * pct / 100)));
+  const killSome = (G, list, n) => { list.slice().sort(() => DM.rand() - .5).slice(0, n).forEach(u => { u.hp = 0; u.lost = true; }); return n; };
+  const fine = (G, p, each) => {   // paga "each" a ogni altro giocatore ancora in gioco
+    const others = G.players.map((q, o) => o).filter(o => o !== p && !G.players[o].out);
+    let paid = 0;
+    others.forEach(o => {
+      const have = DM.moneyOf(G, p), t = Math.min(each, have);
+      if (t <= 0) return;
+      DM.takeMoney(G, p, t); const c = DM.capitalOf(G, o) || DM.sitesOf(G, o)[0]; if (c) c.inv.mon += t; paid += t;
+    });
+    DM.balanceAll(G);
+    return paid;
+  };
+  const deathCard = (pct, min, verb) => (G, A) => {
+    const S = soldiers(A), n = killSome(G, S, howMany(S.length, pct, min));
+    return n ? n + (n === 1 ? ' Soldato ' + verb : ' Soldati ' + (verb === 'muore' ? 'muoiono' : verb === 'scompare' ? 'scompaiono' : verb)) + '.' : 'Nessun Soldato nell’esercito: per questa volta niente.';
+  };
+  DM.CARDS = {
+    giri5: [
+      { title: 'È passato un po’ di tempo…', text: '…c’è una grande pioggia: per i prossimi 3 giri la gittata di tutte le truppe diminuisce del 50%.',
+        play: G => { G.events.push({ k: 'pioggia', until: G.round + 3 }); return 'Gittata dimezzata fino al giro ' + (G.round + 2) + '.'; } }
+    ],
+    giri10: [
+      { title: 'È passato un po’ di tempo…', text: '…c’è una pioggia di meteoriti: per i prossimi 3 giri costruire Elicotteri, Navi e Carrarmati costa la metà.',
+        play: G => { G.events.push({ k: 'meteoriti', until: G.round + 3 }); return 'Elicotteri, Navi e Carrarmati a metà prezzo fino al giro ' + (G.round + 2) + '.'; } }
+    ],
+    M: [
+      { title: 'Ti sei addentrato in Montagna…', text: '…alcuni tuoi Soldati hanno mangiato delle piante protette: paga 1.000 soldi a ogni giocatore.',
+        play: (G, A, p) => 'Pagati ' + DM.fmtN(fine(G, p, 1000)) + ' soldi.' },
+      { title: 'Ti sei addentrato in Montagna…', text: '…il 10% dei Soldati che ti ha fatto pescare questa carta ha mangiato delle bacche velenose, quindi muore (deve morire almeno 1 Soldato).', play: deathCard(10, 1, 'muore') },
+      { title: 'Ti sei addentrato in Montagna…', text: '…oh no, ci sono delle slavine: il 50% dei Soldati dell’esercito che ti ha fatto pescare questa carta muore (devono morire almeno 3 Soldati).', play: deathCard(50, 3, 'muore') },
+      { title: 'Ti sei addentrato in Montagna…', text: '…c’è stata una nevicata: il 20% dei Soldati dell’esercito che ti ha fatto pescare questa carta è scomparso (devono scomparire almeno 2 Soldati).', play: deathCard(20, 2, 'scompare') }
+    ],
+    F: [
+      { title: 'Ti sei addentrato in un fiume/lago…', text: '…la tua Nave uccide un banco di pesci protetti: paga una multa di 2.000 soldi a ogni giocatore.',
+        play: (G, A, p) => 'Pagati ' + DM.fmtN(fine(G, p, 2000)) + ' soldi di multa.' },
+      { title: 'Ti sei addentrato in un fiume/lago…', text: '…il 10% delle Navi nella flotta che ti ha fatto pescare questa carta affonda (deve affondare almeno una Nave, a meno che nella flotta ci siano meno di 2 Navi) e annegano tutti i Soldati a bordo.',
+        play: G => G.cardArmy ? (() => {
+          const N = G.cardArmy.filter(u => u.t === 'N');
+          const n = N.length < 2 ? 0 : howMany(N.length, 10, 1);
+          let drowned = 0;
+          N.slice().sort(() => DM.rand() - .5).slice(0, n).forEach(v => { G.units.filter(u => u.carried === v.id).forEach(u => { u.hp = 0; u.lost = true; drowned++; }); v.hp = 0; v.lost = true; });
+          return n ? n + (n === 1 ? ' Nave affonda' : ' Navi affondano') + (drowned ? ', annegano ' + drowned + ' truppe a bordo' : '') + '.' : 'Nella flotta ci sono meno di 2 Navi: si salvano tutte.';
+        })() : '' },
+      { title: 'Ti sei addentrato in un fiume/lago…', text: '…il 10% dei Soldati dell’esercito che ti ha fatto pescare questa carta è caduto nel fiume ed è morto (deve morire almeno 1 Soldato).', play: deathCard(10, 1, 'muore') }
+    ],
+    A: [
+      { title: 'Ti sei addentrato in Alta montagna…', text: '…sei così in alto che manca l’ossigeno: muore il 50% dei Soldati dell’esercito che ti ha fatto pescare questa carta (devono morire almeno 4 Soldati).', play: deathCard(50, 4, 'muore') },
+      { title: 'Ti sei addentrato in Alta montagna…', text: '…oh no, una valanga! Il 90% dei Soldati dell’esercito che ti ha fatto pescare questa carta muore (devono morire almeno 6 Soldati).', play: deathCard(90, 6, 'muore') },
+      { title: 'Ti sei addentrato in Alta montagna…', text: '…fa tanto freddo: il 60% dei Soldati dell’esercito che ti ha fatto pescare questa carta muore di ipotermia (devono morire almeno 5 Soldati).', play: deathCard(60, 5, 'muore') },
+      { title: 'Ti sei addentrato in Alta montagna…', text: '…c’è stata una grande nevicata: il 50% dei Soldati dell’esercito che ti ha fatto pescare questa carta scompare (devono scomparire almeno 5 Soldati).', play: deathCard(50, 5, 'scompare') }
+    ]
+  };
+  // costo di una cosa adesso (Classico, pioggia di meteoriti: Elicotteri, Navi e Carrarmati a metà)
+  DM.costOf = (G, k) => DM.COST[k] && DM.eventOn(G, 'meteoriti') && 'ENT'.includes(k) && k.length === 1 ? DM.COST[k].map(o => ({ m: o.m / 2, r: o.r })) : DM.COST[k];
+  DM.eventOn = (G, k) => !!(G.events || []).some(e => e.k === k && e.until > G.round);
+  // pesca una carta dal mazzo e la gioca. A = l'esercito che l'ha fatta pescare (per le carte dei biomi)
+  DM.drawCard = function (G, deck, A, p) {
+    const list = DM.CARDS[deck], c = list[Math.min(list.length - 1, Math.floor(DM.rand() * list.length))];
+    G.events = G.events || [];
+    G.cardArmy = A || null;
+    const result = c.play(G, A || [], p === undefined ? G.p : p);
+    G.cardArmy = null;
+    const dead = DM.cleanupDead(G);
+    const card = { deck, title: c.title, text: c.text, result };
+    (G.cardsShown = G.cardsShown || []).push(card);   // per la finestrella della carta (non si salva)
+    return card;
+  };
+  // inizio giro: le carte dei giri
+  DM.roundCards = function (G) {
+    if (!DM.isClassic()) return '';
+    G.events = (G.events || []).filter(e => e.until > G.round);
+    let msg = '';
+    if (G.round % 5 === 0) msg += ' 🃏 ' + DM.drawCard(G, 'giri5', null, -1).result;
+    if (G.round % 10 === 0) msg += ' 🃏 ' + DM.drawCard(G, 'giri10', null, -1).result;
+    return msg;
+  };
+  // dopo una mossa: i biomi in cui l'esercito è entrato (Montagna, Alta montagna, fiume/lago fuori dai ponti)
+  DM.biomesEntered = function (G, A, x0, y0, pts) {
+    if (A.every(u => DM.TROOPS[u.t].kind === 'air')) return [];
+    const kindOf = (x, y) => { const b = DM.bAt(G, x, y); return b === 'F' && DM.bridgeAt(G, x, y) ? 'ponte' : b; };
+    let prev = kindOf(x0, y0), px = 0, py = 0;
+    const out = [];
+    for (const [qx, qy] of pts) {
+      const L = Math.hypot(qx - px, qy - py), n = Math.max(1, Math.ceil(L / .1));
+      for (let i = 1; i <= n; i++) {
+        const k = kindOf(x0 + px + (qx - px) * i / n, y0 + py + (qy - py) * i / n);
+        if (k !== prev && 'MAF'.includes(k) && k.length === 1 && !out.includes(k)) out.push(k);
+        prev = k;
+      }
+      px = qx; py = qy;
+    }
+    return out;
+  };
+  DM.biomeCards = function (G, A, entered) {
+    let msg = '';
+    entered.forEach(b => { if (G.units.some(u => A.includes(u))) msg += ' 🃏 ' + DM.drawCard(G, b, A.filter(u => G.units.includes(u))).result; });
+    if (msg) A.forEach(u => { u.card = true; });   // dopo una carta la mossa non si annulla
+    return msg;
+  };
+
   // ---- il regolamento del Classico (si legge nel menu Regole solo dopo averlo sbloccato) ----
   DM.classicRulesHTML = function () {
     const n = DM.fmtN, T = C.TROOPS, K = C.KITS[0];
@@ -83,6 +190,12 @@
         ['Bomba', n(C.COST.bomba[0].m), 'danno ' + n(C.BOMB.bomba.dmg)], ['Superbomba', n(C.COST.superbomba[0].m), 'danno ' + n(C.BOMB.superbomba.dmg) + '; area radioattiva per ' + C.BOMB.superbomba.radTurns + ' giri, ' + C.BOMB.superbomba.radDmg + ' danni a turno a chi ci resta dentro'],
         ['Stipendio+', n(C.COST.poz_stipendio[0].m), ''], ['Velocità', n(C.COST.poz_velocita[0].m), ''], ['Curacittà', n(C.COST.poz_curacitta[0].m), '']]) +
       art('Se la Capitale viene distrutta, diventa Capitale la Città più ricca del giocatore.', 'Capitale distrutta') +
+      '<h4>Le carte</h4>' +
+      art('All’inizio di ogni 5° giro si pesca una carta dal mazzo «5 giri», e di ogni 10° giro dal mazzo «10 giri» (al 10°, 20°… si pescano tutte e due). Valgono per tutti.', 'Carte dei giri') +
+      art('Ogni volta che una truppa o un esercito entra in Montagna, in Alta montagna o in un fiume/lago (non sui ponti) si pesca una carta del mazzo di quel bioma. Le truppe volanti non pescano. Dopo una carta la mossa non si può annullare.', 'Carte dei biomi') +
+      art('Le carte tornano nel mazzo: ogni volta se ne pesca una a caso. Le percentuali si arrotondano per difetto, ma valgono i minimi scritti sulla carta (se le truppe sono meno del minimo, le subiscono tutte).', 'Mazzo') +
+      table(['Mazzo', 'Carta'], [['5 giri', 'giri5'], ['10 giri', 'giri10'], ['Montagna', 'M'], ['Fiume/lago', 'F'], ['Alta montagna', 'A']]
+        .flatMap(([name, k]) => DM.CARDS[k].map(c => [name, c.text.replace(/^…/, '')]))) +
       '</section>';
   };
 

@@ -60,7 +60,8 @@
     const up2 = DM.isClassic && DM.isClassic() && k === 'ponte2';
     if (up2 && !(q.res.ponte1 > 0)) return 'Per il liv. 2 serve un pezzo di ponte liv. 1 nella riserva da migliorare.';
     const invs = DM.payInvs ? DM.payInvs(G, site) : [site.inv];
-    if (!DM.pay(invs, DM.COST[k])) return 'Non hai abbastanza risorse ' + (invs.length > 1 ? '' : 'in questo edificio ') + 'per ' + DM.nameOf(k) + '. Serve: ' + DM.costsText(k) + '.';
+    const cost = DM.costOf ? DM.costOf(G, k) : DM.COST[k];
+    if (!DM.pay(invs, cost)) return 'Non hai abbastanza risorse ' + (invs.length > 1 ? '' : 'in questo edificio ') + 'per ' + DM.nameOf(k) + '. Serve: ' + cost.map(DM.costText).join(' oppure ') + '.';
     if (DM.balanceMoney) DM.balanceMoney(G, G.p);
     if (up2) { q.res.ponte1--; q.res.ponte2 = (q.res.ponte2 || 0) + 1; return 'Un pezzo di ponte è passato al liv. 2: lo trovi nella riserva.'; }
     if (T[k]) {

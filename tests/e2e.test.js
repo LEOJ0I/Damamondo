@@ -937,6 +937,13 @@ test('modalità Classico: si sblocca con la mappa originale, 5 biomi, kit unico,
   await ev(([x, y]) => { DM.ui.selB = DM.game.sites.find(s => s.k === 'citta' && Math.hypot(s.x - x, s.y - y) < .1); DM.redraw(); }, city);
   await page.fill('#mq', '5000'); await act('Porta qui dalla Capitale');
   assert.match(await info(), /Spostati 5\.?000 soldi dalla Capitale/);
+  // una carta pescata: compare la finestrella, OK la chiude
+  await ev(() => { DM.rand = () => .6; DM.drawCard(DM.game, 'M', [DM.addUnit(DM.game, 'S', 0, 30, 20), DM.addUnit(DM.game, 'S', 0, 30, 20.1)]); DM.rand = Math.random; DM.redraw(); });
+  assert.equal(await page.locator('#cardPop').isHidden(), false);
+  assert.match(await page.locator('#cardPop').innerText(), /Carta Montagna[\s\S]*slavine[\s\S]*2 Soldati muoiono/i);
+  await shot('classico-carta');
+  await page.locator('#cardPop button').click();
+  assert.equal(await page.locator('#cardPop').isHidden(), true);
   // la partita salvata si riprende in Classico; una partita normale rimette tutto com'era
   await page.reload(); await page.waitForSelector('[data-m=gioca]');
   await page.click('[data-m=gioca]'); await page.click('[data-m=locale]');
@@ -946,7 +953,7 @@ test('modalità Classico: si sblocca con la mappa originale, 5 biomi, kit unico,
   // le regole del Classico si leggono nel menu Regole
   await page.click('#toMenu'); await page.locator('[data-m=home]').first().click().catch(() => {});
   await page.click('[data-m=regole]');
-  assert.match(await page.locator('.rules').innerText(), /Modalità Damamondo Classico[\s\S]*più della metà/);
+  assert.match(await page.locator('.rules').innerText(), /Modalità Damamondo Classico[\s\S]*più della metà[\s\S]*pioggia di meteoriti/);
   assert.match(await page.locator('.rules').innerText(), /250\.000/, 'il regolamento normale resta normale');
   await page.locator('[data-m=home]').first().click();
   await ev(() => { localStorage.removeItem('damamondo-segreti'); });
