@@ -84,7 +84,7 @@
   DM.isSymbolMap = (opts, seed) => ((opts && opts.gen) || 5) >= 5 && ((seed === 6 && !(opts && opts.orig)) || seed === DM.SYMBOL_SEED);
 
   DM.makeMap = function (opts, seed) {
-    if (DM.isSymbolMap(opts, seed)) { const m = DM.makeMap({ gen: (opts && opts.gen) || 5 }, 7); m.symbol = true; return m; }
+    if (DM.isSymbolMap(opts, seed) && !(opts && opts.mode === 'classico')) { const m = DM.makeMap({ gen: (opts && opts.gen) || 5 }, 7); m.symbol = true; return m; }
     // gen: versione del generatore. Le partite salvate prima del 25/11/2026 non ce l'hanno (= 1) e tengono la loro mappa.
     // gen 2 (25/11/2026): più vulcani nelle mappe calde. gen 3: Banchisa lontana dai bordi, nessun minimo nelle mappe fredde.
     // gen 4: niente vulcani con varietà semplice; minimo 1/2/3 con media/estrema/estremissima; lava più estesa.
@@ -93,7 +93,9 @@
       volc: [], erupt: [], cells: new Uint8Array(W * MR * H * MR), version: 0 };
     const { h } = map.n, { comp, temp, gen } = map.opts;
     // mappe segrete (numero 0 con certe opzioni, oppure numeri speciali): la Terra vera, la Pangea, l'Italia…
-    const secret = gen >= 5 && DM.secretFor ? DM.secretFor(map.opts, seed) : null;
+    const classic = map.opts.mode === 'classico';
+    // nel Classico niente mappe segrete, tranne la mappa originale (che ha già solo i biomi del Classico)
+    const secret = gen >= 5 && DM.secretFor ? (s => s && (!classic || s.id === 'originale') ? s : null)(DM.secretFor(map.opts, seed)) : null;
     if (secret) { map.secret = secret.id; DM.secretSetup(map); return map; }
     if (gen >= 5 && map.opts.isl == 0) {
       const cx = W / 2 + (h(31, 17) - .5) * 12, cy = H / 2 + (h(19, 43) - .5) * 8;
@@ -128,13 +130,16 @@
         if (ok(x, y)) add(x, y, k, k * 2);
       }
     }
+    if (classic) map.volc = [];   // nel Classico non ci sono vulcani
     return map;
   };
 
   // Ricalcola la griglia dei biomi (all'inizio e quando un'eruzione inizia o finisce).
   DM.rebuildMap = function (map, round) {
     const w = W * MR, codes = DM.BIOMES;
-    const fn = map.custom ? (x, y) => customBiome(map, x, y, round) : (x, y) => biome(map, x, y, round);
+    const base = map.custom ? (x, y) => customBiome(map, x, y, round) : (x, y) => biome(map, x, y, round);
+    // Classico: solo Pianura, Mare, Fiumi/laghi, Montagna e Alta montagna
+    const fn = map.opts && map.opts.mode === 'classico' ? (x, y) => { const b = base(x, y); return DM.CLASSIC_BIOME[b] || b; } : base;
     for (let j = 0; j < H * MR; j++) {
       for (let i = 0; i < w; i++) map.cells[j * w + i] = codes.indexOf(fn((i + .5) / MR, (j + .5) / MR));
     }

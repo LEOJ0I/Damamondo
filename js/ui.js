@@ -172,14 +172,18 @@
     if (s.k === 'citta' && q.noCap) b.push(btn('makecap', 'Fai diventare Capitale', '', 'go'));
     if ((s.k === 'cap' || s.k === 'citta') && q.res.aer > 0) b.push(btn('inside', 'Aeroporto dentro (' + q.res.aer + ')', 'aer'));
     if ((s.k === 'cap' || s.k === 'citta') && q.res.porto > 0) b.push(btn('inside', 'Porto dentro (' + q.res.porto + ')', 'porto'));
-    b.push(btn('roadmode', 'Collega con strada'));
+    if (!DM.isClassic()) b.push(btn('roadmode', 'Collega con strada'));
     if (I.mat.bomba > 0 && DM.BOMB.bomba.from.includes(s.k)) b.push(btn('bombmode', 'Lancia Bomba (' + I.mat.bomba + ')', 'bomba'));
     if (I.mat.superbomba > 0 && DM.BOMB.superbomba.from.includes(s.k)) b.push(btn('bombmode', 'Lancia Superbomba (' + I.mat.superbomba + ')', 'superbomba'));
     if (DM.BERRY_RANGE[s.k]) Object.keys(DM.BERRIES).filter(k => I.mat['bacca_' + k] > 0).forEach(k => b.push(btn('berrymode', 'Bacca ' + k + ' (' + I.mat['bacca_' + k] + ')', k)));
     Object.keys(DM.POTIONS).filter(k => I.mat[k] > 0).forEach(k => b.push(btn('potion', 'Usa ' + DM.POTIONS[k] + ' (' + I.mat[k] + ')', k)));
-    if (DM.isCityLike(s) || s.k === 'porto' || s.k === 'aer' || s.k === 'min') b.push(btn('bank', 'Banco e acquisti'));
+    if (DM.isCityLike(s) || s.k === 'porto' || s.k === 'aer' || s.k === 'min') b.push(btn('bank', DM.isClassic() ? 'Negozio' : 'Banco e acquisti'));
     if (s.k !== 'cap') b.push(btn('cedeb', 'Cedi edificio'));
     h += row(b.join(''));
+    // Classico: i soldi si teletrasportano tra la Capitale e le altre città (la Capitale tiene la maggioranza)
+    if (DM.isClassic() && s.k !== 'cap' && DM.isCityLike(s) && DM.capitalOf(G, G.p)) h += row('<small>Soldi:</small>' +
+      `<input type="number" id="mq" value="${ui.moneyQty || 1000}" min="1000" step="1000" inputmode="numeric" aria-label="Soldi da spostare">` +
+      btn('moneyin', 'Porta qui dalla Capitale') + btn('moneyout', 'Manda alla Capitale'));
     if (ui.cedeBTo) h += row('<small>Cedi a:</small>' + G.names.map((n, o) => o !== G.p && !G.players[o].out ? btn('cedebto', n, o) : '').join('') + btn('cancel', 'Annulla'));
     h += cargoUI(s);
     return h + '<small>Per far entrare una truppa: selezionala e tocca l’edificio.</small>';
@@ -210,8 +214,11 @@
   function eco() {
     const s = ui.selB;
     $('ecoMsg').textContent = ui.msg && !/[<]/.test(ui.msg) ? ui.msg : '';
-    $('ecoT').innerHTML = (s ? `Edificio scelto: <b style="color:${pcol(s.o)}">${DM.nameOf(s.k)}</b><br>Contiene: ${DM.fmtInv(s.inv)}` : '<small>Prima tocca un tuo edificio sulla mappa: si vende e si compra con quello che c’è dentro.</small>') +
-      (G.phase === 'play' ? `<br><small>Miniere: ${G.sites.filter(z => z.k === 'min' && z.o === G.p).length} · soldi totali: ${DM.fmtN(DM.moneyOf(G, G.p))}${DM.cur(G).sold ? ' · venduto in questo turno: ' + DM.cur(G).sold : ''}</small>` : '');
+    const cl = DM.isClassic();
+    $('bancoBox').hidden = cl; $('ecoTab').textContent = cl ? 'Negozio' : 'Banco';   // nel Classico il Banco non c'è
+    $('ecoT').innerHTML = (s ? `Edificio scelto: <b style="color:${pcol(s.o)}">${DM.nameOf(s.k)}</b><br>Contiene: ${DM.fmtInv(s.inv)}` : '<small>Prima tocca un tuo edificio sulla mappa: ' + (cl ? 'si compra lì, con i soldi di tutte le tue città.' : 'si vende e si compra con quello che c’è dentro.') + '</small>') +
+      (G.phase === 'play' ? (cl ? `<br><small>Soldi totali: ${DM.fmtN(DM.moneyOf(G, G.p))} (la Capitale ne tiene più della metà)</small>` :
+        `<br><small>Miniere: ${G.sites.filter(z => z.k === 'min' && z.o === G.p).length} · soldi totali: ${DM.fmtN(DM.moneyOf(G, G.p))}${DM.cur(G).sold ? ' · venduto in questo turno: ' + DM.cur(G).sold : ''}</small>`) : '');
     shop(s);
   }
 
@@ -225,13 +232,15 @@
     if (T[k]) { if (k === 'N' && (s.k === 'cap' || s.k === 'citta')) return !!DM.riverSpot(G, s); if (!DM.SPAWNS[s.k].includes(k)) return false; }
     if (k === 'bomba' && !DM.BOMB.bomba.from.includes(s.k)) return false;
     if (k === 'superbomba' && !DM.BOMB.superbomba.from.includes(s.k)) return false;
-    return DM.COST[k].some(o => DM.canPay([s.inv], o));
+    if (k === 'ponte2' && DM.isClassic() && !(DM.cur(G).res.ponte1 > 0)) return false;
+    return DM.COST[k].some(o => DM.canPay(DM.payInvs(G, s), o));
   }
   function shop(s) {
-    $('shop').innerHTML = (s && s.o === G.p ? '' : '<small>Tocca un tuo edificio sulla mappa per comprare con quello che contiene.</small>') +
-      SHOP.map(([title, ks]) => `<h4>${title}</h4>` + ks.map(k => {
+    const cl = DM.isClassic();
+    $('shop').innerHTML = (s && s.o === G.p ? '' : '<small>Tocca un tuo edificio sulla mappa per comprare' + (cl ? '.' : ' con quello che contiene.') + '</small>') +
+      SHOP.map(([title, ks]) => [title, (title === 'Pozioni' ? Object.keys(DM.POTIONS) : ks).filter(k => DM.COST[k])]).filter(([, ks]) => ks.length).map(([title, ks]) => `<h4>${title}</h4>` + ks.map(k => {
         const ok = canBuyHere(s, k);
-        return `<div class="item${ok ? '' : ' no'}"><div class="what"><b>${DM.nameOf(k)}</b><div class="cost">${DM.COST[k].map(costChips).join('<small class="or">oppure</small>')}</div></div>` +
+        return `<div class="item${ok ? '' : ' no'}"><div class="what"><b>${cl && k === 'ponte2' ? 'Migliora un pezzo di ponte al liv. 2' : DM.nameOf(k)}</b><div class="cost">${DM.COST[k].map(costChips).join('<small class="or">oppure</small>')}</div></div>` +
           `<button type="button" class="playonly${ok ? ' go' : ''}" data-act="buyk" data-arg="${k}">Compra</button></div>`;
       }).join('')).join('');
   }
@@ -514,13 +523,15 @@
     unboard: a => { const [v, u] = a.split(':'); ui.msg = DM.unboard(G, DM.unitById(G, v), DM.unitById(G, u)); },
     done: () => { resetModes(); ui.msg = ''; },
     bank: () => { openSide('ecoP'); },
+    moneyin: () => { ui.msg = DM.moveMoney(G, ui.selB, ui.moneyQty || 1000, true); },
+    moneyout: () => { ui.msg = DM.moveMoney(G, ui.selB, ui.moneyQty || 1000, false); },
     buyk: k => { if (G.phase === 'play') ui.msg = DM.buy(G, ui.selB, k); },
     botpause: () => { ui.paused = !ui.paused; if (!ui.paused) { ui.sel = null; ui.selB = null; } else DM.FX.skip(); },
     botfast: () => { ui.botFast = !ui.botFast; DM.FX.quick = ui.botFast && botNow(); if (DM.FX.quick) DM.FX.skip(); }
   };
 
   // azioni dei pulsanti che mostrano un'animazione (le altre: solo pannelli)
-  const FXK = { buyk: 'act', deployhere: 'act', upgrade: 'act', makecap: 'act', inside: 'act', choose: 'act', potion: 'act', cedebto: 'act', load: 'act', unload: 'act',
+  const FXK = { buyk: 'act', moneyin: 'act', moneyout: 'act', deployhere: 'act', upgrade: 'act', makecap: 'act', inside: 'act', choose: 'act', potion: 'act', cedebto: 'act', load: 'act', unload: 'act',
     cedeto: 'act', cedenew: 'act', board: 'act', unboard: 'act', leave: 'act' };
   function onAction(e) {
     const b = e.target.closest('[data-act]');
@@ -809,7 +820,7 @@
       DM.FX.skip(); e.stopPropagation(); e.preventDefault();
     }, true);
     document.addEventListener('click', onAction);
-    document.addEventListener('input', e => { if (e.target.id === 'cq') ui.cargoQty = Math.max(0, Math.floor(+e.target.value) || 0); });
+    document.addEventListener('input', e => { if (e.target.id === 'cq') ui.cargoQty = Math.max(0, Math.floor(+e.target.value) || 0); if (e.target.id === 'mq') ui.moneyQty = Math.max(0, Math.floor(+e.target.value) || 0); });
     $('end').onclick = endTurn; $('undo').onclick = undo; $('army').onclick = army; $('shoot').onclick = shoot; $('ced').onclick = cede;
     $('zi').onclick = () => zoom(1.25); $('zo').onclick = () => zoom(.8);
     pinch();

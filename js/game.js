@@ -11,6 +11,8 @@
   DM.fmtCm = n => (Math.floor(n * 10 + 1e-6) / 10).toFixed(1).replace('.', ',');   // cm al millimetro (per difetto)
 
   DM.newGame = function (opts, seed, map) {
+    // modalità: Damamondo (normale) o Classico (js/classic.js); sta nelle opzioni della mappa, così si salva con la partita
+    if (DM.setMode) DM.setMode((map ? map.opts : opts || {}).mode);
     const G = {
       // il numero mappa 0 vale (mappe segrete)
       seed: seed === 0 ? 0 : seed || 7, phase: 'num', np: 2, names: [], players: [], p: 0, round: 1,
@@ -97,8 +99,9 @@
   };
   DM.capitalLost = function (G, o) {
     const q = G.players[o], name = G.names[o];
-    const c = DM.capitalCandidate(G, o);
-    if (c) { c.k = 'cap'; c.r0 = c.r0 || G.round; q.noCap = false; return ' La Capitale di ' + name + ' si sposta in una Città.'; }
+    // Classico: i soldi si teletrasportano, quindi la Capitale passa subito alla Città più ricca
+    const c = DM.isClassic && DM.isClassic() ? DM.sitesOf(G, o).filter(s => s.k === 'citta').sort((a, b) => b.inv.mon - a.inv.mon)[0] : DM.capitalCandidate(G, o);
+    if (c) { c.k = 'cap'; c.r0 = c.r0 || G.round; q.noCap = false; if (DM.balanceMoney) DM.balanceMoney(G, o); return ' La Capitale di ' + name + ' si sposta in una Città.'; }
     if (DM.sitesOf(G, o).some(s => s.k === 'citta')) {
       q.noCap = true;
       return ' ' + name + ' è senza Capitale: deve portare almeno metà dei soldi in una Città e sceglierla (perde 10.000 soldi a ogni suo turno).';
@@ -156,13 +159,13 @@
     const k = DM.KITS[kitIdx];
     G.players[o] = {
       kit: kitIdx, sold: '', out: false, noCap: false, dice: k.diceChoice || 0,
-      res: { S: k.S, C: 1, N: k.N, E: k.E, acc: k.acc, citta: k.citta, min: k.min, porto: k.porto, aer: k.aer, col: 0, ponte1: k.ponte1 || 0, ponte2: 0 }
+      res: { S: k.S, C: k.C === undefined ? 1 : k.C, N: k.N, E: k.E, acc: k.acc, citta: k.citta, min: k.min, porto: k.porto, aer: k.aer, col: 0, ponte1: k.ponte1 || 0, ponte2: 0 }
     };
     const cap = DM.addSite(G, o, 'cap', x, y);
     cap.inv.mon = k.money;
     if (k.materials) DM.MATERIALS.forEach(m => { if (m !== 'ossidiana') cap.inv.mat[m] = DM.QTY[m]; });
     if (k.potions) Object.keys(DM.POTIONS).forEach(pz => { cap.inv.mat[pz] = pz === 'poz_stipendio' ? 1 : 2; });
-    DM.addSite(G, o, 'aer', x, y, { par: cap.id });   // Aeroporto gratis nella prima città (correzione)
+    if (!(DM.isClassic && DM.isClassic())) DM.addSite(G, o, 'aer', x, y, { par: cap.id });   // Aeroporto gratis nella prima città (correzione); nel Classico gli Aeroporti non ci sono
     DM.claim(G, o, x, y);
     return cap;
   };

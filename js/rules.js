@@ -13,6 +13,12 @@
   const BIO_LAND = 'PDGLTMAHVZI';
 
   DM.rulesHTML = function () {
+    // il regolamento è sempre quello di Damamondo (anche se l'ultima partita era Classico)
+    const was = DM.mode;
+    if (DM.setMode) DM.setMode('normale');
+    try { return rulesNormal(); } finally { if (DM.setMode) DM.setMode(was); }
+  };
+  function rulesNormal() {
     const ch = [];
     // ogni capitolo è fatto di articoli numerati (1.1, 1.2…): art('testo') dà il paragrafo con il suo numero
     let cn = 0, an = 0;
@@ -214,5 +220,5 @@
 
     return '<nav class="toc"><b>Indice</b><ol>' + ch.map((c, i) => `<li><a href="#reg${i + 1}">${c.title}</a></li>`).join('') + '</ol></nav>' +
       ch.map((c, i) => `<section class="rule" id="reg${i + 1}"><h3>${i + 1}. ${c.title}</h3>${c.html}</section>`).join('');
-  };
+  }
 })(globalThis.DM = globalThis.DM || {});

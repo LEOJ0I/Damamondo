@@ -20,6 +20,7 @@ Si apre `index.html` nel browser: non serve installare niente.
 | `js/transport.js` | truppe a bordo dei veicoli, autista, Porti |
 | `js/turn.js` | fine turno, giri, eruzioni, Lavico |
 | `js/save.js` | salvare e riprendere la partita |
+| `js/classic.js` | la modalità Damamondo Classico (si sblocca con la mappa originale): tabelle, soldi che si teletrasportano, regole nascoste fino allo sblocco |
 | `js/secret.js`, `js/secret-data.js` | le mappe segrete (Easter egg): si trovano con certi numeri mappa e certe opzioni. I contorni delle terre vengono da [Natural Earth](https://www.naturalearthdata.com) (pubblico dominio), tramite il pacchetto world-atlas. C’è anche la mappa originale, ricopiata dai quattro fogli disegnati a mano |
 | `js/bot.js` | i bot (Facile, Normale, Difficile): scelgono kit e Capitale; hanno una "lista della spesa" (truppe e armi che vogliono) e tengono i materiali che servono, vendendo solo il resto; scelgono le miniere per il minerale che manca e mandano un soldato (o il Carro) dove aprirle; i Carri portano tutto in Capitale; comprano anche negli Accampamenti, che mettono sul confine con le terre libere; formano eserciti, sparano, lanciano bombe, difendono la Capitale e attaccano quella nemica più debole; se il nemico è oltre il mare puntano su Elicotteri e Navi. Un'azione alla volta, con le stesse regole delle persone |
 | `js/render.js` | disegno della mappa |
@@ -47,8 +48,8 @@ Animazioni e suoni non toccano le regole: prima di un'azione l'interfaccia fa un
 ## Prove
 
 ```
-npm test               # 80 prove delle regole, dei bot (anche partite intere tra bot) e delle mappe segrete (anche che le pagine statiche siano aggiornate) (serve Node 18+)
-npm run test:browser   # 41 passi giocati (anche contro i bot, sulle mappe segrete e sulla mappa originale), 15 prove di animazioni e suoni, prova dell'app senza internet, in un browser che finge un iPhone (serve Playwright)
+npm test               # 85 prove delle regole, dei bot (anche partite intere tra bot) e delle mappe segrete (anche che le pagine statiche siano aggiornate) (serve Node 18+)
+npm run test:browser   # 42 passi giocati (anche contro i bot, sulle mappe segrete e sulla mappa originale), 15 prove di animazioni e suoni, prova dell'app senza internet, in un browser che finge un iPhone (serve Playwright)
 ```
 
 ## Regole decise insieme (oltre al PDF)

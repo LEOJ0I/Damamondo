@@ -247,6 +247,8 @@ body.ingame { overflow: hidden; padding: 0; overscroll-behavior: none; }
 .seg { display: inline-flex; padding: 3px; border-radius: 12px; background: color-mix(in srgb, var(--fg) 8%, transparent); }
 .seg button { min-height: 38px; padding: 6px 12px; border: 0; border-radius: 9px; background: transparent; font-weight: 600; }
 .seg button.on { background: var(--ac); color: #111; }
+.seg.wide { display: flex; margin-top: 8px; }
+.seg.wide button { flex: 1; }
 .who-row select { min-height: 40px; padding: 6px 8px; }
 #info .botsays { margin: 0 0 4px; opacity: .85; }
 .botmark { font-size: .85em; }

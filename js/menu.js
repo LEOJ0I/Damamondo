@@ -45,7 +45,7 @@
   const when = t => new Date(t).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   const b = (m, label, cls, arg) => `<button type="button" class="big${cls ? ' ' + cls : ''}" data-m="${m}"${arg !== undefined ? ` data-arg="${arg}"` : ''}>${label}</button>`;
   const title = '<h1 class="title">DAMAMONDO</h1>';
-  let msg = '', np = 2, asking = null;
+  let msg = '', np = 2, asking = null, mode = 'normale';   // mode: 'normale' o 'classico' (dopo la mappa originale)
   let who = ['', '', '', '', '', ''];   // per ogni giocatore: '' = persona, oppure il livello del bot
   const lastLvl = ['normale', 'normale', 'normale', 'normale', 'normale', 'normale'];   // il livello si ricorda anche passando a "Persona"   // asking: partita di cui si chiede conferma per eliminarla
 
@@ -63,7 +63,7 @@
       const chain = '<ol class="chain">' +
         step(all, true, all ? '🥇 Tutte le mappe segrete trovate' : `🗺️ Trova tutte le ${tot} mappe segrete (${n} di ${tot})`) +
         step(orig, all, orig ? `${O.emoji} Trovata ${O.name}!<small class="fact">💡 ${O.fact}</small>` : all ? '📜 Sbloccata: <b>la mappa originale</b>. Il suo numero? Il numero preferito di chi ha inventato il gioco, ed era anche il numero dei giocatori…' : '🔒 ??? (si sblocca con tutte le mappe segrete)') +
-        step(orig, false, orig ? '🎺 Premi: la <b>sigla epica</b> e la <b>capitale dorata</b> (si accendono nelle Impostazioni ⚙️)' : '🔒 ??? (due premi)') +
+        step(orig, false, orig ? '🎺 Premi: la <b>sigla epica</b> e la <b>capitale dorata</b> (si accendono nelle Impostazioni ⚙️) e la modalità <b>Damamondo Classico</b> 🏛️ (in Nuova partita)' : '🔒 ??? (tre premi)') +
         (orig ? step(true, false, '⭐ La mappa del simbolo si è spostata: ora è al numero più grande fatto di soli 9') : '') + '</ol>';
       return '<h2>🧭 Esploratore</h2><div class="card"><p class="center"><b>' + n + ' di ' + tot + '</b> mappe segrete trovate ' + md + '</p>' +
         '<p class="note"><small>🥉 con 3 · 🥈 con 7 · 🥇 con tutte. Si trovano scegliendo certi numeri mappa e certe opzioni in “Nuova partita”…</small></p>' +
@@ -78,7 +78,7 @@
       const cards = l.map((s, i) => {
         const a = DM.saveSummary(s.text) || {};
         const state = a.phase === 'play' ? `giro ${a.round} · tocca a ${a.turn}` : 'in preparazione';
-        const info = `<div><b>Partita ${i + 1}</b><br><small>${a.np} giocatori · ${state}<br>salvata ${when(s.when)}</small></div>`;
+        const info = `<div><b>Partita ${i + 1}</b>${a.classic ? ' · 🏛️ Classico' : ''}<br><small>${a.np} giocatori · ${state}<br>salvata ${when(s.when)}</small></div>`;
         if (asking === s.id) return `<div class="card slot ask">${info}<p class="warn">Eliminare questa partita? Non si può tornare indietro.</p>` +
           `<div class="r">${b('eliminaSi', 'Sì, elimina', 'small danger', s.id)}${b('eliminaNo', 'No', 'small')}</div></div>`;
         return `<div class="card slot">${info}<div class="r">${b('continua', 'Continua', 'go', s.id)}${b('elimina', 'Elimina', 'small', s.id)}</div></div>`;
@@ -91,23 +91,35 @@
     },
     nuova: () => '<h2>Nuova partita</h2>' + (msg ? `<p class="msg">${msg}</p>` : '') +
       '<div class="card"><b>Quanti giocatori?</b><div class="r">' + [2, 3, 4, 5, 6].map(n => `<button type="button" class="np${n === np ? ' on' : ''}" data-m="np" data-arg="${n}" aria-pressed="${n === np}">${n}</button>`).join('') + '</div></div>' +
+      // la modalità Classico si sceglie solo dopo aver trovato la mappa originale
+      (DM.Secrets.hasOrig() ? '<div class="card"><b>Modalità</b><span class="seg wide" role="group" aria-label="Modalità">' +
+        [['normale', 'Damamondo'], ['classico', 'Damamondo Classico']].map(([k, t]) => `<button type="button" data-m="mode" data-arg="${k}" aria-pressed="${mode === k}"${mode === k ? ' class="on"' : ''}>${t}</button>`).join('') +
+        '</span>' + (mode === 'classico' ? '<small class="sub">Damamondo com’era prima dei biomi speciali e delle miniere: solo Pianura, Mare, Fiumi, Montagna e Alta montagna. Le regole sono nel menu Regole.</small>' : '') + '</div>' : '') +
       '<div class="card" id="whoCard">' + whoCard() + '</div>' +
+      (mode === 'classico' ? `<div class="card"><b>La mappa</b><div class="opts">
+        <label>Mappa <select id="clmap"><option value="gen">Generata</option><option value="orig">La mappa originale</option></select></label>
+        <label>Isole <select id="isl"><option value="0">Poche</option><option value="1" selected>Medie</option><option value="2">Tante</option></select></label>
+        <label>Numero mappa <input type="text" id="seed" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="a caso"></label>
+      </div><small>Con la mappa originale isole e numero non contano.</small></div>` :
       `<div class="card"><b>La mappa</b><div class="opts">
         <label>Isole <select id="isl"><option value="0">Poche</option><option value="1" selected>Medie</option><option value="2">Tante</option></select></label>
         <label>Umidità <select id="hum"><option value="0">Bassa</option><option value="1">Medio bassa</option><option value="2" selected>Media</option><option value="3">Medio alta</option><option value="4">Alta</option></select></label>
         <label>Temperatura <select id="tmp"><option value="0">Calda</option><option value="1">Medio calda</option><option value="2" selected>Media</option><option value="3">Medio fredda</option><option value="4">Fredda</option></select></label>
         <label>Varietà dei biomi <select id="cmp"><option value="0">Semplicissima</option><option value="1">Semplice</option><option value="2" selected>Media</option><option value="3">Estrema</option><option value="4">Estremissima</option></select></label>
         <label>Numero mappa <input type="text" id="seed" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="a caso"></label>
-      </div><small>Stesse opzioni e stesso numero danno la stessa mappa.</small></div>` +
+      </div><small>Stesse opzioni e stesso numero danno la stessa mappa.</small></div>`) +
       '<div class="stack">' + b('inizia', 'Inizia', 'go') + b('locale', '← Indietro', 'back') + '</div>',
     regole: () => '<div class="stack">' + b('home', '← Menu', 'back') + '</div><h2>Regolamento</h2>' +
       '<p class="center"><a href="regole.html" target="_blank" rel="noopener">Apri le regole in una pagina a parte (da stampare o condividere)</a></p>' +
-      '<div class="rules">' + DM.rulesHTML() + '</div><div class="stack">' + b('home', '← Menu', 'back') + '</div>'
+      '<div class="rules">' + DM.rulesHTML() + (DM.Secrets.hasOrig() && DM.classicRulesHTML ? DM.classicRulesHTML() : '') + '</div><div class="stack">' + b('home', '← Menu', 'back') + '</div>'
   };
 
   // Chi gioca: persona o bot (con il livello), per ogni giocatore
   function whoCard() {
     const lv = DM.BOT_LEVELS;
+    // Classico: per ora solo persone (i bot arriveranno più avanti)
+    if (mode === 'classico') return '<b>Chi gioca?</b><small class="sub">Nel Classico per ora giocano solo persone: i bot arriveranno più avanti.</small>' +
+      Array.from({ length: np }, (_, i) => `<div class="who-row"><span class="pname"><i style="background:${DM.PLAYER_COLORS[i]}"></i>Giocatore ${i + 1}</span></div>`).join('');
     return '<b>Chi gioca?</b><small class="sub">I bot giocano da soli, con le stesse regole.</small>' + Array.from({ length: np }, (_, i) => {
       const bot = who[i], name = bot ? DM.BOT_NAMES[i] : 'Giocatore ' + (i + 1);
       return `<div class="who-row"><span class="pname"><i style="background:${DM.PLAYER_COLORS[i]}"></i>${name}</span>` +
@@ -133,11 +145,13 @@
   };
 
   function start() {
-    const opts = { isl: +$('isl').value, hum: +$('hum').value, temp: +$('tmp').value, comp: +$('cmp').value };
+    const cl = mode === 'classico' && DM.Secrets.hasOrig();
+    const opts = cl ? { isl: +$('isl').value, mode: 'classico' } : { isl: +$('isl').value, hum: +$('hum').value, temp: +$('tmp').value, comp: +$('cmp').value };
     // numero mappa: vuoto = a caso; lo 0 vale (mappe segrete)
     const raw = $('seed').value.trim(), seed = raw !== '' && isFinite(+raw) ? Math.max(0, Math.floor(+raw)) : Math.floor(Math.random() * 9999) + 1;
     // il 6 dà la mappa originale solo dopo aver trovato tutte le mappe segrete (resta scritto nella partita salvata)
     if (seed === 6 && raw !== '' && DM.Secrets.allFound()) opts.orig = 1;
+    if (cl && $('clmap').value === 'orig') { opts.orig = 1; return startWith(opts, 6); }
     // numeri troppo grandi: oltre il limite il numero non sarebbe più preciso. Il più grande fatto di soli 9 si apre più avanti.
     const tooBig = raw !== '' && seed === DM.SYMBOL_SEED && !DM.Secrets.hasOrig() ? '🔒 Numero troppo grande… per ora. Ritorna più avanti.' : '';
     if (tooBig) {
@@ -146,23 +160,26 @@
       m.textContent = tooBig; $('seed').focus();
       return;
     }
+    startWith(opts, seed);
+  }
+  function startWith(opts, seed) {
     $('menuBody').innerHTML = title + '<p class="msg center">Creo la mappa…</p>';
     setTimeout(() => {
       const G = DM.newGame(opts, seed);
       DM.setPlayers(G, np);
-      for (let i = 0; i < np; i++) if (who[i]) DM.setBot(G, i, who[i]);
+      if (opts.mode !== 'classico') for (let i = 0; i < np; i++) if (who[i]) DM.setBot(G, i, who[i]);
       const slot = DM.Slots.create(DM.serialize(G));
       DM.playGame(G, slot);
-      if (G.map.symbol) {   // la mappa del simbolo (sfondo dell'icona e del menu)
+      if (G.map.symbol && opts.mode !== 'classico') {   // la mappa del simbolo (sfondo dell'icona e del menu)
         DM.ui.msg = '⭐ Hai trovato la mappa del simbolo di Damamondo: è quella dietro la stella dell’icona e sullo sfondo del menu!' +
           '<br><small class="fact">💡 Lo sapevi? È la mappa numero 7 con tutte le opzioni medie: in Damamondo ogni numero è come un seme, e dallo stesso seme nasce sempre lo stesso mondo.</small>' +
           // col 6 (prima dello sblocco) un indizio: questo numero nasconde ancora qualcosa
           (G.seed === 6 ? '<br><small class="fact">🔒 Questo numero non ha ancora detto la sua ultima parola… Ritorna più avanti.</small>' : '');
         DM.redraw();
       }
-      if (G.map.secret) {   // mappa segreta trovata!
+      if (G.map.secret && opts.mode !== 'classico') {   // mappa segreta trovata!
         const s2 = DM.secretInfo(G.map.secret), first = DM.Secrets.found(G.map.secret), n = DM.Secrets.list().length;
-        if (G.map.secret === 'originale') DM.ui.msg = `${s2.emoji} Hai trovato ${s2.name}!` + (first ? ' Premi sbloccati: la sigla epica 🎺 e la capitale dorata ⭐. Accendili nelle Impostazioni ⚙️' : '');
+        if (G.map.secret === 'originale') DM.ui.msg = `${s2.emoji} Hai trovato ${s2.name}!` + (first ? ' Premi sbloccati: la sigla epica 🎺 e la capitale dorata ⭐ (si accendono nelle Impostazioni ⚙️), e una modalità nuova: Damamondo Classico 🏛️ (in Nuova partita).' : '');
         else {
           const k = n - (DM.Secrets.hasOrig() ? 1 : 0), tot = DM.SECRETS.length;
           DM.ui.msg = `${s2.emoji} Hai trovato una mappa segreta: ${s2.name}!` + (first ? ` Mappe segrete trovate: ${k} di ${tot} ${DM.Secrets.medal(k)}` + (k === tot ? ' Hai sbloccato qualcosa: guarda nell’Esploratore 🧭' : '') : '');
@@ -180,6 +197,7 @@
     home: () => DM.showMenu('home'), gioca: () => DM.showMenu('gioca'), multi: () => DM.showMenu('multi'),
     locale: () => DM.showMenu('locale'), regole: () => DM.showMenu('regole'), segreti: () => DM.showMenu('segreti'),
     nuova: () => { np = 2; DM.showMenu('nuova'); },
+    mode: m => { mode = m === 'classico' && DM.Secrets.hasOrig() ? 'classico' : 'normale'; DM.showMenu('nuova'); },
     np: n => { np = +n; document.querySelectorAll('[data-m=np]').forEach(x => { x.classList.toggle('on', +x.dataset.arg === np); x.setAttribute('aria-pressed', +x.dataset.arg === np); }); redrawWho(); },
     who: a => { const [i, lvl] = a.split(':'); who[+i] = lvl; if (lvl) lastLvl[+i] = lvl; redrawWho(); },
     inizia: start,

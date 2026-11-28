@@ -95,6 +95,7 @@
   };
   // a: edificio da cui parte (paga lui, insieme a b se è un edificio); b: edificio o estremità di un ponte (da DM.nodeNear)
   DM.buildRoad = function (G, a, b) {
+    if (DM.isClassic && DM.isClassic()) return 'Nel Classico non ci sono strade.';
     if (!a || a.o !== G.p) return 'Seleziona un tuo edificio da cui parte la strada.';
     if (!b || b.site === a || (b.site && b.site.o !== G.p)) return 'Tocca un altro tuo edificio, oppure l’estremità di un tuo ponte.';
     if (G.roads.some(r => (r.a === a.id && r.b === b.id) || (r.a === b.id && r.b === a.id))) return 'Sono già collegati.';
