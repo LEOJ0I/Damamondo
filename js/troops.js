@@ -64,6 +64,7 @@
       else d = Math.round((f === 'D' ? t.dmg / 1.5 : t.dmg * 1.5) / 10) * 10;
     }
     if (f === 'T') g = DM.TUNDRA_RANGE.includes(u.t) && b === 'T' ? g + F[2] : t.range * 2;
+    if (DM.eventOn && DM.eventOn(G, 'pioggia')) g = g / 2;   // Classico, carta della grande pioggia: gittata dimezzata
     return [Math.max(0, d) * (u.dd === G.round && u.o === G.p ? 2 : 1), g];
   };
 
@@ -81,6 +82,8 @@
       let s = Infinity;
       for (const u of us) s = Math.min(s, DM.speedAt(G, u, u.x + sx, u.y + sy));
       if (s <= 0) break;
+      // Classico: i muri nemici bloccano le truppe di terra (le truppe aeree volano sopra)
+      if (DM.isClassic && DM.isClassic() && us.some(u => T[u.t].kind === 'land') && DM.wallBlocks(G, us[0].o, mx + fx, my + fy, mx + sx, my + sy)) break;
       const c = (L / n) / s;
       if (bud < c - 1e-9) break;
       bud -= c; fx = sx; fy = sy;
@@ -146,6 +149,7 @@
     const A = DM.armyOf(G, u), again = A.some(v => v.m), budget = 1;
     if (again && DM.movesOf(A) === 1) return 'Questa truppa ha già mosso in questo turno.';
     if (again && !DM.movesLeft(G, u)) return 'Ha già fatto tutte le sue ' + DM.movesOf(A) + ' mosse di questo turno.';
+    if (DM.frozenError && DM.frozenError(G, A)) return DM.frozenError(G, A);
     if (!again && G.moved >= DM.moveLimit(G.round)) return 'Limite di movimento raggiunto: puoi muovere al massimo ' + DM.moveLimit(G.round) + ' truppe o eserciti.';
     const [mx, my] = centroid(A);
     const own = s => s.o === G.p;
@@ -167,14 +171,19 @@
       starts.forEach(st => { if (!plan) plan = DM.planRoad(G, A, st, goal, budget); });
     }
     if (!plan) plan = DM.planStraight(G, A, target ? target.x : tx, target ? target.y : ty);
-    const { dx, dy } = plan;
+    let { dx, dy } = plan;
     if (plane && Math.hypot(mx + dx - target.x, my + dy - target.y) > .05) return 'Aeroporto troppo lontano per un turno (' + DM.TROOPS.A.air + ' cm).';
     if (Math.hypot(dx, dy) < .05) return 'Non puoi muoverti verso quel punto.';
     if (A.some(v => T[v.t].kind === 'air' && 'ZI'.includes(DM.bAt(G, v.x + dx, v.y + dy) || ' '))) return 'Le truppe aeree non possono atterrare su Lavico o Banchisa.';
     // punti del percorso per prendere le terre di nessuno lungo la strada
-    const pts = plan.path ? plan.path.map(s => [s.x - mx, s.y - my]) : [[dx, dy]];
+    let pts = plan.path ? plan.path.map(s => [s.x - mx, s.y - my]) : [[dx, dy]];
+    // Classico: una mina nemica lungo il percorso ferma l'esercito lì
+    const mine = DM.isClassic && DM.isClassic() ? DM.mineOnPath(G, A, mx, my, pts) : null;
+    if (mine) { dx = mine.dx; dy = mine.dy; pts = mine.pts; if (plan.path) plan.path = null; }
     // per le animazioni: il percorso sulla strada (non si salva)
     G.lastPath = plan.path ? { ids: A.map(v => v.id), pts: plan.path.map(s => [s.x, s.y]), off: Object.fromEntries(A.map(v => [v.id, [v.x - mx, v.y - my]])) } : null;
+    // Classico: i biomi in cui entra (Montagna, Alta montagna, fiumi e laghi) fanno pescare una carta
+    const entered = DM.isClassic && DM.isClassic() ? DM.biomesEntered(G, A, mx, my, pts) : [];
     A.forEach(v => {
       // per annullare l'ultima mossa (anche la seconda o la terza di un Carro)
       v.prev = (v.prev || []).concat([[v.x, v.y, v.cl || []]]); v.cl = []; v.px = v.x; v.py = v.y;
@@ -188,14 +197,17 @@
     });
     if (!again) G.moved++;
     DM.syncCarried(G);
+    const boom = mine ? DM.explodeMine(G, mine.m, A) : '';
+    const cards = entered.length ? DM.biomeCards(G, A.filter(v => G.units.includes(v)), entered) : '';
     const n = DM.movesLeft(G, u), more = DM.movesOf(A) > 1 ? (n ? ' Può muoversi ancora ' + (n > 1 ? n + ' volte' : '1 volta') + ' in questo turno.' : ' Mosse finite per questo turno.') : '';
-    return (plan.path ? 'Viaggio sulla strada completato (' + (plan.path.length - 1) + ' tratti).' : plan.left > .01 ? 'Mossa completata.' : 'Mossa completata: velocità esaurita.') + more;
+    return (plan.path ? 'Viaggio sulla strada completato (' + (plan.path.length - 1) + ' tratti).' : plan.left > .01 ? 'Mossa completata.' : 'Mossa completata: velocità esaurita.') + more + boom + cards;
   };
 
   DM.undoMove = function (G, u) {
     if (!u || !u.m || u.o !== G.p) return 'Seleziona una truppa che hai appena mosso.';
     const A = DM.armyOf(G, u);
     if (A.some(v => v.s)) return 'Ha già sparato dopo la mossa: non si può annullare.';
+    if (A.some(v => v.card)) return 'Hai pescato una carta: questa mossa non si può annullare.';
     A.forEach(v => {
       (v.cl || []).forEach(i => { G.terr[i] = -1; });
       const p = (v.prev || []).pop() || [v.px, v.py, []];
@@ -208,7 +220,8 @@
   };
 
   // ---- Eserciti (5) ----
-  DM.compatible = (a, b) => !((a === 'N' && 'STCA'.includes(b)) || (b === 'N' && 'STCA'.includes(a)) ||
+  DM.compatible = (a, b) => a !== 'U' && b !== 'U' && compatible0(a, b);   // il sottomarino va sempre da solo
+  const compatible0 = (a, b) => !((a === 'N' && 'STCA'.includes(b)) || (b === 'N' && 'STCA'.includes(a)) ||
     (a === 'X' && 'STC'.includes(b)) || (b === 'X' && 'STC'.includes(a)));
   DM.armyPts = us => {
     const t = us.some(u => u.t === 'N' || u.t === 'X') ? DM.FLEET_PTS : DM.LAND_PTS;

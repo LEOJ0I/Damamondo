@@ -16,7 +16,7 @@
   // unitOk / structOk: quali proprietari si possono colpire. Prima le truppe, poi edifici e ponti, dal più vicino.
   DM.targetsAt = function (G, x, y, unitOk, structOk) {
     const out = [], seen = new Set();
-    G.units.filter(u => !u.carried && unitOk(u.o) && Math.hypot(u.x - x, u.y - y) < G.tapR)
+    G.units.filter(u => !u.carried && unitOk(u.o) && Math.hypot(u.x - x, u.y - y) < G.tapR && !(DM.hiddenFrom && DM.hiddenFrom(G, u, G.p)))
       .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y)).forEach(u => {
         const s = siteOf(G, u);
         let key, units, label;
@@ -36,12 +36,20 @@
     const st = [];
     G.sites.forEach(s => { const d = Math.hypot(s.x - x, s.y - y); if (structOk(s.o) && d < G.tapR) st.push({ type: 'site', s, x: s.x, y: s.y, d, label: DM.nameOf(s.k) + (s.par ? ' (dentro la città)' : '') + ' di ' + owner(G, s.o) + ' (vita ' + s.hp + ')' }); });
     G.bridges.forEach(b => { const d = DM.segD(x, y, b); if (structOk(b.o) && d < G.tapR) st.push({ type: 'bridge', b, x: b.x, y: b.y, d, label: 'Ponte liv. ' + b.lv + ' di ' + owner(G, b.o) + ' (vita ' + b.hp + ')' }); });
+    // Classico: i pezzi di muro
+    (G.walls || []).forEach(w => { const d = DM.segD(x, y, w); if (structOk(w.o) && d < G.tapR) st.push({ type: 'wall', w, x: w.x, y: w.y, d, label: 'Muro' + (w.up ? ' migliorato' : '') + ' di ' + owner(G, w.o) + ' (vita ' + w.hp + ')' }); });
     st.sort((a, b) => (a.d - b.d) || ((a.s && a.s.par ? 1 : 0) - (b.s && b.s.par ? 1 : 0)));
     return out.concat(st);
   };
 
   // Danno a un edificio o ponte. Restituisce il testo del risultato.
   function hitStructure(G, z, dmg, bomb) {
+    if (z.type === 'wall') {
+      const w = z.w;
+      if (!(G.walls || []).includes(w)) return '';
+      w.hp -= dmg;
+      return w.hp <= 0 ? DM.breakWall(G, w) : ' Vita del muro: ' + w.hp + '.';
+    }
     if (z.type === 'bridge') {
       const b = z.b;
       if (bomb && b.lv === 2) { b.lv = 1; b.hp = DM.BRIDGE_HP[1]; return ' Il ponte torna di livello 1.'; }
@@ -63,6 +71,7 @@
     const A = DM.armyOf(G, u);
     if (u.carried) return 'Le truppe a bordo non possono sparare.';
     if (A.some(v => v.s)) return 'Ha già sparato in questo turno.';
+    if (DM.frozenError && DM.frozenError(G, A)) return DM.frozenError(G, A);
     if (!A.some(v => T[v.t].dmg > 0)) return 'Nessuna truppa qui può sparare (il Carro non ha attacco).';
     return '';
   };
@@ -93,22 +102,22 @@
         t.hp -= q.st[0]; dmg += q.st[0]; hit++;
         got[T[t.t].name] = (got[T[t.t].name] || 0) + 1;
       }
-      A.forEach(v => { v.s = true; });
+      A.forEach(v => { v.s = true; if (v.t === 'U') v.rv = true; });   // il sottomarino che spara si vede fino al suo turno dopo
       G.shots++;
       const dead = DM.cleanupDead(G);
       const spread = TG.length > 1 ? ' Colpi: ' + Object.entries(got).map(e => e[1] + ' su ' + e[0]).join(', ') + '.' : '';
       return hit + (hit > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni.' + spread +
         (dead.length ? ' Distrutte: ' + dead.length + '.' : '') + (TG.length === 1 && lead.hp > 0 ? ' Il bersaglio ha ' + lead.hp + ' di vita.' : '') + DM.vehicleNote(dead);
     }
-    const br = tg.type === 'bridge';
+    const br = tg.type === 'bridge', wl = tg.type === 'wall';
     const able = A.map(v => ({ v, st: DM.stat(G, v) }))
-      .filter(q => q.st[0] > 0 && inRange(q, br ? DM.segD(q.v.x, q.v.y, tg.b) : Math.hypot(q.v.x - tg.x, q.v.y - tg.y)) && (!br || q.v.t === 'N'))
+      .filter(q => q.st[0] > 0 && inRange(q, br ? DM.segD(q.v.x, q.v.y, tg.b) : wl ? DM.segD(q.v.x, q.v.y, tg.w) : Math.hypot(q.v.x - tg.x, q.v.y - tg.y)) && (!br || q.v.t === 'N'))
       .sort((a, b) => b.st[0] - a.st[0]).slice(0, maxShooters);
-    if (!able.length) return br ? 'I ponti si colpiscono solo con Navi, Bombe e Superbombe (o il ponte è fuori portata).' : 'Edificio fuori portata.';
+    if (!able.length) return br ? 'I ponti si colpiscono solo con Navi, Bombe e Superbombe (o il ponte è fuori portata).' : wl ? 'Muro fuori portata.' : 'Edificio fuori portata.';
     const dmg = able.reduce((t, q) => t + q.st[0], 0);
-    A.forEach(v => { v.s = true; });
+    A.forEach(v => { v.s = true; if (v.t === 'U') v.rv = true; });
     G.shots++;
-    return able.length + (able.length > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni a ' + (br ? 'un ponte' : DM.nameOf(tg.s.k)) + '.' + hitStructure(G, tg, dmg, false);
+    return able.length + (able.length > 1 ? ' truppe hanno sparato: ' : ' truppa ha sparato: ') + DM.fmtN(dmg) + ' danni a ' + (br ? 'un ponte' : wl ? 'un muro' : DM.nameOf(tg.s.k)) + '.' + hitStructure(G, tg, dmg, false);
   };
   // Sparo verso un punto: se ci sono più bersagli, "pick" dice quale (0 = il primo: truppe prima degli edifici)
   DM.shoot = (G, u, x, y, pick) => {
@@ -217,6 +226,12 @@
   DM.potionOnUnit = function (G, site, k, x, y, first) {
     const I = site.inv;
     if (first && !(I.mat[k] > 0)) return { err: 'Qui non c’è questa pozione.' };
+    // Classico, Congelamento: si tocca un punto qualsiasi; tutte le truppe entro 2 cm (tue e avversarie) si fermano per 2 giri
+    if (k === 'poz_congela') {
+      if (first && !(I.mat[k] > 0)) return { err: 'Qui non c’è questa pozione.' };
+      I.mat[k]--;
+      return { msg: DM.freezeAt(G, x, y), done: true };
+    }
     let c = G.units.filter(v => v.o === G.p && Math.hypot(v.x - x, v.y - y) < G.tapR);
     if (k === 'poz_curatruppe') {
       // la truppa si cura dovunque sia: si tocca lei (la più vicina al tocco tra le tue ferite)

@@ -46,6 +46,7 @@
 
   // Può u salire sul veicolo v? '' se sì
   DM.boardError = function (G, v, u) {
+    if (DM.frozenError && v && u && DM.frozenError(G, [v, u])) return DM.frozenError(G, [v, u]);
     if (!v || !u || v.o !== G.p || u.o !== G.p) return 'Servono un tuo veicolo e una tua truppa.';
     if (!DM.TROOP_CAP[v.t]) return T[v.t].name + ' non trasporta truppe.';
     if (u === v || u.carried) return 'Questa truppa è già a bordo.';

@@ -40,8 +40,22 @@
     if (ui.selB && !G.sites.includes(ui.selB)) ui.selB = null;
     DM.draw($('c'), G, ui, view(), ui.Z);
     hud(); info(); eco(); reserveMenu(); legend(); buttons();
-    autosave(); savesPanel(); bubble();
+    autosave(); savesPanel(); bubble(); cardPop();
     if (botNow() && !botBusy) setTimeout(maybeBot, 0);   // tocca a un bot: gioca da solo
+  }
+  // Classico: la carta pescata, in una finestrella che si gira; un tocco la chiude (e mostra la prossima, se ce n'è)
+  const DECK = { giri5: ['⏳', 'Carta 5 giri'], giri10: ['⌛', 'Carta 10 giri'], M: ['⛰️', 'Carta Montagna'], A: ['🏔️', 'Carta Alta montagna'], F: ['🌊', 'Carta Fiume/lago'] };
+  function cardPop() {
+    const el = $('cardPop'), c = G && G.cardsShown && G.cardsShown[0];
+    if (!c) { el.hidden = true; el.dataset.k = ''; return; }
+    const k = c.deck + c.text + G.cardsShown.length;
+    if (el.dataset.k === k) return;
+    el.dataset.k = k;
+    const [ic, name] = DECK[c.deck] || ['🃏', 'Carta'];
+    el.innerHTML = `<div class="card-in"><div class="deck">${ic} ${name}</div><b>${c.title}</b><p>${c.text}</p>` +
+      (c.result ? `<p class="res">${c.result}</p>` : '') + `<button type="button" data-act="cardok" class="go">${G.cardsShown.length > 1 ? 'Avanti (' + (G.cardsShown.length - 1) + ')' : 'OK'}</button></div>`;
+    el.hidden = false;
+    if (DM.Sfx) DM.Sfx.play('cargo');
   }
   DM.redraw = render;
 
@@ -114,6 +128,7 @@
     }
     else if (ui.sel) s = unitInfo(ui.sel);
     else if (ui.selB) s = siteInfo(ui.selB);
+    else if (ui.selW && (G.walls || []).includes(ui.selW)) s = wallInfo(ui.selW);
     if (['road', 'bomb', 'berry', 'pz', 'shoot', 'army'].includes(ui.mode) || ui.spawn) s = row(btn('cancel', ui.mode === 'pz' && !ui.pz.first ? 'Fatto' : ui.spawn && !ui.mode ? 'Deseleziona' : 'Annulla')) + s;
     f.innerHTML = (ui.msg ? `<p class="msg">${ui.msg}</p>` : '') + (s || (!ui.msg ? '<small>Tocca una tua truppa o un tuo edificio.</small>' : ''));
   }
@@ -125,6 +140,15 @@
   }
 
   // look: solo da guardare (partita di soli bot in pausa): niente pulsanti
+  function wallInfo(w) {
+    const mine = w.o === G.p && !botNow(), q = DM.cur(G);
+    let s = `<b style="color:${pcol(w.o)}">Muro${w.up ? ' migliorato ❄️' : ''}</b> · vita ${w.hp}/${w.mx}`;
+    if (!mine) return s + '<br><small>Blocca le truppe di terra; si può colpire con qualsiasi truppa.</small>';
+    const b = [];
+    if (!w.up && q.res.muroUp > 0) b.push(btn('wallup', 'Migliora (' + q.res.muroUp + ')'));
+    if (w.up) b.push(btn('walltrig', '❄️ Fai scattare il congelamento', '', 'go'));
+    return s + row(b.join('')) + '<small>' + (w.up ? 'Il pezzo crolla e congela per 2 giri tutte le truppe entro 2 cm, anche le tue.' : 'Blocca le truppe di terra nemiche (gli Elicotteri volano sopra).') + '</small>';
+  }
   function unitInfo(u, look) {
     const t = T[u.t], b = DM.bAt(G, u.x, u.y), A = DM.armyOf(G, u), st = DM.stat(G, u);
     const spd = Math.min(...A.map(q => DM.speedAt(G, q, q.x, q.y)));
@@ -223,24 +247,26 @@
   }
 
   // Negozio: tutto quello che si compra, con il costo; più chiaro quello che qui non si può comprare
-  const SHOP = [['Truppe', ['S', 'N', 'E', 'T', 'C', 'X', 'A']], ['Edifici (vanno nella riserva)', ['acc', 'citta', 'porto', 'aer', 'col', 'min']],
+  const SHOP = [['Truppe', ['S', 'N', 'E', 'T', 'U', 'C', 'X', 'A']], ['Edifici (vanno nella riserva)', ['acc', 'citta', 'porto', 'aer', 'col', 'min']],
+    ['Difese (vanno nella riserva)', ['mina', 'minaA', 'muro', 'muroUp']],
     ['Ponti (a pezzi da 1 cm)', ['ponte1', 'ponte2']], ['Armi', ['bomba', 'superbomba']], ['Pozioni', Object.keys(DM.POTIONS)]];
   const chip = (t, cls) => `<span class="chip${cls ? ' ' + cls : ''}">${t}</span>`;
   const costChips = o => chip('💰 ' + DM.fmtN(o.m)) + Object.keys(o.r).map(m => chip(DM.fmtN(o.r[m]) + ' ' + DM.unitOf(m) + ' ' + m)).join('');
   function canBuyHere(s, k) {
     if (!s || s.o !== G.p) return false;
-    if (T[k]) { if (k === 'N' && (s.k === 'cap' || s.k === 'citta')) return !!DM.riverSpot(G, s); if (!DM.SPAWNS[s.k].includes(k)) return false; }
+    if (T[k]) { if (k === 'U') return DM.SPAWNS[s.k].includes(k) && !!DM.waterSpot(G, s); if (k === 'N' && (s.k === 'cap' || s.k === 'citta')) return !!DM.riverSpot(G, s); if (!DM.SPAWNS[s.k].includes(k)) return false; }
+    if (k === 'minaA' && !(DM.cur(G).res.mina > 0)) return false;
     if (k === 'bomba' && !DM.BOMB.bomba.from.includes(s.k)) return false;
     if (k === 'superbomba' && !DM.BOMB.superbomba.from.includes(s.k)) return false;
     if (k === 'ponte2' && DM.isClassic() && !(DM.cur(G).res.ponte1 > 0)) return false;
-    return DM.COST[k].some(o => DM.canPay(DM.payInvs(G, s), o));
+    return DM.costOf(G, k).some(o => DM.canPay(DM.payInvs(G, s), o));
   }
   function shop(s) {
     const cl = DM.isClassic();
     $('shop').innerHTML = (s && s.o === G.p ? '' : '<small>Tocca un tuo edificio sulla mappa per comprare' + (cl ? '.' : ' con quello che contiene.') + '</small>') +
       SHOP.map(([title, ks]) => [title, (title === 'Pozioni' ? Object.keys(DM.POTIONS) : ks).filter(k => DM.COST[k])]).filter(([, ks]) => ks.length).map(([title, ks]) => `<h4>${title}</h4>` + ks.map(k => {
         const ok = canBuyHere(s, k);
-        return `<div class="item${ok ? '' : ' no'}"><div class="what"><b>${cl && k === 'ponte2' ? 'Migliora un pezzo di ponte al liv. 2' : DM.nameOf(k)}</b><div class="cost">${DM.COST[k].map(costChips).join('<small class="or">oppure</small>')}</div></div>` +
+        return `<div class="item${ok ? '' : ' no'}"><div class="what"><b>${cl && k === 'ponte2' ? 'Migliora un pezzo di ponte al liv. 2' : k === 'minaA' ? 'Migliora una mina (colpisce anche gli Elicotteri)' : k === 'muro' ? 'Pezzo di muro (1 cm)' : DM.nameOf(k)}</b><div class="cost">${DM.costOf(G, k).map(costChips).join('<small class="or">oppure</small>')}${DM.costOf(G, k) !== DM.COST[k] ? chip('☄️ metà prezzo', 'gold') : ''}</div></div>` +
           `<button type="button" class="playonly${ok ? ' go' : ''}" data-act="buyk" data-arg="${k}">Compra</button></div>`;
       }).join('')).join('');
   }
@@ -301,12 +327,13 @@
 
   function reserveMenu() {
     const sp = $('sp'), r = G.phase === 'play' ? DM.cur(G).res : {};
-    const keys = Object.keys(r).filter(k => r[k] > 0);
+    const keys = Object.keys(r).filter(k => r[k] > 0 && k !== 'muroUp');   // i miglioramenti delle mura si usano toccando il muro
     const want = keys.map(k => k + r[k]).join(',');
     if (sp.dataset.k !== want) {
       sp.dataset.k = want;
       sp.length = 1;
       keys.forEach(k => sp.add(new Option(T[k] ? 'Schiera ' + DM.nameOf(k) + ' (' + r[k] + ')' :
+        k === 'mina' || k === 'minaA' ? 'Posa ' + (k === 'minaA' ? 'mina migliorata' : 'mina') + ' (' + r[k] + ')' : k === 'muro' ? 'Costruisci muro (' + r[k] + (r[k] > 1 ? ' pezzi)' : ' pezzo)') :
         k.startsWith('ponte') ? 'Costruisci ponte liv. ' + k.slice(5) + ' (' + r[k] + (r[k] > 1 ? ' pezzi)' : ' pezzo)') : 'Costruisci ' + DM.nameOf(k) + ' (' + r[k] + ')', k)));
     }
     sp.options[0].text = ui.spawn ? '✕ Deseleziona' : 'Schiera o costruisci dalla riserva…';
@@ -398,10 +425,14 @@
     if (hit && hit === ui.sel) {   // secondo tocco sulla truppa: passa all'edificio sotto, oppure deseleziona
       ui.sel = null; ui.selB = sites[0] || null; ui.msg = sites.length ? '' : 'Truppa deselezionata.'; draw(); return;
     }
+    ui.selW = null;
     if (!hit && !ui.sel && sites.length) { DM.Sfx.play('select'); ui.selB = sites[(sites.indexOf(ui.selB) + 1) % sites.length]; ui.msg = ''; ui.cedeBTo = false; draw(); return; }
+    // Classico: un pezzo di muro (proprio o avversario)
+    const wall = !hit && !ui.sel && DM.isClassic() ? DM.wallAt(G, x, y) : null;
+    if (wall) { DM.Sfx.play('select'); ui.selW = wall; ui.selB = null; ui.msg = ''; draw(); return; }
     if (hit) { DM.Sfx.play('select'); ui.sel = hit; ui.selB = null; ui.msg = !hit.m ? 'Tocca la destinazione.' : DM.movesLeft(G, hit) ? 'Tocca la destinazione: può muoversi ancora in questo turno.' : 'Questa truppa ha già mosso.'; draw(); return; }
     if (!ui.sel) {
-      const enemyU = DM.unitNear(G, x, y), enemyS = DM.siteNear(G, x, y)[0];
+      const enemyU = DM.unitNear(G, x, y, u => !DM.hiddenFrom(G, u, G.p)), enemyS = DM.siteNear(G, x, y)[0];
       ui.selB = null;
       ui.msg = enemyU ? unitInfo(enemyU) : enemyS ? siteInfo(enemyS) : 'Tocca una tua truppa o un tuo edificio.';
       draw(); return;
@@ -425,6 +456,12 @@
 
   function spawnTap(x, y) {
     const k = ui.spawn;
+    if (k === 'mina' || k === 'minaA') { ui.msg = DM.placeMine(G, k, x, y); keepSpawn(k); draw(); return; }
+    if (k === 'muro') {   // il muro si posa con due tocchi: inizio e fine
+      if (!ui.bridgeA) { ui.bridgeA = [x, y]; ui.msg = 'Ora tocca dove finisce il muro.'; draw(); return; }
+      ui.msg = DM.buildWall(G, ui.bridgeA[0], ui.bridgeA[1], x, y);
+      ui.bridgeA = null; keepSpawn(k); draw(); return;
+    }
     if (k.startsWith('ponte')) {   // il ponte si posa con due tocchi: una riva e poi l'altra
       if (!ui.bridgeA) { ui.bridgeA = [x, y]; ui.msg = 'Ora tocca la terra dall’altra parte dell’acqua.'; draw(); return; }
       ui.msg = DM.buildBridge(G, ui.bridgeA[0], ui.bridgeA[1], x, y, +k.slice(5));
@@ -487,7 +524,7 @@
       const r = DM.usePotion(G, ui.selB, k);
       if (r.msg) { ui.msg = r.msg; return; }
       resetModes(); ui.mode = 'pz'; ui.pz = { k, left: r.left, first: true };
-      ui.msg = k === 'poz_stipendio' ? 'Tocca fino a 3 tue truppe o eserciti.' : k === 'poz_velocita' ? 'Tocca la truppa o l’esercito.' : 'Tocca la truppa da curare (anche lontana).';
+      ui.msg = k === 'poz_congela' ? 'Tocca il punto da congelare: tutte le truppe entro 2 cm (anche le tue) si fermano per 2 giri.' : k === 'poz_stipendio' ? 'Tocca fino a 3 tue truppe o eserciti.' : k === 'poz_velocita' ? 'Tocca la truppa o l’esercito.' : 'Tocca la truppa da curare (anche lontana).';
     },
     cedeb: () => { ui.cedeBTo = !ui.cedeBTo; },
     cedebto: o => { ui.msg = DM.cedeSite(G, ui.selB, +o); ui.cedeBTo = false; ui.selB = null; },
@@ -523,6 +560,9 @@
     unboard: a => { const [v, u] = a.split(':'); ui.msg = DM.unboard(G, DM.unitById(G, v), DM.unitById(G, u)); },
     done: () => { resetModes(); ui.msg = ''; },
     bank: () => { openSide('ecoP'); },
+    cardok: () => { if (G.cardsShown) G.cardsShown.shift(); },
+    wallup: () => { ui.msg = DM.upgradeWall(G, ui.selW); },
+    walltrig: () => { ui.msg = DM.triggerWall(G, ui.selW); ui.selW = null; },
     moneyin: () => { ui.msg = DM.moveMoney(G, ui.selB, ui.moneyQty || 1000, true); },
     moneyout: () => { ui.msg = DM.moveMoney(G, ui.selB, ui.moneyQty || 1000, false); },
     buyk: k => { if (G.phase === 'play') ui.msg = DM.buy(G, ui.selB, k); },
@@ -531,7 +571,7 @@
   };
 
   // azioni dei pulsanti che mostrano un'animazione (le altre: solo pannelli)
-  const FXK = { buyk: 'act', moneyin: 'act', moneyout: 'act', deployhere: 'act', upgrade: 'act', makecap: 'act', inside: 'act', choose: 'act', potion: 'act', cedebto: 'act', load: 'act', unload: 'act',
+  const FXK = { buyk: 'act', moneyin: 'act', moneyout: 'act', wallup: 'act', walltrig: 'act', deployhere: 'act', upgrade: 'act', makecap: 'act', inside: 'act', choose: 'act', potion: 'act', cedebto: 'act', load: 'act', unload: 'act',
     cedeto: 'act', cedenew: 'act', board: 'act', unboard: 'act', leave: 'act' };
   function onAction(e) {
     const b = e.target.closest('[data-act]');
@@ -804,6 +844,8 @@
       ui.sel = null;
       if (!k) { ui.msg = ''; draw(); return; }   // "Deseleziona"
       ui.msg = ui.spawn ? (T[ui.spawn] ? 'Tocca la mappa per schierare ' + T[ui.spawn].name + (T[ui.spawn].kind === 'sea' ? ' (dentro un tuo Porto).' : ui.spawn === 'A' ? ' (dentro un tuo Aeroporto).' : ' (entro 2 cm dalla Capitale, 1 cm da Città e Accampamenti).') :
+        ui.spawn === 'mina' || ui.spawn === 'minaA' ? 'Tocca dove posare la mina (entro 1 cm da una tua truppa). Gli avversari non la vedranno.' :
+        ui.spawn === 'muro' ? 'Tocca l’inizio del muro, poi la fine (1 pezzo per cm, al massimo 5 cm, nel tuo territorio).' :
         ui.spawn.startsWith('ponte') ? 'Tocca la terra da una parte dell’acqua, poi dall’altra. Ogni cm di ponte usa un pezzo (anche 0,7 cm usa 1 pezzo, 1,3 cm ne usa 2).' :
         'Tocca la mappa per costruire ' + DM.nameOf(ui.spawn) + (ui.spawn === 'porto' ? ' (in acqua, vicino alla tua costa).' : ' (nel tuo territorio, con una tua truppa entro 2 cm).')) : '';
       draw();

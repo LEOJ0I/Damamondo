@@ -48,7 +48,11 @@
     if (!site || site.o !== G.p) return 'Seleziona prima l’edificio in cui compri (servono i soldi e i materiali lì).';
     // 8.1: una Nave nasce in un Porto, oppure sul fiume entro 1 cm da una Città
     let at = [site.x, site.y];
-    if (k === 'N' && (site.k === 'cap' || site.k === 'citta')) {
+    if (k === 'U') {   // Classico: il sottomarino nasce in acqua entro 1 cm, senza bisogno del Porto
+      at = DM.waterSpot(G, site);
+      if (!at) return 'Il Sottomarino nasce in acqua entro 1 cm dall’edificio: qui l’acqua è troppo lontana.';
+      if (!DM.SPAWNS[site.k].includes(k)) return 'Qui non si può creare un Sottomarino.';
+    } else if (k === 'N' && (site.k === 'cap' || site.k === 'citta')) {
       at = DM.riverSpot(G, site);
       if (!at) return 'Le Navi nascono nei Porti, oppure sul fiume entro 1 cm da una Città.';
     } else if (T[k] && !DM.SPAWNS[site.k].includes(k)) return 'Qui non si può creare ' + DM.nameOf(k) + '.';
@@ -59,10 +63,14 @@
     // Classico: il ponte di liv. 2 è un miglioramento di un pezzo di liv. 1 della riserva
     const up2 = DM.isClassic && DM.isClassic() && k === 'ponte2';
     if (up2 && !(q.res.ponte1 > 0)) return 'Per il liv. 2 serve un pezzo di ponte liv. 1 nella riserva da migliorare.';
+    if (k === 'minaA' && !(q.res.mina > 0)) return 'Per il miglioramento serve una mina nella riserva.';
     const invs = DM.payInvs ? DM.payInvs(G, site) : [site.inv];
-    if (!DM.pay(invs, DM.COST[k])) return 'Non hai abbastanza risorse ' + (invs.length > 1 ? '' : 'in questo edificio ') + 'per ' + DM.nameOf(k) + '. Serve: ' + DM.costsText(k) + '.';
+    const cost = DM.costOf ? DM.costOf(G, k) : DM.COST[k];
+    if (!DM.pay(invs, cost)) return 'Non hai abbastanza risorse ' + (invs.length > 1 ? '' : 'in questo edificio ') + 'per ' + DM.nameOf(k) + '. Serve: ' + cost.map(DM.costText).join(' oppure ') + '.';
     if (DM.balanceMoney) DM.balanceMoney(G, G.p);
     if (up2) { q.res.ponte1--; q.res.ponte2 = (q.res.ponte2 || 0) + 1; return 'Un pezzo di ponte è passato al liv. 2: lo trovi nella riserva.'; }
+    if (k === 'minaA') { q.res.mina--; q.res.minaA = (q.res.minaA || 0) + 1; return 'Mina migliorata (colpisce anche gli Elicotteri): la trovi nella riserva.'; }
+    if (k === 'muroUp') { q.res.muroUp = (q.res.muroUp || 0) + 5; return 'Miglioramento delle mura per 5 pezzi: seleziona un tuo pezzo di muro e premi "Migliora".'; }
     if (T[k]) {
       DM.addUnit(G, k, G.p, at[0], at[1]);
       DM.claim(G, G.p, site.x, site.y);

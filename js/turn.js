@@ -23,6 +23,7 @@
     }
     if (changed) DM.rebuildMap(m, G.round);
     G.rad = G.rad.filter(z => z.until > G.round);
+    if (DM.roundCards) msg += DM.roundCards(G);   // Classico: carte dei 5 e dei 10 giri
     DM.economyTick(G);
     msg += DM.conquestTick(G);
     return msg;
@@ -37,7 +38,7 @@
     G.players.forEach(q => { q.sold = ''; });
     if (G.p <= q0) { G.round++; msg += DM.tick(G); }
     G.berried = false; G.moved = 0; G.shots = 0;
-    G.units.forEach(u => { u.m = false; u.s = false; delete u.mc; delete u.prev; });
+    G.units.forEach(u => { u.m = false; u.s = false; delete u.mc; delete u.prev; delete u.card; if (u.o === G.p) u.rv = false; });   // il sottomarino torna nascosto al suo turno
     // Bruciature del Lavico (3 turni, non si sommano) per le truppe del giocatore di turno
     G.units.filter(u => u.o === G.p && !u.carried).forEach(u => {
       if (DM.bAt(G, u.x, u.y) === 'Z' && DM.TROOPS[u.t].kind !== 'air') u.bn = 3;

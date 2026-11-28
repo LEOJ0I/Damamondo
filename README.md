@@ -48,7 +48,7 @@ Animazioni e suoni non toccano le regole: prima di un'azione l'interfaccia fa un
 ## Prove
 
 ```
-npm test               # 85 prove delle regole, dei bot (anche partite intere tra bot) e delle mappe segrete (anche che le pagine statiche siano aggiornate) (serve Node 18+)
+npm test               # 91 prove delle regole, dei bot (anche partite intere tra bot) e delle mappe segrete (anche che le pagine statiche siano aggiornate) (serve Node 18+)
 npm run test:browser   # 42 passi giocati (anche contro i bot, sulle mappe segrete e sulla mappa originale), 15 prove di animazioni e suoni, prova dell'app senza internet, in un browser che finge un iPhone (serve Playwright)
 ```
 
