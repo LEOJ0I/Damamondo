@@ -97,7 +97,7 @@
         <label>Umidità <select id="hum"><option value="0">Bassa</option><option value="1">Medio bassa</option><option value="2" selected>Media</option><option value="3">Medio alta</option><option value="4">Alta</option></select></label>
         <label>Temperatura <select id="tmp"><option value="0">Calda</option><option value="1">Medio calda</option><option value="2" selected>Media</option><option value="3">Medio fredda</option><option value="4">Fredda</option></select></label>
         <label>Varietà dei biomi <select id="cmp"><option value="0">Semplicissima</option><option value="1">Semplice</option><option value="2" selected>Media</option><option value="3">Estrema</option><option value="4">Estremissima</option></select></label>
-        <label>Numero mappa <input type="number" id="seed" min="0" inputmode="numeric" placeholder="a caso"></label>
+        <label>Numero mappa <input type="text" id="seed" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="a caso"></label>
       </div><small>Stesse opzioni e stesso numero danno la stessa mappa.</small></div>` +
       '<div class="stack">' + b('inizia', 'Inizia', 'go') + b('locale', '← Indietro', 'back') + '</div>',
     regole: () => '<div class="stack">' + b('home', '← Menu', 'back') + '</div><h2>Regolamento</h2>' +
@@ -138,6 +138,14 @@
     const raw = $('seed').value.trim(), seed = raw !== '' && isFinite(+raw) ? Math.max(0, Math.floor(+raw)) : Math.floor(Math.random() * 9999) + 1;
     // il 6 dà la mappa originale solo dopo aver trovato tutte le mappe segrete (resta scritto nella partita salvata)
     if (seed === 6 && raw !== '' && DM.Secrets.allFound()) opts.orig = 1;
+    // numeri troppo grandi: oltre il limite il numero non sarebbe più preciso. Il più grande fatto di soli 9 si apre più avanti.
+    const tooBig = raw !== '' && seed === DM.SYMBOL_SEED && !DM.Secrets.hasOrig() ? '🔒 Numero troppo grande… per ora. Ritorna più avanti.' : '';
+    if (tooBig) {
+      let m = $('seedMsg');
+      if (!m) { m = document.createElement('p'); m.id = 'seedMsg'; m.className = 'msg'; $('seed').closest('.card').appendChild(m); }
+      m.textContent = tooBig; $('seed').focus();
+      return;
+    }
     $('menuBody').innerHTML = title + '<p class="msg center">Creo la mappa…</p>';
     setTimeout(() => {
       const G = DM.newGame(opts, seed);
@@ -147,7 +155,9 @@
       DM.playGame(G, slot);
       if (G.map.symbol) {   // la mappa del simbolo (sfondo dell'icona e del menu)
         DM.ui.msg = '⭐ Hai trovato la mappa del simbolo di Damamondo: è quella dietro la stella dell’icona e sullo sfondo del menu!' +
-          '<br><small class="fact">💡 Lo sapevi? È la mappa numero 7 con tutte le opzioni medie: in Damamondo ogni numero è come un seme, e dallo stesso seme nasce sempre lo stesso mondo.</small>';
+          '<br><small class="fact">💡 Lo sapevi? È la mappa numero 7 con tutte le opzioni medie: in Damamondo ogni numero è come un seme, e dallo stesso seme nasce sempre lo stesso mondo.</small>' +
+          // col 6 (prima dello sblocco) un indizio: questo numero nasconde ancora qualcosa
+          (G.seed === 6 ? '<br><small class="fact">🔒 Questo numero non ha ancora detto la sua ultima parola… Ritorna più avanti.</small>' : '');
         DM.redraw();
       }
       if (G.map.secret) {   // mappa segreta trovata!
@@ -202,6 +212,8 @@
   }
 
   DM.startMenu = function () {
+    // numero mappa: solo cifre, al massimo 15 (oltre, il numero non resterebbe preciso)
+    document.addEventListener('input', e => { if (e.target.id === 'seed') { const v = e.target.value.replace(/\D/g, '').slice(0, 15); if (v !== e.target.value) e.target.value = v; } });
     $('menuBody').addEventListener('click', e => {
       const x = e.target.closest('[data-m]');
       if (x && ACT[x.dataset.m]) ACT[x.dataset.m](x.dataset.arg);
