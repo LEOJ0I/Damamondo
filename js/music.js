@@ -147,22 +147,44 @@
   }
   const sectionOf = bar => Math.floor((bar % LOOP) / 16);
 
-  // ---------- la versione epica (premio della mappa originale) ----------
-  // La stessa melodia, più lenta e solenne (76 battiti): coro di archi grave, ottoni in ottava,
-  // ostinato di archi a sedicesimi, timpani e tamburi grandi, piatti che si gonfiano ogni 4 battute.
-  const EBPM = 76, EBEAT = 60 / EBPM, EBAR = 4 * EBEAT;
+  // ---------- la sigla epica (premio della mappa originale) ----------
+  // Un brano diverso dalla sigla: re minore, 104 battiti, marcia da battaglia. Melodia e accordi propri,
+  // ottoni che squillano a terzine, un coro ("ah"), ostinato di archi a sedicesimi e tamburi da guerra.
+  //   sezione 1 (battute 1–16):  richiami di corni e tamburi che crescono      → l'attesa
+  //   sezione 2 (17–32):         il tema agli ottoni gravi, coro sotto          → la marcia
+  //   sezione 3 (33–48):         il tema in alto, coro e ottoni pieni, piatti   → la battaglia
+  //   sezione 4 (49–64):         coro solo e un corno lontano, poi il rullo     → la quiete prima di ricominciare
+  const EBPM = 104, EBEAT = 60 / EBPM, EBAR = 4 * EBEAT;
+  const EPROG = ['Dm', 'Dm', 'Bb', 'Bb', 'F', 'F', 'C', 'A', 'Dm', 'Bb', 'Gm', 'A', 'Dm', 'Bb', 'C', 'A'];
+  const EMEL = [
+    [[62, 1.5], [69, .5], [69, 2]], [[67, .5], [69, .5], [70, 1], [69, 2]], [[70, 1.5], [74, .5], [74, 2]], [[72, .5], [70, .5], [69, 1], [65, 2]],
+    [[69, 1.5], [72, .5], [72, 2]], [[74, .5], [72, .5], [70, 1], [69, 2]], [[67, 1.5], [72, .5], [76, 2]], [[73, 3], [null, 1]],
+    [[74, 1.5], [81, .5], [81, 2]], [[79, .5], [77, .5], [79, 1], [74, 2]], [[79, 1.5], [74, .5], [70, 2]], [[73, 1], [76, 1], [81, 2]],
+    [[81, 1.5], [77, .5], [74, 2]], [[77, .5], [79, .5], [77, 1], [74, 2]], [[76, 1], [79, 1], [76, 1], [72, 1]], [[73, 2], [69, 1], [73, 1]]
+  ];
   function stab(c, out, m, t, vol) {            // archi gravi staccati (ostinato)
     const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m);
-    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 650;
-    const g = c.createGain(); env(c, g, t, .008, vol, .04, .12);
-    o.connect(f); f.connect(g); g.connect(out); o.start(t); o.stop(t + .25);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700;
+    const g = c.createGain(); env(c, g, t, .008, vol, .03, .1);
+    o.connect(f); f.connect(g); g.connect(out); o.start(t); o.stop(t + .2);
   }
   function brass(c, out, m, t, dur, vol) {      // ottoni: due seghe aperte, il filtro si apre all'attacco
     const f = c.createBiquadFilter(); f.type = 'lowpass';
-    f.frequency.setValueAtTime(400, t); f.frequency.linearRampToValueAtTime(1600, t + .12); f.frequency.linearRampToValueAtTime(1000, t + dur);
-    const g = c.createGain(); env(c, g, t, .07, vol, Math.max(0, dur - .2), .35);
+    f.frequency.setValueAtTime(500, t); f.frequency.linearRampToValueAtTime(2200, t + .08); f.frequency.linearRampToValueAtTime(1200, t + Math.max(.1, dur));
+    const g = c.createGain(); env(c, g, t, .04, vol, Math.max(0, dur - .15), .3);
     f.connect(g); g.connect(out);
-    [-8, 8].forEach(d => { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m); o.detune.value = d; o.connect(f); o.start(t); o.stop(t + dur + .5); });
+    [-7, 7].forEach(d => { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m); o.detune.value = d; o.connect(f); o.start(t); o.stop(t + dur + .45); });
+  }
+  function choir(c, out, notes, t, dur, vol) {  // coro "ah": seghe filtrate su due formanti, con vibrato lento
+    const f1 = c.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 750; f1.Q.value = 4;
+    const f2 = c.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1150; f2.Q.value = 5;
+    const g = c.createGain(); env(c, g, t, .5, vol, Math.max(0, dur - .5), .9);
+    f1.connect(g); f2.connect(g); g.connect(out);
+    notes.forEach((m, k) => [-9, 0, 9].forEach(d => {
+      const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(m); o.detune.value = d + (k % 2 ? 3 : -3);
+      const v = c.createOscillator(), vg = c.createGain(); v.frequency.value = 4.6 + k * .3; vg.gain.value = hz(m) * .004; v.connect(vg); vg.connect(o.frequency);
+      o.connect(f1); o.connect(f2); o.start(t); v.start(t); o.stop(t + dur + 1); v.stop(t + dur + 1);
+    }));
   }
   function cymbal(c, out, t, len, vol) {        // piatto che si gonfia (rullo) fino al tempo t + len
     const s = c.createBufferSource(); s.buffer = noise(c); s.loop = true;
@@ -170,35 +192,56 @@
     const g = c.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + len); g.gain.exponentialRampToValueAtTime(.0001, t + len + 1.8);
     s.connect(f); f.connect(g); g.connect(out); s.start(t); s.stop(t + len + 1.9);
   }
+  function crash(c, out, t, vol) {              // piatto colpito
+    const s = c.createBufferSource(); s.buffer = noise(c); s.loop = true;
+    const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 4000;
+    const g = c.createGain(); env(c, g, t, .003, vol, 0, 1.6);
+    s.connect(f); f.connect(g); g.connect(out); s.start(t); s.stop(t + 1.7);
+  }
+  function snare(c, out, t, vol) {              // rullante da marcia
+    const s = c.createBufferSource(); s.buffer = noise(c);
+    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2200; f.Q.value = .7;
+    const g = c.createGain(); env(c, g, t, .002, vol, 0, .12);
+    s.connect(f); f.connect(g); g.connect(out); s.start(t, Math.random() * .5); s.stop(t + .15);
+    drum(c, out, t, 220, 160, vol * .5, .08);
+  }
   function playEpic(c, out, bar, t, sec, quiet) {
-    const i = bar % 16, chord = CH[PROG[i]], root = chord[0], B = EBEAT, k = quiet ? .6 : 1;
-    // coro di archi: accordo pieno su tre ottave
-    pad(c, out, chord.map(m => m + 12).concat(root - 12), t, EBAR - .1);
-    if (sec > 0) pad(c, out, chord.map(m => m + 24), t, EBAR - .1);
-    // basso lungo e ostinato a sedicesimi (non nella pausa)
-    bass(c, out, root - 12, t, EBAR - .1);
-    if (sec !== 3) for (let j = 0; j < 16; j++) stab(c, out, (j % 4 === 2 ? chord[2] : root) - (j % 8 < 4 ? 0 : 12), t + j * B / 4, (j % 4 ? .028 : .045) * k);
-    // la melodia: ottoni (sezione 1), ottoni in ottava + flauto (sezione 2); frammenti nella pausa
+    const i = bar % 16, chord = CH[EPROG[i]], root = chord[0], B = EBEAT, k = quiet ? .55 : 1;
+    // archi e basso
+    pad(c, out, chord.map(m => m + 12), t, EBAR - .05);
+    bass(c, out, root - 12, t, 1.8 * B); bass(c, out, root - 12, t + 2 * B, 1.3 * B); bass(c, out, root - 5, t + 3.5 * B, .45 * B);
+    // ostinato a sedicesimi: la-la-la-LA, sempre sulla tonica e sulla quinta (non nella quiete)
+    if (sec !== 3) for (let j = 0; j < 16; j++) stab(c, out, [root, root, root + 7, root][j % 4] + (j >= 8 && sec === 2 ? 12 : 0), t + j * B / 4, (j % 4 === 3 ? .05 : .03) * k);
+    // coro: da metà della marcia in poi, e da solo nella quiete
+    if (sec >= 1) choir(c, out, chord.map(m => m + (sec === 2 ? 12 : 0)), t, EBAR - .05, (sec === 3 ? .05 : sec === 2 ? .045 : .03) * k);
+    // il tema
     if (sec === 1 || sec === 2) {
       let b = 0;
-      MEL[i].forEach(([m, d]) => {
+      EMEL[i].forEach(([m, d]) => {
         if (m !== null) {
-          brass(c, out, m - 12, t + b * B, d * B * .92, sec === 2 ? .05 : .045);
-          if (sec === 2) { brass(c, out, m, t + b * B, d * B * .92, .03); flute(c, out, m + 12, t + b * B, d * B * .9, .05); }
+          brass(c, out, m - 12, t + b * B, d * B * .9, .05);
+          if (sec === 2) { brass(c, out, m, t + b * B, d * B * .9, .04); brass(c, out, m + 12, t + b * B, d * B * .85, .012); }
         }
         b += d;
       });
-    } else if (sec === 3) { if (i % 2 === 0) bell(c, out, MEL[i][0][0] + 12, t); }
-    else if (i % 4 === 0) brass(c, out, root + 12, t, 3.5 * B, .03);   // apertura: un richiamo di corni
-    // timpani e tamburi grandi
-    if (sec === 0) { drum(c, out, t, 70, 40, .3 * k, .9); if (i % 2) drum(c, out, t + 2 * B, 70, 40, .22 * k, .9); }
-    if (sec === 1 || sec === 2) {
-      drum(c, out, t, 65, 35, .4 * k, 1); drum(c, out, t + 1.5 * B, 80, 45, .2 * k, .6); drum(c, out, t + 2 * B, 65, 35, .34 * k, 1);
-      if (sec === 2) [3, 3.5].forEach(x => drum(c, out, t + x * B, 110, 60, .2 * k, .4));
-      if (i % 4 === 3) { [3, 3.25, 3.5, 3.75].forEach((x, n) => drum(c, out, t + x * B, 90 + n * 8, 50, (.14 + n * .04) * k, .45)); cymbal(c, out, t + 2 * B, 2 * B, .05 * k); }
-      if (sec === 2 && !quiet) for (let j = 0; j < 8; j++) shaker(c, out, t + j * B / 2, j % 2 ? .02 : .035);
     }
-    if (sec === 3 && i === 15) { for (let j = 0; j < 12; j++) drum(c, out, t + 2 * B + j * B / 6, 75, 45, .05 + j * .02, .3); cymbal(c, out, t + 2 * B, 2 * B, .06 * k); }
+    // squilli di ottoni a terzine (attesa e battaglia), e un corno lontano nella quiete
+    if (sec === 0 || (sec === 2 && i % 4 === 3)) {
+      const top = chord[0] + 12;
+      [0, 1, 2].forEach(n => brass(c, out, top, t + 3 * B + n * B / 3, B / 3 * .7, .045 * k));
+      if (sec === 0) brass(c, out, top + 7, t, 2.5 * B, .03 * k);
+    }
+    if (sec === 3 && i % 4 === 0) brass(c, out, EMEL[i][0][0] - 12, t + B, 2.5 * B, .035);
+    // tamburi da guerra: grancassa pesante, rullante da marcia, tom a terzine
+    if (sec === 0) { drum(c, out, t, 60, 34, (.18 + i * .015) * k, 1); if (i >= 8) [2, 2.5, 3, 3.5].forEach(x => snare(c, out, t + x * B, (.03 + i * .004) * k)); }
+    if (sec === 1 || sec === 2) {
+      drum(c, out, t, 58, 32, .42 * k, 1.1); drum(c, out, t + 1.5 * B, 58, 32, .25 * k, .8); drum(c, out, t + 2 * B, 58, 32, .38 * k, 1.1);
+      [1, 3].forEach(x => snare(c, out, t + x * B, .09 * k));
+      if (sec === 2) { [.5, 2.5, 3.5].forEach(x => snare(c, out, t + x * B, .04 * k)); if (i % 4 === 0) crash(c, out, t, .07 * k); }
+      if (i % 4 === 3) [3, 3 + 1 / 3, 3 + 2 / 3].forEach((x, n) => drum(c, out, t + x * B, 130 - n * 20, 70, (.2 + n * .05) * k, .4));
+    }
+    if (sec === 3 && i >= 14) { for (let j = 0; j < (i === 15 ? 16 : 8); j++) snare(c, out, t + (i === 15 ? 0 : 2 * B) + j * B / 4, (.02 + j * .006) * k); if (i === 15) cymbal(c, out, t, EBAR, .07 * k); }
+    if (sec === 0 && i === 15) cymbal(c, out, t, EBAR, .06 * k);
   }
   // quale sigla suona: la classica, o l'epica se è stata sbloccata e scelta nelle Impostazioni
   const epic = () => P.get('theme') === 'epica' && !!(DM.Secrets && DM.Secrets.hasOrig());
